@@ -35,7 +35,6 @@ let o
 handler.help = ['speedtest'];
 handler.tags = ['main'];
 handler.command = /^(speedtest?|test?speed)$/i;
-handler.register = true
 export default handler;
 
 function toTime(milliseconds) {
