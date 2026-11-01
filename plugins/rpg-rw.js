@@ -81,7 +81,7 @@ isForwarded: true,
 forwardedNewsletterMessageInfo: {
 newsletterJid: process.env.CHANNEL_ID,
 serverMessageId: '',
-newsletterName: 'LoliBot ✨️' },
+newsletterName: 'Rem Bot' },
 externalAdReply: {
 title: "✨️ Character Details ✨️",
 body: info.wm,
@@ -150,7 +150,7 @@ return conn.sendMessage(m.chat, { text: '⚠️ Error al procesar la compra. Int
 handler.help = ['rw']
 handler.tags = ['gacha']
 handler.command = ['rw']
-handler.register = true
+handler.register = false
 
 export default handler
 
