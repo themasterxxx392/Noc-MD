@@ -12,7 +12,6 @@ const handler = async (m, { text, usedPrefix, command }) => {
 handler.help = ['tobase64']
 handler.tags = ['tools']
 handler.command = ['tobase64']
-handler.register = true
 handler.limit = 1
 
 export default handler
