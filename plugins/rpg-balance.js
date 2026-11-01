@@ -29,15 +29,14 @@ const handler = async (m, { conn, usedPrefix }) => {
 *• 𝐋𝐨𝐥𝐢𝐂𝐨𝐢𝐧𝐬:* _${user.money} 🪙_
 > Afuera del Banco 
 
-*•───⧼⧼⧽ 𝙱𝙰𝙽𝙲𝙾 ⧽⧽⧽───•*
+*•───⧼⧼⧼ 𝙱𝙰𝙽𝙲𝙾 ⧽⧽⧽───•*
 
 *🏦 𝐃𝐢𝐧𝐞𝐫𝐨 :* _${user.banco} 💎_
-> Adentro del Banco 🏦`, { mentions: [who] });
+> Adentro del Banco 🏦`, m, { mentions: [who] });
 };
 
 handler.help = ['balance'];
 handler.tags = ['econ'];
 handler.command = ['bal', 'diamantes', 'diamond', 'balance'];
-handler.register = false;
 
 export default handler;
