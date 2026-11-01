@@ -60,7 +60,6 @@ handler.tags = ['owner']
 handler.customPrefix = /^=?>\s?/
 //handler.command = /(?:)/i
 //handler.owner = true
-handler.register = true
 
 export default handler
 
