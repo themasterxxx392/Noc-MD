@@ -1,4 +1,3 @@
-//CÓDIGO CREADO POR elrebelde21 : https://github.com/elrebelde21
 import { xpRange } from '../lib/levelling.js'
 
 const cooldown = 3600000; // 1 hora
@@ -47,7 +46,6 @@ return conn.sendMessage(m.chat, { text, mentions: [m.sender, randomTarget] }, { 
 handler.help = ['crime'];
 handler.tags = ['econ'];
 handler.command = /^(crime|crimen)$/i;
-handler.register = true;
 handler.group = true;
 
 export default handler;
