@@ -1,22 +1,22 @@
-import { db } from '../lib/database.js';
-
 const handler = async (m, { conn, usedPrefix }) => {
     const who = m.quoted?.sender || m.mentionedJid?.[0] || (m.fromMe ? conn.user.jid : m.sender);
     
-    if (!db || typeof db.query !== 'function') {
-        return conn.reply(m.chat, '❌ Error: La base de datos no está disponible.', m);
+    // Verificamos si existe una base de datos global o la del cliente
+    const database = global.db || conn.db;
+    if (!database) {
+        return conn.reply(m.chat, '⚠️ Base de datos no disponible.', m);
     }
 
-    let res = await db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
+    let res = await database.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
     let user = res.rows[0];
 
     if (!user) {
-        await db.query(
+        await database.query(
             `INSERT INTO usuarios (id, nombre, num, registered, limite, exp, money, banco)
              VALUES ($1, $2, $3, true, 10, 100, 50, 0) ON CONFLICT (id) DO NOTHING`,
             [who, m.pushName || "Usuario", who.split("@")[0]]
         );
-        res = await db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
+        res = await database.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
         user = res.rows[0] || { limite: 10, exp: 100, money: 50, banco: 0 };
     }
 
