@@ -1,5 +1,3 @@
-// Código elaborado por: https://github.com/elrebelde21
-
 const cleanJid = (jid = '') => String(jid || '').replace(/:\d+/, '')
 
 const findUserByAnyId = async (db, ids = []) => {
@@ -217,6 +215,5 @@ handler.before = async (m, { conn }) => {
 handler.help = ['marry @tag']
 handler.tags = ['econ']
 handler.command = ['marry', 'pareja']
-handler.register = true
 
 export default handler
