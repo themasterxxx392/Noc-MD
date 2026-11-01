@@ -124,6 +124,5 @@ const handler = async (m, { conn, args, metadata }) => {
 handler.help = ['divorce <@tag>']
 handler.tags = ['econ']
 handler.command = ['divorce']
-handler.register = true
 
 export default handler
