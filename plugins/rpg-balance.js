@@ -1,8 +1,6 @@
 const handler = async (m, { conn, usedPrefix }) => {
     const who = m.quoted?.sender || m.mentionedJid?.[0] || (m.fromMe ? conn.user.jid : m.sender);
     
-    if (!m.db) return conn.reply(m.chat, '⚠️ Base de datos no disponible.', m);
-
     let res = await m.db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
     let user = res.rows[0];
 
@@ -34,6 +32,5 @@ const handler = async (m, { conn, usedPrefix }) => {
 handler.help = ['balance'];
 handler.tags = ['econ'];
 handler.command = ['bal', 'diamantes', 'diamond', 'balance'];
-handler.register = false;
 
 export default handler;
