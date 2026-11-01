@@ -1,9 +1,11 @@
-import db from '../lib/database.js'; // O ajusta la ruta si tu archivo database.js está en otra carpeta
+import db from '../lib/database.js';
 
 const handler = async (m, { conn, usedPrefix }) => {
     const who = m.quoted?.sender || m.mentionedJid?.[0] || (m.fromMe ? conn.user.jid : m.sender);
     
-    if (!db) return conn.reply(m.chat, '❌ Error: No se pudo cargar la base de datos.', m);
+    if (!db || typeof db.query !== 'function') {
+        return conn.reply(m.chat, '❌ Error: La base de datos no está disponible.', m);
+    }
 
     let res = await db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
     let user = res.rows[0];
