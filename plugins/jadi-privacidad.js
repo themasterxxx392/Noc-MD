@@ -29,6 +29,5 @@ handler.help = ['setprivacy', 'setprestar']
 handler.tags = ['jadibot']
 handler.command = /^(privacy|prestar|setprestar|setprivacy)$/i
 handler.owner = true
-handler.register = true
 
 export default handler
