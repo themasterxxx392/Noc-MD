@@ -91,6 +91,5 @@ return
 handler.command = new RegExp(`^(${Object.keys(aliasMap).join('|')})$`, 'i')
 handler.help = Object.keys(aliasMap)
 handler.tags = ['randow']
-handler.register = true
 
 export default handler
