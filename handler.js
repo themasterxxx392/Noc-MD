@@ -635,12 +635,13 @@ try {
   m.sender = finalId
   m.lid = finalLid || ""
 
-  await db.query(
+    await db.query(
     `INSERT INTO usuarios (id, nombre, num, lid, registered)
-     VALUES ($1, $2, $3, $4, false)
+     VALUES ($1, $2, $3, $4, true)
      ON CONFLICT (id) DO NOTHING`,
     [finalId, userName, finalNum || null, finalLid]
   )
+  
 
   await db.query(
     `UPDATE usuarios SET nombre = $1, num = $2 WHERE id = $3`,
