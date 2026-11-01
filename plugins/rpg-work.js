@@ -15,7 +15,6 @@ await conn.reply(m.chat, `🛠 ${pickRandom(work)} *${formatNumber(xpGanado)} XP
 handler.help = ['work', 'trabajar', 'w'];
 handler.tags = ['econ'];
 handler.command = /^(work|trabajar|chambear|w|chamba)$/i;
-handler.register = true;
 
 export default handler;
 
