@@ -72,5 +72,4 @@ handler.help = Object.keys(aliasMap)
 handler.tags = ['nsfw']
 handler.command = new RegExp(`^(${Object.keys(aliasMap).join('|')})$`, 'i')
 handler.limit = 2
-handler.register = true
 export default handler
