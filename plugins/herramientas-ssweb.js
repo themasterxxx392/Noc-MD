@@ -13,6 +13,5 @@ await m.react('❌')
 handler.help = ['ss', 'ssweb'].map(v => v + ' *<url>*')
 handler.tags = ['tools']
 handler.command = /^ss(web)?f?$/i
-handler.register = true 
 handler.limit = 1
 export default handler
