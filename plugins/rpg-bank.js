@@ -42,6 +42,5 @@ return m.reply(`*[ 🏦 ] Has retirado ${amount} diamantes del Banco*`)
 handler.help = ['dep', 'depositar', 'retirar', 'toremove']
 handler.tags = ['econ']
 handler.command = /^(dep|depositar|retirar|toremove)$/i
-handler.register = true
 
 export default handler
