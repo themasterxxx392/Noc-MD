@@ -71,7 +71,6 @@ handler.command = /^(demote|quitarpoder|quitaradmin)$/i
 handler.group = true
 handler.admin = true
 handler.botAdmin = true
-handler.register = true
 handler.fail = null
 
 export default handler
