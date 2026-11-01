@@ -40,6 +40,5 @@ handler.help = ["addowner", "delowner"];
 handler.tags = ["jadibot"];
 handler.command = /^(addowner|delowner)$/i;
 handler.owner = true;
-handler.register = true
 
 export default handler;
