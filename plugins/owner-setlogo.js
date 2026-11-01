@@ -11,7 +11,6 @@ m.reply("✅ Foto/logo del bot actualizada correctamente.");
 handler.help = ["setlogo <url>"];
 handler.tags = ["jadibot"];
 handler.command = /^setlogo$/i;
-handler.register = true
 handler.owner = true;
 
 export default handler;
