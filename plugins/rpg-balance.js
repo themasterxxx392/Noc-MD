@@ -1,12 +1,8 @@
 import { db } from '../lib/postgres.js';
 
-const handler = async (m, { conn, usedPrefix }) => {
+const handler = async (m, { conn }) => {
     const who = m.quoted?.sender || m.mentionedJid?.[0] || (m.fromMe ? conn.user.jid : m.sender);
     
-    if (!db) {
-        return conn.reply(m.chat, '⚠️ Base de datos no disponible.', m);
-    }
-
     let res = await db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
     let user = res.rows[0];
 
