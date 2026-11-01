@@ -142,7 +142,6 @@ const handler = async (m, { conn, usedPrefix, command, metadata }) => {
 handler.help = ['rob', 'robar']
 handler.tags = ['econ']
 handler.command = /^(robar|rob)$/i
-handler.register = true
 
 export default handler
 
