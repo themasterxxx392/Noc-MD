@@ -79,7 +79,7 @@ isForwarded: true,
 forwardingScore: 9999999,
 forwardedNewsletterMessageInfo: {
 newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "LoliBot ✨️"
+newsletterName: "Rem Bot ✨️"
 },
 externalAdReply: {
 mediaUrl: [info.nna, info.nna2, info.md].getRandom(),
@@ -102,7 +102,7 @@ isForwarded: true,
 forwardingScore: 999999,
 forwardedNewsletterMessageInfo: {
 newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "LoliBot ✨️"
+newsletterName: "Rem Bot ✨️"
 }}}, { quoted: null })
 }
 
@@ -199,7 +199,7 @@ continue
 } catch (err) {
 console.error(chalk.red(`❌ Error en participantsUpdate - Acción: ${action} | Grupo: ${id}`), err)
 }
-  }
+                    }
 
 export async function groupsUpdate(conn, updates) {
 try {
@@ -221,7 +221,7 @@ isForwarded: true,
 forwardingScore: 999999,
 forwardedNewsletterMessageInfo: {
 newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "LoliBot ✨️",
+newsletterName: "Rem Bot ✨️",
 serverMessageId: 1
 }}
 })
@@ -366,7 +366,7 @@ isForwarded: true,
 forwardingScore: 1,
 forwardedNewsletterMessageInfo: {
 newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "LoliBot ✨️",
+newsletterName: "Rem Bot ✨️",
 serverMessageId: 1
 }}
 });
@@ -427,7 +427,7 @@ isForwarded: true,
 forwardingScore: 1,
 forwardedNewsletterMessageInfo: {
 newsletterJid: process.env.CHANNEL_ID,
-newsletterName: "LoliBot ✨️"
+newsletterName: "Rem Bot ✨️"
 }};
 return await conn.sendMessage(chatId, { text, contextInfo }, { quoted: m });
 };
@@ -685,11 +685,6 @@ console.error(chalk.red(e));
 }}
 }
 
-const cleanJidForHandler = (jid = "") => String(jid || "").replace(/:\d+/, "");
-if (global.estadosReg && global.estadosReg[cleanJidForHandler(m.sender)]?.step) {
-  return;
-}
-  
 if (modo === "private" && senderJid !== botJid && !isCreator) return;
 
 const matchedPlugin = plugins.find(p => {
@@ -814,14 +809,6 @@ if (plugin.admin && !isAdmin) return m.reply("🤨 No eres admins. Solo los admi
 if (plugin.botAdmin && !isBotAdmin) return m.reply(`⚠️ haz admin al Bot "YO" para poder usar este comando.`);
 if (plugin.group && !isGroup) return m.reply("⚠️ Estos es un grupo?, este comando solo funciona el grupo");
 if (plugin.private && isGroup) return m.reply("⚠️ Este comando solo funciona el pv");
-if (plugin.register) {
-try {
-const result = await db.query('SELECT * FROM usuarios WHERE id = $1', [m.sender]);
-const user = result.rows[0];
-if (!user || user.registered !== true) return m.reply("「NO ESTAS REGISTRADO」\n\nPA NO APARECES EN MI BASE DE DATOS ✋🥸🤚\n\nPara poder usarme escribe el siguente comando\n\nComando: #reg nombre.edad\nEjemplo: #reg elrebelde.21");
-} catch (e) {
-console.error(e);
-}}
 
 if (plugin.limit) {
 const res = await db.query('SELECT limite FROM usuarios WHERE id = $1', [m.sender]);
@@ -857,7 +844,7 @@ const result = await db.query('SELECT level FROM usuarios WHERE id = $1', [m.sen
 const nivel = result.rows[0]?.level ?? 0;
 
 if (nivel < plugin.level) {
-return m.reply(`*⚠️ 𝐍𝐞𝐜𝐞𝐬𝐢𝐭𝐚 𝐞𝐥 𝐧𝐢𝐯𝐞𝐥 ${plugin.level}, 𝐩𝐚𝐫𝐚 𝐩𝐨𝐝𝐞𝐫 𝐮𝐬𝐚𝐫 𝐞𝐬𝐭𝐞 𝐜𝐨𝐦𝐚𝐧𝐝𝐨, 𝐓𝐮 𝐧𝐢𝐯𝐞𝐥 𝐚𝐜𝐭𝐮𝐚𝐥 𝐞𝐬:* ${nivel}`);
+return m.reply(`*⚠️ 𝐍𝐞𝐜𝐞𝐬𝐢𝐭𝐚 𝐞𝐥 𝐧𝐢𝐯𝐞𝐥 ${plugin.level}, 𝐩𝐚𝐫𝐚 𝐩𝐨𝐝𝐞𝐫 𝐮𝐬𝐚𝐫 𝐞𝐬𝐭𝐞 𝐜𝐨𝐦𝐚𝐧ᵈ𝐨, 𝐓𝐮 𝐧𝐢𝐯𝐞𝐥 𝐚𝐜𝐭𝐮𝐚𝐥 𝐞𝐬:* ${nivel}`);
 }} catch (err) {
 console.error(err);
 }}
@@ -967,4 +954,4 @@ watchFile(file, () => {
   console.log(chalk.redBright('Update \'handler.js\''));
   import(`${file}?update=${Date.now()}`);
 });
-  
+                                   
