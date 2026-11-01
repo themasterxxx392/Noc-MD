@@ -23,6 +23,5 @@ await m.reply(`╔═❖ *ＮＯＴＡ ＤＥ ＰＡＧＯ*\n║‣ *Has comprad
 handler.help = ['buy [cantidad]', 'buyall', 'buy all'];
 handler.tags = ['econ'];
 handler.command = /^buy(all)?$/i; 
-handler.register = true;
 
 export default handler;
