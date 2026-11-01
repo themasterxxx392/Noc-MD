@@ -120,7 +120,6 @@ return conn.sendMessage(chat, { text: mensaje, mentions: [j1, j2] });
 handler.help = ['ppt piedra|papel|tijera', 'ppt @usuario'];
 handler.tags = ['game'];
 handler.command = ['ppt', 'suit', 'pvp', 'suitpvp'];
-handler.register = true;
 
 export default handler;
 
