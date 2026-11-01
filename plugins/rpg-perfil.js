@@ -201,6 +201,5 @@ ${relacion}
 handler.help = ['perfil', 'perfil *@user*', 'perfil +num']
 handler.tags = ['rg']
 handler.command = /^(perfil|profile)$/i
-handler.register = true
 
 export default handler
