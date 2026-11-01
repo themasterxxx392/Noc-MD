@@ -6,5 +6,4 @@ handler.help = ["leave"]
 handler.tags = ["owner"]
 handler.command = /^(salir|leavegc|salirdelgrupo|leave)$/i
 handler.owner = true
-handler.register = true
 export default handler
