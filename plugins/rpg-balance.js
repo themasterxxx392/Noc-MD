@@ -1,4 +1,4 @@
-import db from '../lib/database.js';
+import { db } from '../lib/database.js';
 
 const handler = async (m, { conn, usedPrefix }) => {
     const who = m.quoted?.sender || m.mentionedJid?.[0] || (m.fromMe ? conn.user.jid : m.sender);
