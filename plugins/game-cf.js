@@ -20,7 +20,6 @@ return m.reply(`${win ? '🎉' : '💀'} La moneda cayó en *${outcome}* y ${win
 handler.help = ['cf <cantidad>'];
 handler.tags = ['game'];
 handler.command = ['cf'];
-handler.register = true;
 
 export default handler;
 
