@@ -1,4 +1,4 @@
-Import "./config.js";
+import "./config.js";
 import { watchFile, unwatchFile } from 'fs';
 import fs from "fs";
 import path from "path";
