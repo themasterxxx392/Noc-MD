@@ -62,7 +62,6 @@ cooldowns.set(chatId, { lastUsed: now, rankingMessage })
 handler.help = ['top']
 handler.tags = ['econ']
 handler.command = ['leaderboard', 'lb']
-handler.register = true
 handler.exp = 3500
 
 export default handler
