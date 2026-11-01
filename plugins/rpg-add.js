@@ -47,6 +47,5 @@ handler.help = ['addexp', 'addlimit', 'removexp', 'removelimit'];
 handler.tags = ['owner'];
 handler.command = /^(añadirdiamantes|dardiamantes|addlimit|removelimit|quitardiamantes|sacardiamantes|añadirxp|addexp|addxp|removexp|quitarxp|sacarexp)$/i;
 handler.owner = true;
-handler.register = true;
 
 export default handler;
