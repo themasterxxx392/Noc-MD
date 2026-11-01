@@ -114,7 +114,6 @@ await conn.sendMessage(m.chat, {text: teks, contextInfo: { mentionedJid: null, f
 handler.help = ['infobot']
 handler.tags = ['main']
 handler.command = /^(infobot|informacionbot|infololi)$/i
-handler.register = true
 export default handler
 
 const toNum = (n) => {
