@@ -1,5 +1,3 @@
-//Código elaborado por: https://github.com/elrebelde21
-
 async function handler(m, { conn }) {
 if (!m.db) return 
 
@@ -30,6 +28,5 @@ await conn.sendMessage(m.chat, { text: textt + `\n\n> _*¡Sigue usando el bot pa
 handler.help = ['rw-personajes'];
 handler.tags = ['gacha'];
 handler.command = ['rw-personajes', 'ranking'];
-handler.register = true;
 
 export default handler;
