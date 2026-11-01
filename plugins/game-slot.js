@@ -58,7 +58,6 @@ await conn.sendMessage(m.chat, { text: render(final) + `\n\n${textoFinal}`, edit
 handler.command = ['slot'];
 handler.help = ['slot <xp|money|limite> <cantidad>'];
 handler.tags = ['game'];
-handler.register = true;
 
 export default handler;
 
