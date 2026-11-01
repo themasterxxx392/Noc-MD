@@ -49,5 +49,4 @@ handler.command = /^(runtime|sc)$/i
 handler.owner = false
 handler.group = false
 handler.private = false
-handler.register = true
 export default handler
