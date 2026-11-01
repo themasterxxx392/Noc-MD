@@ -53,6 +53,5 @@ if (!args || !args[0]) return m.reply(`⚠️ *Uso correcto del comando:*
 handler.help = ['traducir', 'translate'];
 handler.tags = ['tools'];
 handler.command = /^(translate|traducir|trad)$/i;
-handler.register = true;
 
 export default handler;
