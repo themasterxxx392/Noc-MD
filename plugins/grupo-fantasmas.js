@@ -144,7 +144,6 @@ handler.command = /^(fantasmas|kickfantasmas)$/i
 handler.group = true
 handler.botAdmin = true
 handler.admin = true
-handler.register = true
 
 export default handler
 
