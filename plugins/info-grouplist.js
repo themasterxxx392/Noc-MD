@@ -45,6 +45,5 @@ console.error(err);
 handler.help = ['groups', 'grouplist'];
 handler.tags = ['main'];
 handler.command = /^(groups|grouplist|listadegrupo|gruposlista|listagrupos|listadegrupos|grupolista|listagrupo)$/i;
-handler.register = true;
 
 export default handler;
