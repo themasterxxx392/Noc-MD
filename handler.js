@@ -685,6 +685,11 @@ console.error(chalk.red(e));
 }}
 }
 
+const cleanJidForHandler = (jid = "") => String(jid || "").replace(/:\d+/, "");
+if (global.estadosReg && global.estadosReg[cleanJidForHandler(m.sender)]?.step) {
+  return;
+}
+  
 if (modo === "private" && senderJid !== botJid && !isCreator) return;
 
 const matchedPlugin = plugins.find(p => {
