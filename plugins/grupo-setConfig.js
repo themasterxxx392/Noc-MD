@@ -56,6 +56,5 @@ handler.tags = ['group']
 handler.command = ['setwelcome', 'setbye', 'setpromote', 'setdemote']
 handler.group = true
 handler.admin = true
-handler.register = true
 
 export default handler
