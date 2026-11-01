@@ -29,6 +29,5 @@ handler.tags = ['jadibot'];
 handler.command = /^(stop)$/i;
 handler.owner = true;
 handler.private = true;
-handler.register = true
 
 export default handler;
