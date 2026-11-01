@@ -1,4 +1,4 @@
-import "./config.js";
+Import "./config.js";
 import { watchFile, unwatchFile } from 'fs';
 import fs from "fs";
 import path from "path";
@@ -199,7 +199,7 @@ continue
 } catch (err) {
 console.error(chalk.red(`❌ Error en participantsUpdate - Acción: ${action} | Grupo: ${id}`), err)
 }
-}
+  }
 
 export async function groupsUpdate(conn, updates) {
 try {
@@ -518,7 +518,6 @@ text = m.message.conversation;
 
 m.originalText = text; 
 text = text.trim(); 
-//if (!text) return;
 m.text = text;
 
 const usedPrefix = prefijo.find(p => text.startsWith(p)) || "";
@@ -579,7 +578,7 @@ if (m.isGroup && !isCreator && senderJid !== botJid) {
 try {
 const res = await db.query('SELECT banned, primary_bot FROM group_settings WHERE group_id = $1', [chatId]);
     
-if (res.rows[0]?.banned) return; // grupo baneado
+if (res.rows[0]?.banned) return;
 
 const primaryBot = res.rows[0]?.primary_bot;
 if (primaryBot && !m?.isAdmin) {
@@ -626,7 +625,6 @@ try {
     m.lid?.endsWith("@lid") ? cleanJid(m.lid) : ""
   )
 
-  // Si no hay número real, no inventes s.whatsapp.net desde lid
   const finalId = phoneJid || cleanJid(m.sender || key.remoteJid || "")
   const finalLid = lidJid || null
   const finalNum = onlyNum(phoneJid || finalId)
@@ -680,7 +678,7 @@ const plugins = Object.values(global.plugins || {});
 for (const plugin of plugins) {
 if (typeof plugin.before === 'function') {
 try {
-const result = await plugin.before(m, { conn, isOwner });
+const result = await plugin.before(m, { conn, sock: conn, isOwner });
 if (result === false) return;
 } catch (e) {
 console.error(chalk.red(e));
@@ -700,7 +698,6 @@ return typeof p.customPrefix === 'function'
 if (!usedPrefix) {
 if (!matchedPlugin || !matchedPlugin.customPrefix) return;
 }
-//if (!usedPrefix && !command) return;
 
 for (const plugin of plugins) {
 let match = false;
@@ -749,8 +746,6 @@ modoAdminActivo = result.rows[0]?.modoadmin || false;
 console.error(err);
 }
 
-//if ((plugin.admin || plugin.Botadmin) && !isGroup) return m.reply("⚠️ Estos es un grupo?, este comando solo funciona el grupo");
-
 if (plugin.tags?.includes('nsfw') && m.isGroup) {
 const { rows } = await db.query('SELECT modohorny, nsfw_horario FROM group_settings WHERE group_id = $1', [chatId])
 const { modohorny = false, nsfw_horario } = rows[0] || {}
@@ -770,7 +765,6 @@ await conn.sendMessage(chatId, { text: modohorny ? `🔞 NSFW fuera del horario 
 continue
 }}
 
-//User banear
 try {
 let rawSender = m.sender || m.key?.participant || "";
 let senderId;
@@ -801,12 +795,10 @@ console.error("❌ Error al verificar baneo:", e);
 
 if (plugin.admin || plugin.botAdmin) {
 try {
-//isAdmin = adminIds.includes(m.sender);
 isAdmin = m.isAdmin
 const botLid = (conn.user?.lid || "").replace(/:\d+/, "");
 const botJidClean = (conn.user?.id || "").replace(/:\d+/, "");
 isBotAdmin = adminIds.includes(botLid) || adminIds.includes(botJidClean);
-console.log(isAdmin)
 } catch (e) {
 console.error(e);
 }}
@@ -867,7 +859,6 @@ console.error(err);
 
 if (modoAdminActivo && !isAdmin && !isOwner) {
 return !0
-//m.reply("⚠️ Este grupo tiene *modo admin* activado. Solo los administradores pueden usar comandos.");
 }
 
 try {
@@ -901,7 +892,6 @@ m.reply("❌ Error ejecutando el comando, reporte este error a mi creador con el
 }}
 }
 
-//auto-leave
 setInterval(async () => {
 try {
 let conn = global.conn || globalThis.conn;
@@ -918,9 +908,8 @@ console.log(`[AUTO-LEAVE] Bot salió automáticamente del grupo: ${group_id}`);
 } catch (e) {
 }}
 } catch (e) {
-}}, 60_000); //1 min
+}}, 60_000);
 
-//report
 setInterval(async () => {
 const MODGROUP_ID = "120363392819528942@g.us";
 try {
@@ -942,9 +931,8 @@ await conn.sendMessage(MODGROUP_ID, { text: txt });
 await db.query("DELETE FROM reportes WHERE id = $1", [row.id]);
 }} catch (err) {
 console.error("[REPORT/SUGGE SYSTEM ERROR]", err);
-}}, 60_000 * 2); // cada 2 minutos
+}}, 60_000 * 2);
 
-//cache message 
 setInterval(async () => {
 try {
 const { rows } = await db.query(`SELECT chat_memory.chat_id, chat_memory.updated_at, 
@@ -957,7 +945,7 @@ const { rows } = await db.query(`SELECT chat_memory.chat_id, chat_memory.updated
 const now = Date.now();
 for (const row of rows) {
 const { chat_id, updated_at, memory_ttl } = row;
-const lastUpdated = new Date(updated_at).getTime(); // en ms
+const lastUpdated = new Date(updated_at).getTime();
 const ttl = memory_ttl * 1000; 
 
 if (now - lastUpdated > ttl) {
@@ -966,12 +954,12 @@ console.log(`🧹 Memoria del grupo ${chat_id} eliminada automáticamente`);
 }}
 } catch (err) {
 console.error("❌ Error limpiando memorias expiradas:", err);
-}}, 300_000); // cada 5 minutos
+}}, 300_000);
 
-//---
 let file = fileURLToPath(import.meta.url);
 watchFile(file, () => {
   unwatchFile(file);
   console.log(chalk.redBright('Update \'handler.js\''));
   import(`${file}?update=${Date.now()}`);
 });
+  
