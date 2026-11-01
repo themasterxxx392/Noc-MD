@@ -37,7 +37,6 @@ handler.help = ['cofre', 'coffer', 'abrircofre'];
 handler.tags = ['econ'];
 handler.command = ['coffer', 'cofre', 'abrircofre', 'cofreabrir'];
 handler.level = 9;
-handler.register = true;
 
 export default handler;
 
