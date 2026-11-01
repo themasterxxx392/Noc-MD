@@ -39,7 +39,6 @@ await conn.fakeReply(m.chat, `*🔸 𝐇𝐀𝐒 𝐑𝐄𝐂𝐈𝐁𝐈𝐃�
 handler.help = ['daily', 'claim'];
 handler.tags = ['econ'];
 handler.command = ['daily', 'claim'];
-handler.register = true;
 
 export default handler;
 
