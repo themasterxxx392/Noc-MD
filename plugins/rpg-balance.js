@@ -1,20 +1,20 @@
+import db from '../lib/database.js'; // O ajusta la ruta si tu archivo database.js está en otra carpeta
+
 const handler = async (m, { conn, usedPrefix }) => {
     const who = m.quoted?.sender || m.mentionedJid?.[0] || (m.fromMe ? conn.user.jid : m.sender);
     
-    // Usamos global.db o la conexión directa que usan tus otros plugins que sí funcionan
-    const database = global.db || conn.db || m.db;
-    if (!database) return conn.reply(m.chat, '❌ Error crítico: No se encuentra la base de datos global.', m);
+    if (!db) return conn.reply(m.chat, '❌ Error: No se pudo cargar la base de datos.', m);
 
-    let res = await database.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
+    let res = await db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
     let user = res.rows[0];
 
     if (!user) {
-        await database.query(
+        await db.query(
             `INSERT INTO usuarios (id, nombre, num, registered, limite, exp, money, banco)
              VALUES ($1, $2, $3, true, 10, 100, 50, 0) ON CONFLICT (id) DO NOTHING`,
             [who, m.pushName || "Usuario", who.split("@")[0]]
         );
-        res = await database.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
+        res = await db.query("SELECT limite, exp, money, banco FROM usuarios WHERE id = $1", [who]);
         user = res.rows[0] || { limite: 10, exp: 100, money: 50, banco: 0 };
     }
 
