@@ -141,6 +141,5 @@ m.reply('❌ Esa casilla ya está ocupada.');
 handler.help = ['ttt', 'ttt nombre', 'delttt', 'tttlist'];
 handler.tags = ['game'];
 handler.command = ['ttt', 'ttc', 'tictactoe', 'delttt', 'tttlist', 'deltt', 'deltictactoe'];
-handler.register = true;
 
 export default handler;
