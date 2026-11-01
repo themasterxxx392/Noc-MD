@@ -55,6 +55,5 @@ const handler = async (m, { conn, args }) => {
 handler.help = ['topstreak [página]'];
 handler.tags = ['econ'];
 handler.command = ['topstreak', 'streaktop', 'streak'];
-handler.register = true;
 
 export default handler;
