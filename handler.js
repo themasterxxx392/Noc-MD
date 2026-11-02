@@ -202,7 +202,7 @@ const modo = botConfig.mode || "public"
 const botJid = cleanJid(conn.user?.id)
 const fixedOwners = global.owner.map(([v]) => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net")
 
-Const sendDetect = async (groupId, text, mentions = []) => {
+const sendDetect = async (groupId, text, mentions = []) => {
 await conn.sendMessage(groupId, { text, mentions,
 contextInfo: {
 mentionedJid: mentions
