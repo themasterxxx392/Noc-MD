@@ -105,5 +105,4 @@ return m.reply('❌ Error creando sticker brat.')
 handler.help = ['attp', 'brat', 'bratvid'];
 handler.tags = ['sticker']
 handler.command = /^(attp|ttp|ttp2|ttp3|ttp4|attp2|brat|brat2|bratvid)$/i
-handler.register = true
 export default handler
