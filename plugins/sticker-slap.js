@@ -42,6 +42,5 @@ m.react("❌️")
 handler.help = ['slap']
 handler.tags = ['sticker']
 handler.command = /^(slap|bofetada|manotada|abofetear|golpear)$/i
-handler.register = true
 
 export default handler
