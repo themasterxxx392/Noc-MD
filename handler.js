@@ -75,12 +75,6 @@ const sendText = async (jid, msg, title, body, image, mentions = []) => {
 return conn.sendMessage(id, { text: msg,
 contextInfo: {
 mentionedJid: mentions.filter(Boolean),
-isForwarded: true,
-forwardingScore: 9999999,
-forwardedNewsletterMessageInfo: {
-newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "Rem Bot ✨️"
-},
 externalAdReply: {
 mediaUrl: [info.nna, info.nna2, info.md].getRandom(),
 mediaType: 2,
@@ -94,17 +88,12 @@ sourceUrl: "https://skyultraplus.com"
 }}}, { quoted: null })
 }
 
-const sendImage = async (msg, image, mentions = []) => {
+Const sendImage = async (msg, image, mentions = []) => {
 return conn.sendMessage(id, { image: { url: image }, caption: msg,
 contextInfo: {
-mentionedJid: mentions.filter(Boolean),
-isForwarded: true,
-forwardingScore: 999999,
-forwardedNewsletterMessageInfo: {
-newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "Rem Bot ✨️"
-}}}, { quoted: null })
-}
+mentionedJid: mentions.filter(Boolean)
+}}, { quoted: null })
+  }
 
 for (const p of participants) {
 const participant = getRealJid(p)
@@ -213,17 +202,11 @@ const modo = botConfig.mode || "public"
 const botJid = cleanJid(conn.user?.id)
 const fixedOwners = global.owner.map(([v]) => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net")
 
-const sendDetect = async (groupId, text, mentions = []) => {
+Const sendDetect = async (groupId, text, mentions = []) => {
 await conn.sendMessage(groupId, { text, mentions,
 contextInfo: {
-mentionedJid: mentions,
-isForwarded: true,
-forwardingScore: 999999,
-forwardedNewsletterMessageInfo: {
-newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "Rem Bot ✨️",
-serverMessageId: 1
-}}
+mentionedJid: mentions
+}
 })
 }
 
