@@ -4,6 +4,10 @@ import { lookup } from 'mime-types';
 import { File as MegaFile } from 'megajs';
 import https from 'https';
 
+function formatMB(bytes) {
+    return (bytes / (1024 * 1024)).toFixed(2);
+}
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const activeDownloads = new Set();
 const LOCK_TTL_MS = 3 * 60 * 1000;
@@ -196,6 +200,14 @@ let handler = async (m, { conn, text }) => {
             let buffer = directBuffer;
 
             if (!buffer && downloadUrl) {
+                let contentLength = 0;
+                try {
+                    const head = await axios.head(downloadUrl, { headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 10000 });
+                    contentLength = Number(head.headers['content-length'] || 0);
+                } catch {}
+
+                await conn.reply(m.chat, `🔞 Descargando: \`${fileName}\`${contentLength ? ` (*${formatMB(contentLength)} MB*)` : ''}`, m);
+
                 const fileRes = await axios.get(downloadUrl, { responseType: 'arraybuffer', headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 300000 });
                 buffer = Buffer.from(fileRes.data);
             }
@@ -215,4 +227,4 @@ let handler = async (m, { conn, text }) => {
 };
 
 handler.command = ['hlacap', 'hlatotal'];
-export default handler;
+export default handler;                                                                  
