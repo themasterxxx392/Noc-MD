@@ -20,7 +20,6 @@ console.log(e)}}
 handler.help = ['emojimix'].map(v => v + ' emot1|emot2>')
 handler.tags = ['sticker']
 handler.command = /^(emojimix|emogimix|combinaremojis|crearemoji|emojismix|emogismix)$/i
-handler.register = true
 handler.limit = 1
 export default handler
 
