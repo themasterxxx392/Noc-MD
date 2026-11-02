@@ -661,6 +661,34 @@ if (!matchedPlugin || !matchedPlugin.customPrefix) return;
 for (const plugin of plugins) {
 let match = false;
 
+        // === INICIO DEL BLOQUE BEFORE (Para capturar números) ===
+      if (typeof plugin.before === "function") {
+        try {
+          if (await plugin.before.call(conn, m, {
+            conn,
+            participants,
+            groupMetadata,
+            userGroup,
+            botGroup,
+            isROwner,
+            isOwner,
+            isAdmin,
+            isBotAdmin,
+            isPrems,
+            chatUpdate,
+            user,
+            chat,
+            settings
+          })) {
+            continue;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      // ========================================================
+  
+
 if (plugin.command instanceof RegExp) {
 match = plugin.command.test(command)
 } else if (typeof plugin.command === 'string') {
