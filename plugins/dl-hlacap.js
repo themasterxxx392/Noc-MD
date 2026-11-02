@@ -2,8 +2,133 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { lookup } from 'mime-types';
 import { File as MegaFile } from 'megajs';
+import https from 'https';
 
-// Reutilizamos la misma lógica de descarga segura
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+const activeDownloads = new Set();
+const LOCK_TTL_MS = 3 * 60 * 1000;
+const CONCURRENCY = 6;
+const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY + 2, keepAliveMsecs: 10000 });
+
+function unpackJS(packed) {
+    try {
+        const regex = /eval\(function\(p,a,c,k,e,d\).+?\}\('(.+?)',(\d+),(\d+),'(.+?)'\.split\('\|'\)/s;
+        const match = packed.match(regex);
+        if (!match) return packed;
+        let [_, p, a, c, k] = match;
+        a = parseInt(a); c = parseInt(c); k = k.split('|');
+        function e(c) { return (c < a ? '' : e(Math.floor(c / a))) + ((c = c % a) > 35 ? String.fromCharCode(c + 29) : c.toString(36)); }
+        while (c--) { if (k[c]) p = p.replace(new RegExp('\\b' + e(c) + '\\b', 'g'), k[c]); }
+        return p;
+    } catch { return packed; }
+}
+
+async function resolveRedirectIfNeeded(url) {
+    if (!url) return null;
+    if (/mediafire|yourupload|mega|mp4upload/i.test(url)) return url;
+    try {
+        const res = await axios.get(url, { headers: { 'User-Agent': UA, 'Referer': 'https://hentaila.com/' }, maxRedirects: 5, timeout: 10000 });
+        const finalUrl = res.request?.res?.responseUrl || res.config?.url || '';
+        if (finalUrl && finalUrl !== url) return finalUrl;
+        const match = res.data.match(/https?:\/\/(?:www\.)?(?:mediafire\.com|yourupload\.com|mega\.nz|mp4upload\.com)\/[^\s"'<>]+/i);
+        return match ? match[0] : url;
+    } catch { return url; }
+}
+
+async function getMediafireDirectLink(mediafireUrl) {
+    try {
+        let targetUrl = await resolveRedirectIfNeeded(mediafireUrl);
+        const { data: html } = await axios.get(targetUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://www.mediafire.com/' }, timeout: 12000 });
+        const $ = cheerio.load(html);
+        let downloadButton = $('#downloadButton').attr('href') || $('#download_link').attr('href');
+        if (downloadButton) return downloadButton;
+        const directMatch = html.match(/https?:\/\/download\d*\.mediafire\.com\/[^\s"'<>]+/i);
+        return directMatch ? directMatch[0] : null;
+    } catch { return null; }
+}
+
+async function getYourUploadDirectLink(yourUploadUrl) {
+    try {
+        let target = await resolveRedirectIfNeeded(yourUploadUrl);
+        const matchId = target.match(/yourupload\.com\/(?:watch|embed|download)\/([A-Za-z0-9]+)/i);
+        const id = matchId ? matchId[1] : null;
+        const urlsToTry = id ? [`https://www.yourupload.com/embed/${id}`, `https://www.yourupload.com/watch/${id}`] : [target];
+        for (const url of urlsToTry) {
+            try {
+                const { data } = await axios.get(url, { headers: { 'User-Agent': UA, 'Referer': 'https://www.yourupload.com/' }, timeout: 12000 });
+                const $ = cheerio.load(data);
+                const ogVideo = $('meta[property="og:video"]').attr('content') || $('meta[property="og:video:src"]').attr('content');
+                if (ogVideo) return ogVideo;
+                const fileMatch = data.match(/file\s*:\s*["'](?<url>https?:\/\/[^"']+\.mp4[^"']*)["']/i);
+                if (fileMatch) { const found = fileMatch.groups?.url || fileMatch[1]; if (found) return found.startsWith('//') ? 'https:' + found : found; }
+            } catch {}
+        }
+    } catch {}
+    return null;
+}
+
+async function getMp4UploadDirectLink(mp4Url) {
+    try {
+        let target = await resolveRedirectIfNeeded(mp4Url);
+        const match = target.match(/mp4upload\.com\/(?:embed-)?([a-zA-Z0-9]+)/i);
+        if (!match) return null;
+        const { data: html } = await axios.get(`https://www.mp4upload.com/embed-${match[1]}.html`, { headers: { 'User-Agent': UA, 'Referer': 'https://www.mp4upload.com/' }, timeout: 15000 });
+        const unpacked = unpackJS(html);
+        const videoMatch = unpacked.match(/src:\s*["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i);
+        return videoMatch ? videoMatch[1] : null;
+    } catch { return null; }
+}
+
+async function getMegaBuffer(megaUrl) {
+    try {
+        let target = await resolveRedirectIfNeeded(megaUrl);
+        const file = MegaFile.fromURL(target);
+        await file.loadAttributes();
+        const buffer = await file.downloadBuffer();
+        return { buffer, size: file.size, name: file.name };
+    } catch { return null; }
+}
+
+async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
+    const { data: html } = await axios.get(pageUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://hentaila.com/' }, timeout: 12000 });
+    const $ = cheerio.load(html);
+    const urlMatch = pageUrl.match(/\/(?:media|ver)\/([^\/]+)(?:\/(\d+))?/i);
+    let animeName = urlMatch ? urlMatch[1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Video';
+    let epNumber = episodeNum ? String(episodeNum).padStart(2, '0') : (urlMatch?.[2]?.padStart(2, '0') || '01');
+    const fileName = `${epNumber} ${animeName}.mp4`;
+
+    const links = { mediafire: null, yourupload: null, mp4upload: null, mega: null };
+    $('script').each((_, el) => {
+        const content = $(el).html() || '';
+        if (/mediafire\.com/i.test(content) && !links.mediafire) links.mediafire = content.match(/https?:\/\/[^"'\s]+mediafire\.com\/[^\s"'<>]+/i)?.[0];
+        if (/mega\.(?:nz|co\.nz)/i.test(content) && !links.mega) links.mega = content.match(/https?:\/\/[^"'\s]+mega\.(?:nz|co\.nz)\/[^\s"'<>]+/i)?.[0];
+        if (/yourupload\.com/i.test(content) && !links.yourupload) links.yourupload = content.match(/https?:\/\/[^"'\s]+yourupload\.com\/[^\s"'<>]+/i)?.[0];
+    });
+    $('a, iframe, source').each((_, el) => {
+        const href = $(el).attr('href') || $(el).attr('src') || '';
+        if (/mediafire\.com/i.test(href) && !links.mediafire) links.mediafire = href;
+        if (/yourupload\.com/i.test(href) && !links.yourupload) links.yourupload = href;
+        if (/mp4upload\.com/i.test(href) && !links.mp4upload) links.mp4upload = href;
+        if (/mega\.(?:nz|co\.nz)/i.test(href) && !links.mega) links.mega = href;
+    });
+
+    const providers = [
+        { link: links.mediafire, extract: u => getMediafireDirectLink(u).then(d => d ? { downloadUrl: d, referer: 'https://mediafire.com/' } : null) },
+        { link: links.yourupload, extract: u => getYourUploadDirectLink(u).then(d => d ? { downloadUrl: d, referer: 'https://www.yourupload.com/' } : null) },
+        { link: links.mp4upload, extract: u => getMp4UploadDirectLink(u).then(d => d ? { downloadUrl: d, referer: 'https://www.mp4upload.com/' } : null) },
+        { link: links.mega, extract: u => getMegaBuffer(u).then(res => res && !res.error ? { buffer: res.buffer } : null) }
+    ];
+
+    for (const p of providers) {
+        if (!p.link) continue;
+        try {
+            const res = await p.extract(p.link);
+            if (res && (res.downloadUrl || res.buffer)) return { ...res, fileName };
+        } catch {}
+    }
+    return null;
+}
+
 let handler = async (m, { conn, text }) => {
     if (!global.hentailaStore) return m.reply('⚠️ No hay ninguna búsqueda activa.');
     const session = global.hentailaStore.get(m.chat);
@@ -13,14 +138,13 @@ let handler = async (m, { conn, text }) => {
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido (Ej: *.hlacap 1*).');
 
     if (session.step === 'search') {
-        if (inputNum < 1 || inputNum > session.results.length) return m.reply(`⚠️ Número fuera de rango (1-${session.results.length}).`);
+        if (inputNum < 1 || inputNum > session.results.length) return m.reply(`⚠️ Número fuera de rango.`);
 
         global.hentailaStore.delete(m.chat);
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
-        // Obtenemos los capítulos de la serie seleccionada
-        const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 12000 });
+        const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
         let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
@@ -30,7 +154,7 @@ let handler = async (m, { conn, text }) => {
         $('a[href*="/ver/"], a[href*="/media/"]').each((_, el) => {
             const href = $(el).attr('href');
             if (href && (href.includes('/ver/') || href.match(/\/media\/[^\/]+\/\d+/))) {
-                const fullUrl = href.startsWith('http' ) ? href : `https://hentaila.com${href}`;
+                const fullUrl = href.startsWith('http') ? href : `https://hentaila.com${href}`;
                 if (!episodes.some(e => e.url === fullUrl)) {
                     const matchEp = href.match(/(?:-|\/)(\d+)$/);
                     episodes.push({ num: matchEp ? parseInt(matchEp[1]) : episodes.length + 1, url: fullUrl });
@@ -42,7 +166,7 @@ let handler = async (m, { conn, text }) => {
 
         let txt = `*[🔞] ${title.toUpperCase()}*\n\n`;
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
-        txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\` (Ej: \`.hlacap 1\`).`;
+        txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
         global.hentailaStore.set(m.chat, { step: 'details', episodes: finalEpisodes });
 
@@ -59,8 +183,34 @@ let handler = async (m, { conn, text }) => {
         if (!targetEp) return m.reply('⚠️ Capítulo no encontrado.');
 
         global.hentailaStore.delete(m.chat);
-        // Aquí ejecuta la descarga directa mediante el comando controlado
-        return m.reply(`🕒 Procesando descarga del capítulo ${targetEp.num}...`);
+        await m.react('🕒');
+
+        try {
+            const resolved = await getHentaiLADownloadUrl(targetEp.url, targetEp.num);
+            if (!resolved) {
+                await m.react('✖️');
+                return m.reply('❌ No se pudo extraer el enlace de descarga de este capítulo.');
+            }
+
+            const { downloadUrl, fileName, referer, buffer: directBuffer } = resolved;
+            let buffer = directBuffer;
+
+            if (!buffer && downloadUrl) {
+                const fileRes = await axios.get(downloadUrl, { responseType: 'arraybuffer', headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 300000 });
+                buffer = Buffer.from(fileRes.data);
+            }
+
+            if (!buffer || buffer.length < 100000) {
+                await m.react('✖️');
+                return m.reply('⚠️ Error: Archivo vacío o enlace caducado.');
+            }
+
+            await conn.sendMessage(m.chat, { document: buffer, fileName, mimetype: lookup(fileName) || 'video/mp4' }, { quoted: m });
+            await m.react('✔️');
+        } catch (e) {
+            await m.react('✖️');
+            return m.reply(`⚠︎ Error en la descarga: ${e.message}`);
+        }
     }
 };
 
