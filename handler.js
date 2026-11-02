@@ -643,18 +643,6 @@ console.error(err);
 
 const plugins = Object.values(global.plugins || {});
 
-// ==========================================
-// EJECUCIÓN DE LOS HOOKS `before` EN PLUGINS
-// ==========================================
-for (const plugin of plugins) {
-if (typeof plugin.before === 'function') {
-try {
-const result = await plugin.before(m, { conn, sock: conn, isOwner, participants, metadata });
-if (result === true || result === false) return;
-} catch (e) {
-console.error(chalk.red(e));
-}}
-}
 
 if (modo === "private" && senderJid !== botJid && !isCreator) return;
 
