@@ -163,13 +163,13 @@ const menuMessage = await conn.sendMessage(chatId, {
   contextInfo: { 
     mentionedJid: await conn.parseMention(text), 
     externalAdReply: { 
-      mediaUrl: [info.nna, info.nna2, info.md].getRandom(), 
+      mediaUrl: "https://github.com", 
       mediaType: 1, 
       showAdAttribution: true, 
       renderLargerThumbnail: true, 
       title: "Rem Bot • Menu", 
       body: `${nombreBot} (${tipo})`, 
-      thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793647156340_uboprg.jpeg", 
+      thumbnailUrl: "https://telegra.ph/file/1090333d07e606cd70198.jpg", 
       sourceUrl: "https://whatsapp.com" 
     }
   }
