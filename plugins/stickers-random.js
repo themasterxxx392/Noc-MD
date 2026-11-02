@@ -56,6 +56,5 @@ await conn.reply(m.chat, `❌ Ocurrió un error con *${command}*.`, m)
 handler.help    = Object.keys(actions).flatMap(k => [k, ...(actions[k].aliases || [])])
 handler.tags    = ['sticker']
 handler.command = new RegExp(`^(${Object.keys(actionByCommand).join('|')})$`, 'i')
-handler.register = true
 
 export default handler
