@@ -33,6 +33,5 @@ m.react("❌️")
 handler.help = ['kill']
 handler.tags = ['sticker']
 handler.command = /^(kill|asesinar|matar|slay|stab)$/i
-handler.register = true
 
 export default handler
