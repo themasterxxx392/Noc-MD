@@ -1,5 +1,3 @@
-console.log("=== EL PLUGIN HENTAILA SE ESTÁ CARGANDO ===");
-
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { lookup } from 'mime-types';
@@ -230,7 +228,7 @@ async function getMegaBuffer(megaUrl) {
     } catch (e) {
         return null;
     }
-    }
+}
 
 async function searchHentaiLA(query) {
     try {
@@ -624,12 +622,9 @@ async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
         clearTimeout(lockTimeout);
         activeDownloads.delete(lockKey);
     }
-                }
+}
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-let handler = async (m, { conn, text, usedPrefix, command }) => {
-    console.log("¡COMANDO EJECUTADO!", command, "Texto:", text);
-    
     if (!text) {
         return m.reply(`🔥 *Ingresa el nombre para buscar*`);
     }
@@ -752,8 +747,6 @@ handler.before = async function (m, { conn }) {
 };
 
 handler.command = ['hentaila', 'hla'];
-handler.rowner = false;
-handler.group = false;
 handler.tags = ['downloader'];
 handler.help = ['hentaila'];
 
