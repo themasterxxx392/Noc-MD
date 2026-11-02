@@ -40,7 +40,6 @@ m.reply("❌ Error: " + e.message)
 handler.help = ["tts <voz|idioma> <texto>"]
 handler.tags = ["convertidor"]
 handler.command = /^g?tts$/i
-handler.register = true;
 
 export default handler
 
