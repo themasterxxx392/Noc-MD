@@ -133,7 +133,7 @@ for (const helpCmd of plugin.help) {
 text += defaultMenu.body
 .replace(/%cmd/g, plugin.prefix ? helpCmd : _p + helpCmd)
 .replace(/%islimit/g, plugin.limit ? '(💎)' : '')
-.replace(/%isPremium/g, plugin.premium ? '(💵)' : '') + \n';
+.replace(/%isPremium/g, plugin.premium ? '(💵)' : '') + '\n';
 }}
 text += defaultMenu.footer;
 }
@@ -199,4 +199,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-}
+  }
