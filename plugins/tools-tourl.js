@@ -75,6 +75,5 @@ throw '❌ Error al subir el archivo. Intenta con otra opción:\n' + Object.keys
 handler.help = ['tourl <opcional servicio>'];
 handler.tags = ['convertidor'];
 handler.command = /^(upload|tourl)$/i;
-handler.register = true;
 
 export default handler;
