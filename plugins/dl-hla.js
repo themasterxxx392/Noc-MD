@@ -680,14 +680,14 @@ handler.before = async function (m, { conn }) {
         break;
     }
 
-    if (!session) return;
+        if (session.type === 'search') {
+        const cleanText = m.text.trim().replace(/[^0-9]/g, '');
+        const inputNum = parseInt(cleanText);
 
-    const inputNum = parseInt(m.text.trim());
-
-    if (session.type === 'search') {
         if (isNaN(inputNum) || inputNum < 1 || inputNum > session.results.length) {
             return m.reply(`⚠️ Por favor, responde con un número válido del *1 al ${session.results.length}*.`);
         }
+            
 
         global.hentailaStore.clear();
 
