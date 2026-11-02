@@ -421,17 +421,9 @@ m.sender = m.sender.replace(/:\d+/, "");
 }
 
 m.reply = async (text) => {
-const contextInfo = {
-mentionedJid: await conn.parseMention(text),
-isForwarded: true,
-forwardingScore: 1,
-forwardedNewsletterMessageInfo: {
-newsletterJid: process.env.CHANNEL_ID,
-newsletterName: "Rem Bot ✨️"
-}};
-return await conn.sendMessage(chatId, { text, contextInfo }, { quoted: m });
+return await conn.sendMessage(chatId, { text }, { quoted: m });
 };
-
+  
 await smsg(conn, m); 
 
 const hash = crypto.createHash("md5").update(m.key.id + (m.key.remoteJid || "")).digest("hex");
