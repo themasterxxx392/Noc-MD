@@ -13,6 +13,5 @@ await conn.sendFile(m.chat, out, 'sticker.png', null, m);
 handler.help = ['toimg (reply)'];
 handler.tags = ['convertidor'];
 handler.command = ['toimg', 'jpg', 'img'];
-handler.register = true;
 
 export default handler;
