@@ -256,9 +256,9 @@ message = update.joinApprovalMode ? `🛂 *Aprobación activada*\n\nLos nuevos m
 } else if (update.inviteCode) {
 const link = `https://chat.whatsapp.com/${update.inviteCode}`
 message = `🔗 *Nuevo enlace del grupo generado*\n\n${link}`
-}
+  }
 
-if (!message) continue
+  if (!message) continue
 await sendDetect(id, message, author ? [author] : [])
 }
 } catch (err) {
@@ -643,11 +643,14 @@ console.error(err);
 
 const plugins = Object.values(global.plugins || {});
 
+// ==========================================
+// EJECUCIÓN DE LOS HOOKS `before` EN PLUGINS
+// ==========================================
 for (const plugin of plugins) {
 if (typeof plugin.before === 'function') {
 try {
-const result = await plugin.before(m, { conn, sock: conn, isOwner });
-if (result === false) return;
+const result = await plugin.before(m, { conn, sock: conn, isOwner, participants, metadata });
+if (result === true || result === false) return;
 } catch (e) {
 console.error(chalk.red(e));
 }}
@@ -737,7 +740,7 @@ try {
 let rawSender = m.sender || m.key?.participant || "";
 let senderId;
 
-if (rawSender.endsWith("@lid") && m.key?.participantAlt && m.key.participantAlt.endsWith("@s.whatsapp.net")) {
+  if (rawSender.endsWith("@lid") && m.key?.participantAlt && m.key.participantAlt.endsWith("@s.whatsapp.net")) {
 senderId = m.key.participantAlt;
 } else {
 senderId = rawSender;
