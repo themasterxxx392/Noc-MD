@@ -24,5 +24,4 @@ console.log(e)
 handler.help = ['lirik', 'letra'].map((v) => v + ' <Apa>');
 handler.tags = ['buscadores'];
 handler.command = /^(lirik|lyrics|lyric|letra)$/i;
-handler.register = true
 export default handler;
