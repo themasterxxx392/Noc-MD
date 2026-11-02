@@ -747,7 +747,9 @@ handler.before = async function (m, { conn }) {
 };
 
 handler.command = ['hentaila', 'hla'];
-handler.tags = ['download'];
+handler.rowner = false;
+handler.group = false;
+handler.tags = ['downloader'];
 handler.help = ['hentaila'];
 
 export default handler;
