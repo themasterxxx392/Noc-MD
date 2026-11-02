@@ -28,7 +28,7 @@ owner: '👑 OWNER'
 }
 
 const defaultMenu = {
-before: `「 %wm 」
+before: `┌ Rem Bot ┐
 
 Hola 👋🏻 *%name*
 
@@ -133,7 +133,7 @@ for (const helpCmd of plugin.help) {
 text += defaultMenu.body
 .replace(/%cmd/g, plugin.prefix ? helpCmd : _p + helpCmd)
 .replace(/%islimit/g, plugin.limit ? '(💎)' : '')
-.replace(/%isPremium/g, plugin.premium ? '(💵)' : '') + '\n';
+.replace(/%isPremium/g, plugin.premium ? '(💵)' : '') + \n';
 }}
 text += defaultMenu.footer;
 }
@@ -164,13 +164,13 @@ const menuMessage = await conn.sendMessage(chatId, {
     mentionedJid: await conn.parseMention(text), 
     externalAdReply: { 
       mediaUrl: [info.nna, info.nna2, info.md].getRandom(), 
-      mediaType: 2, 
-      showAdAttribution: false, 
-      renderLargerThumbnail: true, // Miniatura grande activada
-      title: "✨️ ANIMSKURO • MENU ✨️", 
+      mediaType: 1, 
+      showAdAttribution: true, 
+      renderLargerThumbnail: true, 
+      title: "Rem Bot • Menu", 
       body: `${nombreBot} (${tipo})`, 
       thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793647156340_uboprg.jpeg", 
-      sourceUrl: "https://skyultraplus.com" 
+      sourceUrl: "https://whatsapp.com" 
     }
   }
 }, { quoted: m });
@@ -199,4 +199,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-                        }
+}
