@@ -137,7 +137,7 @@ async function searchHentaiLA(query) {
         });
         return results;
     } catch { return []; }
-    }
+}
 
 async function getSeriesDetails(seriesUrl) {
     try {
