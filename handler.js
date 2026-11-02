@@ -88,13 +88,13 @@ sourceUrl: "https://skyultraplus.com"
 }}}, { quoted: null })
 }
 
-Const sendImage = async (msg, image, mentions = []) => {
+const sendImage = async (msg, image, mentions = []) => {
 return conn.sendMessage(id, { image: { url: image }, caption: msg,
 contextInfo: {
 mentionedJid: mentions.filter(Boolean)
 }}, { quoted: null })
   }
-
+  
 for (const p of participants) {
 const participant = getRealJid(p)
 const participantLid = getLidJid(p)
