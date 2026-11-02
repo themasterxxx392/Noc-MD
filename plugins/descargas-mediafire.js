@@ -1,93 +1,142 @@
-import axios from 'axios';
-import fetch from 'node-fetch';
-//import cheerio from 'cheerio';
-//import { mediafiredl } from '@bochilteam/scraper';
-import fg from 'api-dylux';
-let free = 150;
-let prem = 500;
-const userCaptions = new Map();
-const userRequests = {};
+import axios from 'axios'
+import * as cheerio from 'cheerio'
+import { lookup } from 'mime-types'
 
-const handler = async (m, { conn, args, usedPrefix, command }) => {
-const sticker = 'https://qu.ax/Wdsb.webp';
-if (!args[0]) return m.reply( `⚠️ 𝙄𝙣𝙜𝙧𝙚𝙨𝙚 𝙪𝙣 𝙀𝙣𝙡𝙖𝙘𝙚 𝙫𝙖𝙡𝙞𝙙𝙤 𝙙𝙚𝙡 𝙢𝙚𝙙𝙞𝙖𝙛𝙞𝙧𝙚 𝙀𝙟:*\n${usedPrefix + command} https://www.mediafire.com/file/sd9hl31vhhzf76v/EvolutionV1.1-beta_%2528Recomendado%2529.apk/file`)
+const MAX_SIZE = 1024 * 1024 * 1024
+const TIMEOUT_MS = 20000
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
-if (userRequests[m.sender]) return await conn.reply(m.chat, `⚠️ Hey @${m.sender.split('@')[0]} pendejo, ya estás descargando algo 🙄\nEspera a que termine tu solicitud actual antes de hacer otra...`, userCaptions.get(m.sender) || m);
-userRequests[m.sender] = true;
-m.react(`🚀`);
-try {
-const downloadAttempts = [
-async () => {
-const res = await fetch(`https://api.delirius.store/download/mediafire?url=${args[0]}`);
-const data = await res.json();
-return { url: data.data[0].link,
-filename: data.data[0].filename,
-filesize: data.data[0].size,
-mimetype: data.data[0].mime
-}},
-async () => {
-const res = await fetch(`https://api.neoxr.eu/api/mediafire?url=${args[0]}&apikey=russellxz`);
-const data = await res.json();
-if (!data.status || !data.data) throw new Error('Error en Neoxr');
-return { url: data.data.url,
-filename: data.data.title,
-filesize: data.data.size,
-mimetype: data.data.mime
-}},
-async () => {
-const res = await fetch(`https://api.agatz.xyz/api/mediafire?url=${args[0]}`);
-const data = await res.json();
-return { url: data.data[0].link,
-filename: data.data[0].nama,
-filesize: data.data[0].size,
-mimetype: data.data[0].mime
-}},
-async () => {
-const res = await fetch(`https://api.siputzx.my.id/api/d/mediafire?url=${args[0]}`);
-const data = await res.json();
-return data.data.map(file => ({ url: file.link,
-filename: file.filename,
-filesize: file.size,
-mimetype: file.mime
-}))[0];
+const activeDownloads = new Set()
+const LOCK_TTL_MS = 3 * 60 * 1000
+
+function fetchWithTimeout(axiosConfig) {
+  return axios({ ...axiosConfig, timeout: TIMEOUT_MS })
 }
-];
 
-let fileData = null;
+function buildFileName(nombre, directUrl) {
+  let cleanName = nombre ? decodeURIComponent(nombre) : ''
+  
+  const urlClean = directUrl.split('?')[0]
+  const urlExt = urlClean.split('.').pop()?.toLowerCase()
+  const validExts = ['rar', 'zip', '7z', 'mp4', 'mkv', 'pdf', 'txt', 'epub', 'apk', 'exe']
+  const extension = validExts.includes(urlExt) ? urlExt : 'bin'
 
-for (const attempt of downloadAttempts) {
-try {
-fileData = await attempt();
-if (fileData) break; 
-} catch (err) {
-console.error(`Error in attempt: ${err.message}`);
-continue; // Si falla, intentar con la siguiente API
-}}
+  if (!cleanName) {
+    return `archivo.${extension}`
+  }
 
-if (!fileData) throw new Error('No se pudo descargar el archivo desde ninguna API');
-const file = Array.isArray(fileData) ? fileData[0] : fileData;
-const caption = `┏━━『 𝐌𝐄𝐃𝐈𝐀𝐅𝐈𝐑𝐄 』━━•
-┃❥ 𝐍𝐨𝐦𝐛𝐫𝐞 : ${file.filename}
-┃❥ 𝐏𝐞𝐬𝐨 : ${file.filesize}
-┃❥ 𝐓𝐢𝐩𝐨 : ${file.mimetype}
-╰━━━⊰ 𓃠 ${info.vs} ⊱━━━━•
-> ⏳ ᴱˢᵖᵉʳᵉ ᵘⁿ ᵐᵒᵐᵉⁿᵗᵒ ᵉⁿ ˡᵒˢ ᵠᵘᵉ ᵉⁿᵛᶦᵒˢ ˢᵘˢ ᵃʳᶜʰᶦᵛᵒˢ`.trim();
-const captionMessage = await conn.reply(m.chat, caption, m)
-userCaptions.set(m.sender, captionMessage);
-await conn.sendFile(m.chat, file.url, file.filename, '', m, null, { mimetype: file.mimetype, asDocument: true });
-m.react('✅');
-} catch (e) {
-await conn.sendFile(m.chat, sticker, 'error.webp', '', m);
-m.react('❌');
-console.error(e);
-handler.limit = false;
-} finally {
-delete userRequests[m.sender];
-}};
-handler.help = ['mediafire', 'mediafiredl'];
-handler.tags = ['downloader'];
-handler.command = /^(mediafire|mediafiredl|dlmediafire)$/i;
-handler.register = true;
-handler.limit = 3;
+  const hasValidExtension = validExts.some(ext => cleanName.toLowerCase().endsWith(`.${ext}`))
+  
+  if (!hasValidExtension) {
+    cleanName = `${cleanName}.${extension}`
+  }
 
-export default handler;
+  return cleanName.trim()
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return 'Desconocido'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+async function resolveMediafireDirect(pageUrl) {
+  const { data: html } = await fetchWithTimeout({
+    method: 'get',
+    url: pageUrl,
+    headers: { 'User-Agent': UA, Referer: 'https://www.mediafire.com/' }
+  })
+
+  const $ = cheerio.load(html)
+
+  let directUrl =
+    $('a#downloadButton').attr('href') ||
+    $('a.inputpopover').attr('href') ||
+    $('a[href*=".mediafire.com/"][href*="download"]').first().attr('href')
+
+  if (!directUrl) {
+    const match = html.match(/https?:\/\/download\d*\.mediafire\.com\/[^\s"'<>]+/)
+    if (match) directUrl = match[0]
+  }
+
+  const nombreMatch = html.match(/class="dl-btn-label"[^>]*>([^<]+)<\/div>/) ||
+                       html.match(/<div class="filename"[^>]*>([^<]+)<\/div>/)
+  const nombre = nombreMatch ? nombreMatch[1].trim() : null
+
+  return { directUrl, nombre }
+}
+
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text || !text.includes('mediafire.com')) {
+    return m.reply(`⚠️ Debes ingresar un enlace válido de MediaFire.\n\nEjemplo:\n*${usedPrefix}${command} https://www.mediafire.com/file/xxxxx/archivo.zip/file*`)
+  }
+
+  const input = text.trim()
+  const lockKey = `${m.chat}:${input}`
+
+  if (activeDownloads.has(lockKey)) {
+    return
+  }
+  activeDownloads.add(lockKey)
+  const lockTimeout = setTimeout(() => activeDownloads.delete(lockKey), LOCK_TTL_MS)
+
+  try {
+    const { directUrl, nombre } = await resolveMediafireDirect(input)
+
+    if (!directUrl) {
+      return m.reply('❌ No se pudo obtener el enlace directo de descarga. El archivo puede haber sido eliminado o el link es inválido.')
+    }
+
+    let size = 0
+    try {
+      const head = await fetchWithTimeout({ method: 'head', url: directUrl, headers: { 'User-Agent': UA } })
+      size = parseInt(head.headers['content-length'] || '0', 10)
+    } catch (e) {}
+
+    if (size && size > MAX_SIZE) {
+      return m.reply(`❌ El archivo pesa ${formatBytes(size)}, supera el límite de ${formatBytes(MAX_SIZE)}.`)
+    }
+
+    const fileName = buildFileName(nombre, directUrl)
+
+    await m.reply(`⏳ Descargando: \`${fileName}\`${size ? `\n*(${formatBytes(size)})*` : ''}`)
+
+    const fileResponse = await axios.get(directUrl, {
+      responseType: 'arraybuffer',
+      headers: { 'User-Agent': UA, Referer: 'https://www.mediafire.com/' },
+      timeout: 120000,
+      maxContentLength: MAX_SIZE,
+      maxBodyLength: MAX_SIZE
+    })
+
+    const buffer = Buffer.from(fileResponse.data)
+    const mimetype = lookup(fileName) || fileResponse.headers['content-type'] || 'application/octet-stream'
+
+    await conn.sendMessage(m.chat, {
+      document: buffer,
+      fileName,
+      mimetype
+    }, { quoted: m })
+
+  } catch (error) {
+    console.error('Error en comando MediaFire:', error)
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      return m.reply('❌ Tiempo de espera agotado al procesar el archivo.')
+    }
+    if (error.message?.includes('maxContentLength') || error.message?.includes('maxBodyLength')) {
+      return m.reply(`❌ El archivo supera el límite de ${formatBytes(MAX_SIZE)}.`)
+    }
+    return m.reply('❌ Ocurrió un error al procesar o descargar el archivo de MediaFire.')
+  } finally {
+    clearTimeout(lockTimeout)
+    activeDownloads.delete(lockKey)
+  }
+}
+
+handler.command = ['mf', 'mediafire']
+handler.help = ['mediafire <url>']
+handler.tags = ['downloader']
+
+export default handler
