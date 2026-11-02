@@ -683,6 +683,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.before = async function (m, { conn }) {
+    console.log("[HENTAILA DEBUG] Mensaje recibido:", m.text, "Es respuesta:", !!m.quoted);
+    
     if (!m.text || !m.quoted) return;
     
     const quotedId1 = m.quoted.key?.id;
@@ -695,8 +697,12 @@ handler.before = async function (m, { conn }) {
         session = global.hentailaStore.get(quotedId2);
     }
 
-    if (!session) return;
+    if (!session) {
+        console.log("[HENTAILA DEBUG] No se encontró sesión para este mensaje citado.");
+        return;
+    }
 
+    console.log("[HENTAILA DEBUG] ¡Sesión encontrada con éxito!", session.type);
     const inputNum = parseInt(m.text.trim());
 
     if (session.type === 'search') {
