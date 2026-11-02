@@ -530,7 +530,7 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
     return null;
             }
 
-async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
+                async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
     const lockKey = `${m.chat}:${downloadUrlTarget}`;
     if (activeDownloads.has(lockKey)) return;
 
@@ -661,54 +661,35 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     });
     txt += `➡️ *Responde a este mensaje con el número (1-${topResults.length}) para ver los detalles y capítulos.*`;
 
-    const keyMsg = await conn.reply(m.chat, txt, m);
+    await conn.reply(m.chat, txt, m);
     await m.react('✔️');
 
-    const id1 = keyMsg.key?.id;
-    const id2 = keyMsg.id;
-
-    const timer = setTimeout(() => {
-        if (id1) global.hentailaStore.delete(id1);
-        if (id2) global.hentailaStore.delete(id2);
-    }, 10 * 60 * 1000);
-
-    const sessionData = {
+    global.hentailaStore.clear();
+    global.hentailaStore.set('active_session', {
         type: 'search',
-        results: topResults,
-        timer
-    };
-
-    if (id1) global.hentailaStore.set(id1, sessionData);
-    if (id2) global.hentailaStore.set(id2, sessionData);
+        results: topResults
+    });
 };
 
 handler.before = async function (m, { conn }) {
-    console.log("[HENTAILA DEBUG] Mensaje recibido:", m.text, "Es respuesta:", !!m.quoted);
-    
-    if (!m.text || !m.quoted) return;
-    
-    const quotedId1 = m.quoted.key?.id;
-    const quotedId2 = m.quoted.id;
+    if (!m.text) return;
 
     let session = null;
-    if (quotedId1 && global.hentailaStore.has(quotedId1)) {
-        session = global.hentailaStore.get(quotedId1);
-    } else if (quotedId2 && global.hentailaStore.has(quotedId2)) {
-        session = global.hentailaStore.get(quotedId2);
+    for (let [id, data] of global.hentailaStore.entries()) {
+        session = data;
+        break;
     }
 
-    if (!session) {
-        console.log("[HENTAILA DEBUG] No se encontró sesión para este mensaje citado.");
-        return;
-    }
+    if (!session) return;
 
-    console.log("[HENTAILA DEBUG] ¡Sesión encontrada con éxito!", session.type);
     const inputNum = parseInt(m.text.trim());
 
     if (session.type === 'search') {
         if (isNaN(inputNum) || inputNum < 1 || inputNum > session.results.length) {
             return m.reply(`⚠️ Por favor, responde con un número válido del *1 al ${session.results.length}*.`);
         }
+
+        global.hentailaStore.clear();
 
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
@@ -731,31 +712,18 @@ handler.before = async function (m, { conn }) {
         txt += `_${details.synopsis}_\n\n`;
         txt += `> *DESCARGAR:* Responde con el número del capítulo. Ej: \`1\``;
 
-        let detailsMsg;
         if (details.poster) {
-            detailsMsg = await conn.sendMessage(m.chat, { image: { url: details.poster }, caption: txt }, { quoted: m });
+            await conn.sendMessage(m.chat, { image: { url: details.poster }, caption: txt }, { quoted: m });
         } else {
-            detailsMsg = await conn.reply(m.chat, txt, m);
+            await conn.reply(m.chat, txt, m);
         }
 
         await m.react('✔️');
 
-        const dId1 = detailsMsg.key?.id;
-        const dId2 = detailsMsg.id;
-
-        const timer = setTimeout(() => {
-            if (dId1) global.hentailaStore.delete(dId1);
-            if (dId2) global.hentailaStore.delete(dId2);
-        }, 10 * 60 * 1000);
-
-        const detailsSessionData = {
+        global.hentailaStore.set('active_session', {
             type: 'details',
-            episodes: details.episodes,
-            timer
-        };
-
-        if (dId1) global.hentailaStore.set(dId1, detailsSessionData);
-        if (dId2) global.hentailaStore.set(dId2, detailsSessionData);
+            episodes: details.episodes
+        });
 
         return true;
     }
@@ -770,6 +738,8 @@ handler.before = async function (m, { conn }) {
         if (!targetEp) {
             return m.reply(`⚠️ Capítulo no disponible. Elige un número válido.`);
         }
+
+        global.hentailaStore.clear();
 
         await processDownload(m, conn, targetEp.url, targetEp.num);
 
