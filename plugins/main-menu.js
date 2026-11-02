@@ -1,7 +1,7 @@
 import moment from 'moment-timezone'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
-import fs from "fs";
+import fs from "fs"
 
 const cooldowns = new Map()
 const COOLDOWN_DURATION = 180000
@@ -157,23 +157,20 @@ nna2: info.nna
 };
 
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
+
 try {
-const menuMessage = await conn.sendMessage(chatId, { 
-  text: text, 
-  contextInfo: { 
-    mentionedJid: await conn.parseMention(text), 
-    externalAdReply: { 
-      mediaUrl: "https://github.com", 
-      mediaType: 1, 
-      showAdAttribution: true, 
-      renderLargerThumbnail: true, 
-      title: "Rem Bot • Menu", 
-      body: `${nombreBot} (${tipo})`, 
-      thumbnailUrl: "https://i.ibb.co/tMY4Zm4k/rem-pfp.jpg", 
-      sourceUrl: "https://whatsapp.com" 
-    }
-  }
-}, { quoted: m });
+// Intentamos enviar el menú con una imagen adjunta real para evitar fallos de URLs externas
+let menuMessage;
+try {
+  menuMessage = await conn.sendMessage(chatId, { 
+    image: { url: "https://i.ibb.co/tMY4Zm4k/rem-pfp.jpg" }, 
+    caption: text,
+    mentionedJid: await conn.parseMention(text)
+  }, { quoted: m });
+} catch (e) {
+  // Plan de respaldo si falla el enlace directo: usa imagen local o texto plano
+  menuMessage = await conn.sendMessage(chatId, { text: text, mentionedJid: await conn.parseMention(text) }, { quoted: m });
+}
 
 cooldowns.set(chatId, { lastUsed: now, menuMessage: menuMessage })
 m.react('🙌');
