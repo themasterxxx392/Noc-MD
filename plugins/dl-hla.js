@@ -348,7 +348,7 @@ async function getSeriesDetails(seriesUrl) {
     } catch (e) {
         return null;
     }
-}
+                }
 
 function formatFileName(pageUrl, $, episodeNum) {
     let animeName = '';
@@ -528,10 +528,9 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
     }
 
     return null;
-}
+            }
 
-
-    async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
+async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
     const lockKey = `${m.chat}:${downloadUrlTarget}`;
     if (activeDownloads.has(lockKey)) return;
 
@@ -665,24 +664,39 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const keyMsg = await conn.reply(m.chat, txt, m);
     await m.react('✔️');
 
-    const msgId = keyMsg.key?.id || keyMsg.id;
+    const id1 = keyMsg.key?.id;
+    const id2 = keyMsg.id;
 
     const timer = setTimeout(() => {
-        global.hentailaStore.delete(msgId);
+        if (id1) global.hentailaStore.delete(id1);
+        if (id2) global.hentailaStore.delete(id2);
     }, 10 * 60 * 1000);
 
-    global.hentailaStore.set(msgId, {
+    const sessionData = {
         type: 'search',
         results: topResults,
         timer
-    });
+    };
+
+    if (id1) global.hentailaStore.set(id1, sessionData);
+    if (id2) global.hentailaStore.set(id2, sessionData);
 };
 
 handler.before = async function (m, { conn }) {
-    const quotedId = m.quoted?.key?.id || m.quoted?.id;
-    if (!m.text || !m.quoted || !global.hentailaStore.has(quotedId)) return;
+    if (!m.text || !m.quoted) return;
+    
+    const quotedId1 = m.quoted.key?.id;
+    const quotedId2 = m.quoted.id;
 
-    const session = global.hentailaStore.get(quotedId);
+    let session = null;
+    if (quotedId1 && global.hentailaStore.has(quotedId1)) {
+        session = global.hentailaStore.get(quotedId1);
+    } else if (quotedId2 && global.hentailaStore.has(quotedId2)) {
+        session = global.hentailaStore.get(quotedId2);
+    }
+
+    if (!session) return;
+
     const inputNum = parseInt(m.text.trim());
 
     if (session.type === 'search') {
@@ -720,17 +734,22 @@ handler.before = async function (m, { conn }) {
 
         await m.react('✔️');
 
-        const detailsId = detailsMsg.key?.id || detailsMsg.id;
+        const dId1 = detailsMsg.key?.id;
+        const dId2 = detailsMsg.id;
 
         const timer = setTimeout(() => {
-            global.hentailaStore.delete(detailsId);
+            if (dId1) global.hentailaStore.delete(dId1);
+            if (dId2) global.hentailaStore.delete(dId2);
         }, 10 * 60 * 1000);
 
-        global.hentailaStore.set(detailsId, {
+        const detailsSessionData = {
             type: 'details',
             episodes: details.episodes,
             timer
-        });
+        };
+
+        if (dId1) global.hentailaStore.set(dId1, detailsSessionData);
+        if (dId2) global.hentailaStore.set(dId2, detailsSessionData);
 
         return true;
     }
