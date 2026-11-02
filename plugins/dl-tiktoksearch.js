@@ -24,7 +24,6 @@ delete userRequests[m.sender];
 handler.help = ['tiktoksearch <texto>'];
 handler.tags = ['downloader'];
 handler.command = ['tiktoksearch', 'ttsearch'];
-handler.register = true;
 handler.limit = 4;
 
 export default handler;
