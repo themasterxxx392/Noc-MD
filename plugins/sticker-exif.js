@@ -20,6 +20,5 @@ await m.reply(`✅ Perfecto, hemos actualizado el *EXIF* de tus stickers. Ahora 
 handler.help = ['exif <packname> | <author>'];
 handler.tags = ['sticker'];
 handler.command = ['exif'];
-handler.register = true;
 
 export default handler;
