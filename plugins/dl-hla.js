@@ -1,3 +1,5 @@
+console.log("=== EL PLUGIN HENTAILA SE ESTÁ CARGANDO ===");
+
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { lookup } from 'mime-types';
@@ -625,6 +627,9 @@ async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
                 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+    console.log("¡COMANDO EJECUTADO!", command, "Texto:", text);
+    
     if (!text) {
         return m.reply(`🔥 *Ingresa el nombre para buscar*`);
     }
