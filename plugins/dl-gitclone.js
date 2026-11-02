@@ -30,7 +30,6 @@ delete userRequests[m.sender];
 handler.help = ['gitclone <url>'];
 handler.tags = ['downloader'];
 handler.command = /gitclone|clonarepo|clonarrepo|repoclonar/i;
-handler.register = true;
 handler.limit = 2;
 handler.level = 1
 
