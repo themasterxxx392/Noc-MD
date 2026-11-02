@@ -33,6 +33,5 @@ m.react("❌️")
 handler.help = ['pat']
 handler.tags = ['sticker']
 handler.command = /^(pat|palmaditas|cariños|mimos|patt)$/i
-handler.register = true
 
 export default handler
