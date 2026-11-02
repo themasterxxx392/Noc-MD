@@ -51,6 +51,5 @@ m.reply(`🎯 *Resultados para:* ${text}\n🧷 *Stickers a enviar:* ${max}\n> �
 handler.command = ['stickerly']
 handler.help = ['stickerly <texto>']
 handler.tags = ['sticker']
-handler.register = true
 
 export default handler
