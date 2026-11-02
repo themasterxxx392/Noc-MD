@@ -27,7 +27,6 @@ handler.help = ['stikertele *<url>*']
 handler.tags = ['sticker', 'downloader']
 handler.command = /^(stic?kertele(gram)?)$/i
 handler.limit = 1
-handler.register = true
 export default handler
 
 const delay = time => new Promise(res => setTimeout(res, time))
