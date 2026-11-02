@@ -3,9 +3,6 @@ import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
 
-const cooldowns = new Map()
-const COOLDOWN_DURATION = 180000
-
 const tags = {
 main: 'ℹ️ INFOBOT',
 jadibot: '✨ SER SUB BOT',
@@ -30,19 +27,12 @@ owner: '👑 OWNER'
 const defaultMenu = {
 before: `┌ Rem Bot ┐
 
-Hola 👋🏻 *%name*
-
 *• Fecha:* %fecha
-*• Hora:* %hora (🇦🇷) 
+*• Hora:* %hora (🇵🇪) 
 *• Usuario:* %totalreg
 *• Tiempo activos:* %muptime
 *• Tu limite:* %limit
 %botOfc
-
-*• Usuario registrados:* %toUserReg de %toUsers
-
-*Puede hablar con bot de esta forma ej:*
-@%BoTag ¿Que es una api?
 `.trimStart(),
   header: '`<[ %category ]>`',
   body: ' %cmd %islimit %isPremium',
@@ -52,23 +42,10 @@ Hola 👋🏻 *%name*
 
 const handler = async (m, { conn, usedPrefix: _p, args }) => {
 const chatId = m.key?.remoteJid;
-const now = Date.now();
-const chatData = cooldowns.get(chatId) || { lastUsed: 0, menuMessage: null };
-const timeLeft = COOLDOWN_DURATION - (now - chatData.lastUsed);
-
-if (timeLeft > 0) {
-try {
-const senderTag = m.sender ? `@${m.sender.split('@')[0]}` : '@usuario';
-await conn.reply(chatId, `⚠️ Hey ${senderTag}, pendejo, ahí está el menú 🙄\n> Solo se enviará cada 3 minutos para evitar spam, Desplázate hacia arriba para verlo completo. 👆`, chatData.menuMessage || m);
-} catch (err) {
-return;
-}
-return;
-}
 
 const name = m.pushName || 'sin name';
-const fecha = moment.tz('America/Argentina/Buenos_Aires').format('DD/MM/YYYY');
-const hora = moment.tz('America/Argentina/Buenos_Aires').format('HH:mm:ss');
+const fecha = moment.tz('America/Lima').format('DD/MM/YYYY');
+const hora = moment.tz('America/Lima').format('HH:mm:ss');
 const _uptime = process.uptime() * 1000;
 const muptime = clockString(_uptime);
 
@@ -159,20 +136,17 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-// Intentamos enviar el menú con una imagen adjunta real para evitar fallos de URLs externas
 let menuMessage;
 try {
   menuMessage = await conn.sendMessage(chatId, { 
-    image: { url: "https://i.ibb.co/tMY4Zm4k/rem-pfp.jpg" }, 
+    image: { url: "https://i.ibb.co/Gfrynnk3/Ram-Rem.jpg" }, 
     caption: text,
     mentionedJid: await conn.parseMention(text)
   }, { quoted: m });
 } catch (e) {
-  // Plan de respaldo si falla el enlace directo: usa imagen local o texto plano
   menuMessage = await conn.sendMessage(chatId, { text: text, mentionedJid: await conn.parseMention(text) }, { quoted: m });
 }
 
-cooldowns.set(chatId, { lastUsed: now, menuMessage: menuMessage })
 m.react('🙌');
 } catch (err) {    
 m.react('❌')
@@ -196,4 +170,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-  }
+}
