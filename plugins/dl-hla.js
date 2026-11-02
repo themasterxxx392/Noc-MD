@@ -671,9 +671,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     });
 };
 
-handler.before = async function (m, { conn }) {
+handler.before = async function (m, { conn, usedPrefix }) {
     if (!m.text) return;
-
+    // Si el mensaje es un comando, lo ignoramos para que no interfiera
+    if (usedPrefix && m.text.startsWith(usedPrefix)) return;
+                                     
     let session = null;
     for (let [id, data] of global.hentailaStore.entries()) {
         session = data;
