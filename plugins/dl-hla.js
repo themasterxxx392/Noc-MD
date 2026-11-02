@@ -530,7 +530,8 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
     return null;
 }
 
-async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
+
+    async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
     const lockKey = `${m.chat}:${downloadUrlTarget}`;
     if (activeDownloads.has(lockKey)) return;
 
@@ -664,11 +665,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const keyMsg = await conn.reply(m.chat, txt, m);
     await m.react('✔️');
 
+    const msgId = keyMsg.key?.id || keyMsg.id;
+
     const timer = setTimeout(() => {
-        global.hentailaStore.delete(keyMsg.key.id);
+        global.hentailaStore.delete(msgId);
     }, 10 * 60 * 1000);
 
-    global.hentailaStore.set(keyMsg.key.id, {
+    global.hentailaStore.set(msgId, {
         type: 'search',
         results: topResults,
         timer
@@ -676,9 +679,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.before = async function (m, { conn }) {
-    if (!m.text || !m.quoted || !global.hentailaStore.has(m.quoted.id)) return;
+    const quotedId = m.quoted?.key?.id || m.quoted?.id;
+    if (!m.text || !m.quoted || !global.hentailaStore.has(quotedId)) return;
 
-    const session = global.hentailaStore.get(m.quoted.id);
+    const session = global.hentailaStore.get(quotedId);
     const inputNum = parseInt(m.text.trim());
 
     if (session.type === 'search') {
@@ -705,7 +709,7 @@ handler.before = async function (m, { conn }) {
         txt += `» *CAPÍTULOS:* \`${capRange}\`\n\n`;
         txt += `--- *SINOPSIS* ---\n`;
         txt += `_${details.synopsis}_\n\n`;
-        txt += `> *DESCARGAR:* Responde con el número. Ej: \`1\``;
+        txt += `> *DESCARGAR:* Responde con el número del capítulo. Ej: \`1\``;
 
         let detailsMsg;
         if (details.poster) {
@@ -716,11 +720,13 @@ handler.before = async function (m, { conn }) {
 
         await m.react('✔️');
 
+        const detailsId = detailsMsg.key?.id || detailsMsg.id;
+
         const timer = setTimeout(() => {
-            global.hentailaStore.delete(detailsMsg.key.id);
+            global.hentailaStore.delete(detailsId);
         }, 10 * 60 * 1000);
 
-        global.hentailaStore.set(detailsMsg.key.id, {
+        global.hentailaStore.set(detailsId, {
             type: 'details',
             episodes: details.episodes,
             timer
