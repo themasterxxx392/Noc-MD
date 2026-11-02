@@ -144,7 +144,6 @@ await m.reply(`🗂️ La opción *${type}* para ${isAll ? 'todo el bot' : isUse
 handler.help = ['enable <opción>', 'disable <opción>']
 handler.tags = ['nable']
 handler.command = /^((en|dis)able|(tru|fals)e|(turn)?o(n|ff)|[01])$/i
-handler.register = true
 //handler.group = true 
 //handler.admin = true
 export default handler
