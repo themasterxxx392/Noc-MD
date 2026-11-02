@@ -33,6 +33,5 @@ m.react("❌️")
 handler.help = ['hug']
 handler.tags = ['sticker']
 handler.command = /^(hug|abrazo|abrazar|abrazito)$/i
-handler.register = true
 
 export default handler
