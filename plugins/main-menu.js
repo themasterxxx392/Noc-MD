@@ -169,7 +169,7 @@ const menuMessage = await conn.sendMessage(chatId, {
       renderLargerThumbnail: true, 
       title: "Rem Bot • Menu", 
       body: `${nombreBot} (${tipo})`, 
-      thumbnailUrl: "https://telegra.ph/file/1090333d07e606cd70198.jpg", 
+      thumbnailUrl: "https://i.ibb.co/tMY4Zm4k/rem-pfp.jpg", 
       sourceUrl: "https://whatsapp.com" 
     }
   }
