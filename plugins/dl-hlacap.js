@@ -226,5 +226,5 @@ let handler = async (m, { conn, text }) => {
     }
 };
 
-handler.command = ['hlacap', 'hlatotal'];
+handler.command = ['hlacap'];
 export default handler;                                                                  
