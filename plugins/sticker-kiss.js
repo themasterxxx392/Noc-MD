@@ -28,6 +28,5 @@ console.error(e)
 handler.help = ['kiss']
 handler.tags = ['sticker']
 handler.command = /^(kiss|skiss|kis|besos|beso|besar|besando)$/i
-handler.register = true
 
 export default handler
