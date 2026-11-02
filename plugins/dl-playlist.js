@@ -44,7 +44,6 @@ await conn.sendList(m.chat, `*• Resultados:* ${text}*\n\n> *ᴇʟɪᴊᴀ ᴀ 
 handler.help = ['playlist', 'yts']
 handler.tags = ['downloader']
 handler.command = ['playvid2', 'playlist', 'playlista', 'yts', 'ytsearch'] 
-handler.register = true 
 
 export default handler
 */
