@@ -41,9 +41,6 @@ Hola 👋🏻 *%name*
 
 *• Usuario registrados:* %toUserReg de %toUsers
 
-Unirte a nuestro canal de WhatsApp y informarte de todas la novedades/Actualizaciones del bot y mas
-%nna2
-
 *Puede hablar con bot de esta forma ej:*
 @%BoTag ¿Que es una api?
 `.trimStart(),
@@ -161,14 +158,30 @@ nna2: info.nna
 
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 try {
-let pp = fs.readFileSync('./media/Menu2.jpg');
-const menuMessage = await conn.sendMessage(chatId, { text: text, contextInfo: { forwardedNewsletterMessageInfo: { newsletterJid: process.env.CHANNEL_ID,newsletterName: "LoliBot ✨️" }, forwardingScore: 999, isForwarded: true, mentionedJid: await conn.parseMention(text), externalAdReply: { mediaUrl:  [info.nna, info.nna2, info.md].getRandom(), mediaType: 2, showAdAttribution: false, renderLargerThumbnail: false, title: "✨️ MENU ✨️", body: `${nombreBot} (${tipo})`, thumbnailUrl: info.img2, sourceUrl: "https://skyultraplus.com" }}}, { quoted: m });
+const menuMessage = await conn.sendMessage(chatId, { 
+  text: text, 
+  contextInfo: { 
+    mentionedJid: await conn.parseMention(text), 
+    externalAdReply: { 
+      mediaUrl: [info.nna, info.nna2, info.md].getRandom(), 
+      mediaType: 2, 
+      showAdAttribution: false, 
+      renderLargerThumbnail: true, // Miniatura grande activada
+      title: "✨️ ANIMSKURO • MENU ✨️", 
+      body: `${nombreBot} (${tipo})`, 
+      thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793647156340_uboprg.jpeg", 
+      sourceUrl: "https://skyultraplus.com" 
+    }
+  }
+}, { quoted: m });
+
 cooldowns.set(chatId, { lastUsed: now, menuMessage: menuMessage })
 m.react('🙌');
 } catch (err) {    
 m.react('❌')
 console.error(err);
 }}
+
 handler.help = ['menu']
 handler.tags = ['main']
 handler.command = /^(menu|help|allmenu|menú)$/i
@@ -186,4 +199,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-}
+                        }
