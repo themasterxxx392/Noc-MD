@@ -135,5 +135,4 @@ return m.reply(`✅ Audio guardado:\n📌 Frases: ${frases.join(', ')}\n🌐 Enl
 handler.help = ['addaudios', 'delaudios'];
 handler.tags = ['main'];
 handler.command = /^(addaudios|delaudios)$/i;
-handler.register = true;
 export default handler;
