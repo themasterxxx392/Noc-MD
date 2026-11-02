@@ -671,25 +671,24 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     });
 };
 
-handler.before = async function (m, { conn, usedPrefix }) {
+        handler.before = async function (m, { conn }) {
     if (!m.text) return;
-    // Si el mensaje es un comando, lo ignoramos para que no interfiera
-    if (usedPrefix && m.text.startsWith(usedPrefix)) return;
-                                     
+
     let session = null;
     for (let [id, data] of global.hentailaStore.entries()) {
         session = data;
         break;
     }
 
-        if (session.type === 'search') {
-        const cleanText = m.text.trim().replace(/[^0-9]/g, '');
-        const inputNum = parseInt(cleanText);
+    if (!session) return;
 
+    const cleanText = m.text.trim().replace(/[^0-9]/g, '');
+    const inputNum = parseInt(cleanText);
+
+    if (session.type === 'search') {
         if (isNaN(inputNum) || inputNum < 1 || inputNum > session.results.length) {
             return m.reply(`⚠️ Por favor, responde con un número válido del *1 al ${session.results.length}*.`);
         }
-            
 
         global.hentailaStore.clear();
 
