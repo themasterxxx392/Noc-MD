@@ -79,7 +79,7 @@ async function segmentedDownload(url, baseHeaders, totalSize, concurrency = CONC
     const results = await Promise.all(tasks);
     results.sort((a, b) => a.index - b.index);
     return Buffer.concat(results.map(r => r.data));
-  }
+}
 
 async function resolveRedirectIfNeeded(url) {
     if (!url) return null;
@@ -202,7 +202,7 @@ async function getMp4UploadDirectLink(mp4Url) {
         const { data: html } = await axios.get(embedUrl, { headers, timeout: 15000 });
         const unpacked = unpackJS(html);
 
-  const videoMatch = unpacked.match(/src:\s*["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i) || 
+        const videoMatch = unpacked.match(/src:\s*["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i) || 
                            unpacked.match(/(https?:\/\/[^"']+\.mp4)/i);
 
         return videoMatch ? (videoMatch.groups?.url || videoMatch[1]) : null;
@@ -228,7 +228,7 @@ async function getMegaBuffer(megaUrl) {
     } catch (e) {
         return null;
     }
-}
+    }
 
 async function searchHentaiLA(query) {
     try {
@@ -444,7 +444,7 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
         if (href.includes('.mp4') && !links.directMp4) links.directMp4 = href;
     });
 
-if (!links.mediafire) {
+    if (!links.mediafire) {
         const match = html.match(/https?:\/\/(?:www\.)?mediafire\.com\/[^\s"'<>]+/i) ||
                       html.match(/https?:\/\/hentaila\.com\/(?:download|option)\/[^\s"'<>]*/i);
         if (match) links.mediafire = match[0];
@@ -622,7 +622,7 @@ async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
         clearTimeout(lockTimeout);
         activeDownloads.delete(lockKey);
     }
-}
+                }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
     if (!text) {
@@ -747,7 +747,7 @@ handler.before = async function (m, { conn }) {
 };
 
 handler.command = ['hentaila', 'hla'];
-handler.tags = ['downloader'];
+handler.tags = ['download'];
 handler.help = ['hentaila'];
 
 export default handler;
