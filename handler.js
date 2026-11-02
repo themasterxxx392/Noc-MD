@@ -343,15 +343,7 @@ const callerId = call.from;
 const userTag = `@${callerId.split("@")[0]}`;
 const botConfig = await getSubbotConfig(conn.user?.id);
 if (!botConfig.anti_call) return;
-await conn.sendMessage(callerId, { text: `🚫 Está prohibido hacer llamadas, serás bloqueado...`,
-contextInfo: {
-isForwarded: true,
-forwardingScore: 1,
-forwardedNewsletterMessageInfo: {
-newsletterJid: [process.env.CHANNEL_ID, "120363301598733462@newsletter", "120363310758594673@newsletter"].getRandom(),
-newsletterName: "Rem Bot ✨️",
-serverMessageId: 1
-}}
+await conn.sendMessage(callerId, { text: `🚫 Está prohibido hacer llamadas, serás bloqueado...`
 });
 await conn.updateBlockStatus(callerId, "block");
 } catch (err) {
@@ -930,4 +922,3 @@ watchFile(file, () => {
   console.log(chalk.redBright('Update \'handler.js\''));
   import(`${file}?update=${Date.now()}`);
 });
-                                   
