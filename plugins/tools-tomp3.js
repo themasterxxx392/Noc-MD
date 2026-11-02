@@ -13,5 +13,4 @@ conn.sendMessage(m.chat, { audio: audio.data, mimetype: 'audio/mpeg' }, { quoted
 handler.help = ['tomp3'];
 handler.tags = ['convertidor']
 handler.command = /^to(mp3|audio)$/i;
-handler.register = true
 export default handler;
