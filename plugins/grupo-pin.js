@@ -33,7 +33,7 @@ console.error(error);
 }};
 handler.help = ['pin']
 handler.tags = ['group']
-handler.command = ['pin', 'unpin', 'destacar', 'desmarcar'] 
+handler.command = ['fijar', 'desfijar', 'destacar', 'desmarcar'] 
 handler.admin = true
 handler.group = true
 handler.botAdmin = true
