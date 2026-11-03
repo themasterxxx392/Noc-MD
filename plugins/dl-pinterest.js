@@ -8,7 +8,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Usamos un endpoint alternativo sumamente estable para la búsqueda de Pinterest
     let res = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
     let json = await res.json();
     
@@ -20,29 +19,43 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let selectedImages = images.slice(0, 10);
 
-    // Mapeo seguro para el álbum de imágenes sin texto
-    let albumCards = selectedImages.map((img) => {
+    // Mapeo limpio adaptado para que el framework arme el grupo de imágenes correctamente
+    let albumMedias = selectedImages.map((img) => {
       let imgUrl = typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media);
       return {
-        header: '',
-        footer: '',
-        body: { text: '' },
-        image: { url: imgUrl }
+        image: { url: imgUrl },
+        caption: ''
       };
     });
 
-    // Envío del álbum en una sola burbuja de forma limpia
+    // Envío por álbum nativo soportado en la estructura de LoliBot
     if (typeof conn.sendAlbumMessage === 'function') {
-      await conn.sendAlbumMessage(m.chat, albumCards, { quoted: m });
+      await conn.sendAlbumMessage(m.chat, albumMedias, { quoted: m });
+    } else if (typeof conn.sendFile === 'function' && albumMedias.length > 0) {
+      // Método alternativo si el bot agrupa por lotes de envío multimedia
+      for (let media of albumMedias) {
+        await conn.sendMessage(m.chat, { image: media.image, caption: '' }, { quoted: m });
+      }
     } else {
-      let content = {
-        albumMessage: {
-          expectedImageCount: albumCards.length,
-          cards: albumCards
+      // Estructura de respaldo para carrusel/álbum estándar de Baileys
+      let cards = albumMedias.map(item => ({
+        body: { text: '' },
+        footer: '',
+        header: { 
+          hasMediaAttachment: true, 
+          imageMessage: item.image 
         }
-      };
-      let msg = conn.generateWAMessageFromContent(m.chat, content, { quoted: m });
-      await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
+      }));
+      
+      await conn.relayMessage(m.chat, {
+        viewOnceMessage: {
+          message: {
+            carouselMessage: {
+              cards: cards
+            }
+          }
+        }
+      }, { quoted: m });
     }
 
     // Reacción de éxito si todo salió bien
