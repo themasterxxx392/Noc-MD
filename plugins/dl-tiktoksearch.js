@@ -119,7 +119,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 };
 
 handler.help = ['tiktoksearch'];
-handler.tags = ['downloader];
-handler.command = ['tts', 'tiktoksearch', 'ttsearch'];
+handler.tags = ['downloader'];
+handler.command = ['tiksearch'];
 
 export default handler;
