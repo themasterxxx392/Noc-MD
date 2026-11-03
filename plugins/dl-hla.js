@@ -1,7 +1,5 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { lookup } from 'mime-types';
-import { File as MegaFile } from 'megajs';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -16,28 +14,7 @@ if (!fs.existsSync(customTmpDir)) {
 process.env.TMPDIR = customTmpDir;
 os.tmpdir = () => customTmpDir;
 
-const MAX_SIZE_BYTES = 1024 * 1024 * 1024;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
-
-const activeDownloads = new Set();
-const LOCK_TTL_MS = 3 * 60 * 1000;
-const CONCURRENCY = 6;
-const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY + 2, keepAliveMsecs: 10000 });
-
-function formatMB(bytes) { return (bytes / (1024 * 1024)).toFixed(2); }
-
-function unpackJS(packed) {
-    try {
-        const regex = /eval\(function\(p,a,c,k,e,d\).+?\}\('(.+?)',(\d+),(\d+),'(.+?)'\.split\('\|'\)/s;
-        const match = packed.match(regex);
-        if (!match) return packed;
-        let [_, p, a, c, k] = match;
-        a = parseInt(a); c = parseInt(c); k = k.split('|');
-        function e(c) { return (c < a ? '' : e(Math.floor(c / a))) + ((c = c % a) > 35 ? String.fromCharCode(c + 29) : c.toString(36)); }
-        while (c--) { if (k[c]) p = p.replace(new RegExp('\\b' + e(c) + '\\b', 'g'), k[c]); }
-        return p;
-    } catch { return packed; }
-}
 
 async function searchHentaiLA(query) {
     try {
@@ -75,16 +52,12 @@ let handler = async (m, { conn, text }) => {
     topResults.forEach((item, i) => { txt += `*${i + 1})* ${item.title}\n\n`; });
     txt += `➡️ *Usa el comando:* \`.hlasel [número]\` para seleccionar (Ej: \`.hlasel 1\`).`;
 
-    
-        const sentMsg = await conn.reply(m.chat, txt, m);
+    await conn.reply(m.chat, txt, m);
     await m.react('✔️');
 
-    global.hentailaStore.set(m.chat, { 
-        results: topResults, 
-        searchMsgId: sentMsg.key.id 
-    });
+    global.hentailaStore.set(m.chat, { results: topResults });
+};
 
-    
 handler.command = ['hentaila', 'hla'];
 handler.tags = ['downloader'];
 export default handler;
