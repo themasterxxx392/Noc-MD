@@ -8,27 +8,38 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    let res = await fetch(`https://delirius-api-oficial.vercel.app/tools/pinterest?q=${encodeURIComponent(text)}`);
-    let textResponse = await res.text();
-
-    // Verificamos si la respuesta es HTML o error de Cloudflare en vez de JSON
-    let json;
+    let images = [];
+    
+    // Intento 1: Primera API alternativa
     try {
-      json = JSON.parse(textResponse);
+      let res1 = await fetch(`https://delirius-api-oficial.vercel.app/tools/pinterest?q=${encodeURIComponent(text)}`);
+      let json1 = await res1.json();
+      let data1 = json1.data || json1.result || json1;
+      if (Array.isArray(data1) && data1.length > 0) {
+        images = data1;
+      }
     } catch (err) {
-      throw new Error('La API de Pinterest está caída o bloqueó la solicitud temporalmente.');
+      // Si falla, pasamos al respaldo silenciosamente
     }
 
-    let images = json.data || json.result || json;
+    // Intento 2 (Respaldo): Si la primera falló, probamos con otra fuente directa
+    if (images.length === 0) {
+      let res2 = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
+      let json2 = await res2.json();
+      let data2 = json2.data || json2.result || json2;
+      if (Array.isArray(data2) && data2.length > 0) {
+        images = data2;
+      }
+    }
 
-    if (!Array.isArray(images) || images.length === 0) {
-      throw new Error('No se encontraron imágenes para esa búsqueda.');
+    if (!images.length) {
+      throw new Error('Todas las APIs de Pinterest están ocupadas o no devolvieron resultados.');
     }
 
     let selectedImages = images.slice(0, 10);
 
     let albumMedias = selectedImages.map((img) => ({
-      image: { url: typeof img === 'string' ? img : (img.image || img.url || img.thumbnail) },
+      image: { url: typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media) },
       caption: ''
     }));
 
