@@ -133,28 +133,24 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
 let handler = async (m, { conn, text }) => {
     if (!global.hentailaStore) return m.reply('⚠️ No hay ninguna búsqueda activa.');
     const session = global.hentailaStore.get(m.chat);
-    if (!session) return m.reply('⚠️ Primero realiza una búsqueda con *.hla [nombre]*');
+    if (!session || !session.results) return m.reply('⚠️ Primero realiza una búsqueda con *.hla [nombre]*');
 
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido (Ej: *.hlacap 1*).');
 
-    const quotedId = m.quoted ? m.quoted.id : null;
+    // Determinamos inteligentemente si el número corresponde a la lista de búsqueda general
+    const isChoosingFromSearch = inputNum >= 1 && inputNum <= session.results.length;
 
-    // 1. REVISAR SI ESTÁ RESPONDIENDO AL MENSAJE DE BÚSQUEDA INICIAL
-    const isReplyingToSearch = session.searchMsgId && quotedId === session.searchMsgId;
-
-    if (isReplyingToSearch) {
-        if (!session.results || inputNum < 1 || inputNum > session.results.length) {
-            return m.reply('⚠️ Número de anime fuera de rango en la lista de búsqueda.');
-        }
-
+    // Si el usuario ingresó un número que está dentro de los resultados de la búsqueda, abrimos ese anime
+    if (isChoosingFromSearch && (!session.episodes || inputNum !== session.lastSelectedAnimeIndex)) {
+        session.lastSelectedAnimeIndex = inputNum;
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content'] || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -175,74 +171,64 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
-        // Enviamos el nuevo menú de descarga y guardamos su ID exacto como detailsMsgId
-        const sentDetailsMsg = await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
-
-        global.hentailaStore.set(m.chat, {
-            searchMsgId: session.searchMsgId,
-            results: session.results,
-            episodes: finalEpisodes,
-            detailsMsgId: sentDetailsMsg.key.id // Guardamos el ID del mensaje de este anime
-        });
+        // Actualizamos la sesión guardando los episodios de este título
+        session.episodes = finalEpisodes;
+        global.hentailaStore.set(m.chat, session);
 
         await m.react('✔️');
-        return;
+        if (poster) {
+            return conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
+        } else {
+            return m.reply(txt);
+        }
     }
 
-    // 2. REVISAR SI ESTÁ RESPONDIENDO AL MENSAJE DE DETALLES/DESCARGA (O si no hay un quote de búsqueda)
-    const isReplyingToDetails = session.detailsMsgId && quotedId === session.detailsMsgId;
+    // De lo contrario, si ya hay capítulos cargados, intentamos descargar el capítulo correspondiente
+    if (!session.episodes) {
+        return m.reply('⚠️ Primero selecciona un anime de la lista.');
+    }
 
-    // Permitimos la descarga si respondió al mensaje de detalles o si mandó el comando directamente sin citar la búsqueda
-    if (isReplyingToDetails || !isReplyingToSearch) {
-        if (!session.episodes) {
-            return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
-        }
+    const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
+    if (!targetEp) {
+        return m.reply('⚠️ Número fuera de rango. Si deseas cambiar de anime, ingresa un número válido de la lista de búsqueda; si deseas descargar, ingresa un número de capítulo válido.');
+    }
 
-        const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
-        if (!targetEp) {
-            return m.reply('⚠️ Capítulo no encontrado o número fuera de rango.');
-        }
+    await m.react('🕒');
 
-        await m.react('🕒');
-
-        try {
-            const resolved = await getHentaiLADownloadUrl(targetEp.url, targetEp.num);
-            if (!resolved) {
-                await m.react('✖️');
-                return m.reply('❌ No se pudo extraer el enlace de descarga de este capítulo.');
-            }
-
-            const { downloadUrl, fileName, referer, buffer: directBuffer } = resolved;
-            let buffer = directBuffer;
-
-            if (!buffer && downloadUrl) {
-                let contentLength = 0;
-                try {
-                    const head = await axios.head(downloadUrl, { headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 10000 });
-                    contentLength = Number(head.headers['content-length'] || 0);
-                } catch {}
-
-                await conn.reply(m.chat, `🔞 Descargando: \`${fileName}\`${contentLength ? ` (*${formatMB(contentLength)} MB*)` : ''}`, m);
-
-                const fileRes = await axios.get(downloadUrl, { responseType: 'arraybuffer', headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 300000 });
-                buffer = Buffer.from(fileRes.data);
-            }
-
-            if (!buffer || buffer.length < 100000) {
-                await m.react('✖️');
-                return m.reply('⚠️ Error: Archivo vacío o enlace caducado.');
-            }
-
-            await conn.sendMessage(m.chat, { document: buffer, fileName, mimetype: lookup(fileName) || 'video/mp4' }, { quoted: m });
-            await m.react('✔️');
-        } catch (e) {
+    try {
+        const resolved = await getHentaiLADownloadUrl(targetEp.url, targetEp.num);
+        if (!resolved) {
             await m.react('✖️');
-            return m.reply(`⚠︎ Error en la descarga: ${e.message}`);
+            return m.reply('❌ No se pudo extraer el enlace de descarga de este capítulo.');
         }
-        return;
-    }
 
-    return m.reply('⚠️ Acción no reconocida. Responde al menú correspondiente.');
+        const { downloadUrl, fileName, referer, buffer: directBuffer } = resolved;
+        let buffer = directBuffer;
+
+        if (!buffer && downloadUrl) {
+            let contentLength = 0;
+            try {
+                const head = await axios.head(downloadUrl, { headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 10000 });
+                contentLength = Number(head.headers['content-length'] || 0);
+            } catch {}
+
+            await conn.reply(m.chat, `🔞 Descargando: \`${fileName}\`${contentLength ? ` (*${formatMB(contentLength)} MB*)` : ''}`, m);
+
+            const fileRes = await axios.get(downloadUrl, { responseType: 'arraybuffer', headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 300000 });
+            buffer = Buffer.from(fileRes.data);
+        }
+
+        if (!buffer || buffer.length < 100000) {
+            await m.react('✖️');
+            return m.reply('⚠️ Error: Archivo vacío o enlace caducado.');
+        }
+
+        await conn.sendMessage(m.chat, { document: buffer, fileName, mimetype: lookup(fileName) || 'video/mp4' }, { quoted: m });
+        await m.react('✔️');
+    } catch (e) {
+        await m.react('✖️');
+        return m.reply(`⚠︎ Error en la descarga: ${e.message}`);
+    }
 };
 
 handler.command = ['hlacap'];
