@@ -656,7 +656,7 @@ console.error(err);
                     const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 12000 });
                     const $ = cheerio.load(html);
                     const title = $('h1').first().text().trim() || selected.title;
-                    let rawPoster = $('meta[property="og:image"]').attr('content'] || $('.cover img').attr('src') || '';
+                    let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
                     let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
                     const episodes = [];
