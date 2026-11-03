@@ -127,14 +127,12 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    // Leemos tanto el texto como el caption del mensaje citado para cubrir imágenes y textos planos
     const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
-    const quotedId = m.quoted ? m.quoted.id : null;
 
-    // ¿Estás respondiendo explícitamente al mensaje de la lista de búsqueda inicial?
-    const isReplyingToSearch = (session.searchMsgId && quotedId === session.searchMsgId) || quotedText.includes('HENTAILA - BÚSQUEDA');
+    // Si estás respondiendo al mensaje de búsqueda o el número está entre 1 y el total de resultados, seleccionamos el anime
+    const isChoosingAnime = quotedText.includes('HENTAILA - BÚSQUEDA') || (inputNum >= 1 && inputNum <= session.results.length && !session.episodes);
 
-    if (isReplyingToSearch) {
+    if (isChoosingAnime) {
         if (inputNum < 1 || inputNum > session.results.length) {
             return m.reply(`⚠️ Elige un número válido de la lista (1 al ${session.results.length}).`);
         }
@@ -177,9 +175,9 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // POR DEFECTO: Si no estás respondiendo a la lista de búsqueda, descargamos el capítulo
+    // SI NO ESTÁS ELIGIENDO DE LA BÚSQUEDA, DESCARGAMOS EL CAPÍTULO DIRECTAMENTE
     if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
+        return m.reply('⚠️ Primero selecciona un anime de la lista.');
     }
 
     const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
