@@ -8,8 +8,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    const apikey = 'YUME_5e7b86855e968de6';
-    let searchUrl = `https://nexus--shadowxyz189.replit.app/search/pinterest?q=${encodeURIComponent(text)}&key=${apikey}`;
+    // Tomamos la URL y la Apikey centralizadas desde config.js
+    let searchUrl = `${global.info.nexus}/search/pinterest?q=${encodeURIComponent(text)}&key=${global.info.apikey}`;
     
     let { data: response } = await axios.get(searchUrl);
     let images = response.result?.images || response.data || [];
@@ -26,6 +26,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       
       if (imgUrl) {
         try {
+          // Descarga por búfer con cabeceras de navegador para evitar bloqueos del CDN
           let imageResponse = await axios.get(imgUrl, { 
             responseType: 'arraybuffer',
             headers: {
