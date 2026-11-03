@@ -122,7 +122,7 @@ let handler = async (m, { conn, text }) => {
     if (!session.episodes) return m.reply('⚠️ Primero selecciona un anime usando *.hlasel [número]*');
 
     if (!text || !text.trim()) {
-        return m.reply('⚠️ Ingresa el número del capítulo (Ej: `.hlacap 1`).');
+        return m.reply('⚠️ Ingresa el número del capítulo (Ej: `.hladl 1`).');
     }
 
     const epNum = parseInt(text.trim());
@@ -171,5 +171,5 @@ let handler = async (m, { conn, text }) => {
     }
 };
 
-handler.command = ['hlacap'];
+handler.command = ['hladl'];
 export default handler;
