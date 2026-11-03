@@ -11,37 +11,44 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     let res = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
     let json = await res.json();
     
-    let images = json.data || json.result || json;
+    // Capturamos cualquier variante de la estructura de la API
+    let images = json.data || json.result || json.results || (Array.isArray(json) ? json : []);
 
     if (!Array.isArray(images) || images.length === 0) {
-      throw new Error('No se encontraron resultados para esa búsqueda.');
+      throw new Error('La API no devolvió ninguna imagen válida.');
     }
 
     let selectedImages = images.slice(0, 10);
+    let sentCount = 0;
 
-    // Envío rápido y consecutivo para que WhatsApp las agrupe automáticamente en formato de galería/álbum
+    // Envío rápido consecutivo para que WhatsApp las agrupe como galería
     for (let i = 0; i < selectedImages.length; i++) {
-      let imgUrl = typeof selectedImages[i] === 'string' ? selectedImages[i] : (selectedImages[i].image || selectedImages[i].url || selectedImages[i].thumbnail || selectedImages[i].media);
+      let item = selectedImages[i];
+      let imgUrl = typeof item === 'string' ? item : (item.image || item.url || item.thumbnail || item.media || item.pin || item.origin?.url);
       
       if (imgUrl) {
         await conn.sendMessage(m.chat, { 
           image: { url: imgUrl }, 
           caption: '' 
         }, { quoted: m });
+        sentCount++;
 
-        // Una pausa imperceptible de 300ms para mantener el orden y asegurar que WhatsApp las agrupe como álbum
         if (i < selectedImages.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
     }
 
-    // Reacción de éxito si todo salió bien
+    if (sentCount === 0) {
+      throw new Error('No se pudo extraer ninguna URL de imagen utilizable.');
+    }
+
+    // Reacción de éxito real solo si envió al menos una imagen
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
 
   } catch (e) {
     console.error(e);
-    // Reacción de error y mensaje explicativo claro
+    // Reacción de error y aviso en el chat si algo falló de verdad
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
     return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar en Pinterest.\n> *[Detalle: ${e.message}]*`, m);
   }
@@ -52,3 +59,4 @@ handler.tags = ['downloader'];
 handler.command = ['pinterest'];
 
 export default handler;
+  
