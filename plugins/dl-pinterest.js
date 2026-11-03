@@ -8,10 +8,17 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Usamos una API pública y directa para Pinterest que no gasta tus requests de Nexus
     let res = await fetch(`https://delirius-api-oficial.vercel.app/tools/pinterest?q=${encodeURIComponent(text)}`);
-    let json = await res.json();
-    
+    let textResponse = await res.text();
+
+    // Verificamos si la respuesta es HTML o error de Cloudflare en vez de JSON
+    let json;
+    try {
+      json = JSON.parse(textResponse);
+    } catch (err) {
+      throw new Error('La API de Pinterest está caída o bloqueó la solicitud temporalmente.');
+    }
+
     let images = json.data || json.result || json;
 
     if (!Array.isArray(images) || images.length === 0) {
@@ -41,7 +48,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
   } catch (e) {
     console.error(e);
-    // Reacción de error y mensaje explicativo en el chat para saber qué pasó
+    // Reacción de error y mensaje explicativo claro
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
     return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar en Pinterest.\n> *[Detalle: ${e.message}]*`, m);
   }
