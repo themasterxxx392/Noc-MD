@@ -20,7 +20,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     } catch (err) {}
 
-  
+    // Intento 2 (Respaldo): Segunda API si la primera falla
     if (images.length === 0) {
       let res2 = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
       let json2 = await res2.json();
@@ -36,7 +36,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let selectedImages = images.slice(0, 10);
 
-    // Mapeo estricto para asegurar que cada elemento cumpla con el formato de álbum de Baileys
+    // Mapeo seguro para el álbum de imágenes sin texto
     let albumCards = selectedImages.map((img) => {
       let imgUrl = typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media);
       return {
@@ -47,11 +47,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       };
     });
 
-    // Envío en álbum nativo usando la función interna de LoliBot o Baileys
+    // Envío del álbum en una sola burbuja de forma limpia
     if (typeof conn.sendAlbumMessage === 'function') {
       await conn.sendAlbumMessage(m.chat, albumCards, { quoted: m });
-    } else if (conn.relayMessage && conn.generateWAMessageFromContent) {
-      // Estructura directa de álbum multimedia por Baileys core
+    } else {
       let content = {
         albumMessage: {
           expectedImageCount: albumCards.length,
@@ -60,16 +59,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       };
       let msg = conn.generateWAMessageFromContent(m.chat, content, { quoted: m });
       await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
-    } else {
-      // Método alternativo si el bot usa otro gestor de álbumes en su framework
-      let mediaArray = selectedImages.map(img => {
-        let imgUrl = typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media);
-        return { type: 'image', url: imgUrl, caption: '' };
-      });
-      await conn.sendHydrated ? await conn.sendHydrated(m.chat, '', '', mediaArray, '', '', '', '', []) : throw new Error('El sistema de álbumes no es compatible en esta versión.');
     }
 
-    // Reacción de éxito si se envió el álbum correctamente
+    // Reacción de éxito si todo salió bien
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
 
   } catch (e) {
