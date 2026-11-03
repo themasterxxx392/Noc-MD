@@ -64,7 +64,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.help = ['pin <texto>'];
-handler.tags = ['downloader'];
-handler.command = ['pinterest'];
+handler.tags = ['buscadores'];
+handler.command = ['pin', 'pinterest'];
 
 export default handler;
