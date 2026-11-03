@@ -4,7 +4,7 @@ const API_BASE = 'https://hikariapi.skyultraweb.com'
 const API_KEY = 'hk_live_iIxT8_V9a6AMxTG5EDEoOxOFPOr-AOV5ZHoMwhZtlXU'
 const MAX_SIZE_BYTES = 1024 * 1024 * 1024
 const activeDownloads = new Set()
-const LOCK_TTL_MS = 3 * 60 * 1000
+const LOCK_TTL_MS = 5 * 60 * 1000
 
 function formatMB(bytes) {
     return (bytes / (1024 * 1024)).toFixed(2)
@@ -37,7 +37,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                     'Authorization': `Bearer ${API_KEY}`,
                     'Accept': 'application/json'
                 },
-                timeout: 30000
+                timeout: 60000 // Aumentado a 60 segundos de espera
             })
         } catch (err) {
             throw new Error(`[paso 1/2: resolver audio] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
@@ -108,4 +108,4 @@ handler.help = ['ytmp3 <enlace>']
 handler.tags = ['downloader']
 handler.command = ['ytmp3']
 
-export default handler;
+export default handler
