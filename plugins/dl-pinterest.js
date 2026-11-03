@@ -19,43 +19,21 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let selectedImages = images.slice(0, 10);
 
-    // Mapeo limpio adaptado para que el framework arme el grupo de imágenes correctamente
-    let albumMedias = selectedImages.map((img) => {
-      let imgUrl = typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media);
-      return {
-        image: { url: imgUrl },
-        caption: ''
-      };
-    });
-
-    // Envío por álbum nativo soportado en la estructura de LoliBot
-    if (typeof conn.sendAlbumMessage === 'function') {
-      await conn.sendAlbumMessage(m.chat, albumMedias, { quoted: m });
-    } else if (typeof conn.sendFile === 'function' && albumMedias.length > 0) {
-      // Método alternativo si el bot agrupa por lotes de envío multimedia
-      for (let media of albumMedias) {
-        await conn.sendMessage(m.chat, { image: media.image, caption: '' }, { quoted: m });
-      }
-    } else {
-      // Estructura de respaldo para carrusel/álbum estándar de Baileys
-      let cards = albumMedias.map(item => ({
-        body: { text: '' },
-        footer: '',
-        header: { 
-          hasMediaAttachment: true, 
-          imageMessage: item.image 
-        }
-      }));
+    // Envío rápido y consecutivo para que WhatsApp las agrupe automáticamente en formato de galería/álbum
+    for (let i = 0; i < selectedImages.length; i++) {
+      let imgUrl = typeof selectedImages[i] === 'string' ? selectedImages[i] : (selectedImages[i].image || selectedImages[i].url || selectedImages[i].thumbnail || selectedImages[i].media);
       
-      await conn.relayMessage(m.chat, {
-        viewOnceMessage: {
-          message: {
-            carouselMessage: {
-              cards: cards
-            }
-          }
+      if (imgUrl) {
+        await conn.sendMessage(m.chat, { 
+          image: { url: imgUrl }, 
+          caption: '' 
+        }, { quoted: m });
+
+        // Una pausa imperceptible de 300ms para mantener el orden y asegurar que WhatsApp las agrupe como álbum
+        if (i < selectedImages.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
-      }, { quoted: m });
+      }
     }
 
     // Reacción de éxito si todo salió bien
