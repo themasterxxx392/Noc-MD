@@ -19,6 +19,8 @@ globalThis.info = {
     apis: "https://api.delirius.store",
     nexus: "https://nexus--shadowxyz189.replit.app",
     apikey: "YUME_5e7b86855e968de6",
+    hikari: "https://hikariapi.skyultraweb.com",
+    hikariKey: "hk_live_iIxT8_V9a6AMxTG5EDEoOxOFPOr-AOV5ZHoMwhZtlXU",
     img2: "https://telegra.ph/file/39fb047cdf23c7",
     img4: fs.readFileSync('./media/Menu2.jpg'),
     yt: "",
@@ -33,7 +35,7 @@ globalThis.info = {
     nn5: "",
     nn6: "",
     nna: "",
-  }
+    }
 
 //----------------------------------------------------
 
