@@ -142,11 +142,17 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    // Verificamos si el número ingresado corresponde a un resultado de la lista de búsqueda (1 al 10)
-    const isChoosingFromSearch = inputNum >= 1 && inputNum <= session.results.length;
+    const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
+    
+    // Verificamos si el usuario está respondiendo específicamente al menú de búsqueda inicial
+    const isReplyingToSearch = quotedText.includes('HENTAILA - BÚSQUEDA') || quotedText.includes('Usa el comando: .hlacap [número]');
 
-    // Si el usuario pone un número de la lista de búsqueda, abrimos ese anime (independiente de a qué mensaje responda)
-    if (isChoosingFromSearch) {
+    // Si está respondiendo a la búsqueda (o no hay ningún anime seleccionado todavía), elegimos de la lista
+    if (isReplyingToSearch || !session.episodes) {
+        if (inputNum < 1 || inputNum > session.results.length) {
+            return m.reply(`⚠️ Elige un número válido de la lista (1 al ${session.results.length}).`);
+        }
+
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
@@ -185,14 +191,10 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // Si el número no es de la lista de búsqueda, intentamos descargar el capítulo del anime actual
-    if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime de la lista respondiendo con un número del 1 al 10.');
-    }
-
+    // Si YA hay un anime seleccionado y estás respondiendo a su menú de capítulos (o mandando el número directo), descargamos el capítulo
     const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
     if (!targetEp) {
-        return m.reply('⚠️ Número de capítulo no encontrado.');
+        return m.reply('⚠️ Número de capítulo no encontrado para este anime.');
     }
 
     await m.react('🕒');
