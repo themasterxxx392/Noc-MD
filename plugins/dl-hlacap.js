@@ -142,13 +142,12 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
-    
-    // Verificamos si el usuario está respondiendo específicamente al menú de búsqueda inicial
-    const isReplyingToSearch = quotedText.includes('HENTAILA - BÚSQUEDA') || quotedText.includes('Usa el comando: .hlacap [número]');
+    const quotedId = m.quoted ? m.quoted.id : null;
 
-    // Si está respondiendo a la búsqueda (o no hay ningún anime seleccionado todavía), elegimos de la lista
-    if (isReplyingToSearch || !session.episodes) {
+    // CONDICIÓN ESTRICTA: Solo cambiamos de anime si estás respondiendo EXACTAMENTE al mensaje de búsqueda inicial
+    const isReplyingToSearch = session.searchMsgId && quotedId === session.searchMsgId;
+
+    if (isReplyingToSearch) {
         if (inputNum < 1 || inputNum > session.results.length) {
             return m.reply(`⚠️ Elige un número válido de la lista (1 al ${session.results.length}).`);
         }
@@ -159,7 +158,7 @@ let handler = async (m, { conn, text }) => {
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src'] || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -191,7 +190,11 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // Si YA hay un anime seleccionado y estás respondiendo a su menú de capítulos (o mandando el número directo), descargamos el capítulo
+    // SI NO ESTÁS RESPONDIENDO A LA BÚSQUEDA, PROCEDEMOS A DESCARGAR EL CAPÍTULO
+    if (!session.episodes) {
+        return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
+    }
+
     const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
     if (!targetEp) {
         return m.reply('⚠️ Número de capítulo no encontrado para este anime.');
