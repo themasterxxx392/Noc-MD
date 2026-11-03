@@ -127,10 +127,12 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
+    // Leemos tanto el texto como el caption del mensaje citado para cubrir imágenes y textos planos
     const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
-    
-    // Identificamos que sea EXCLUSIVAMENTE el menú de búsqueda (debe decir HENTAILA - BÚSQUEDA)
-    const isReplyingToSearch = quotedText.includes('HENTAILA - BÚSQUEDA');
+    const quotedId = m.quoted ? m.quoted.id : null;
+
+    // ¿Estás respondiendo explícitamente al mensaje de la lista de búsqueda inicial?
+    const isReplyingToSearch = (session.searchMsgId && quotedId === session.searchMsgId) || quotedText.includes('HENTAILA - BÚSQUEDA');
 
     if (isReplyingToSearch) {
         if (inputNum < 1 || inputNum > session.results.length) {
@@ -143,7 +145,7 @@ let handler = async (m, { conn, text }) => {
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content'] || $('.cover img').attr('src') || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -175,7 +177,7 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // SI NO ESTÁS RESPONDIENDO A LA BÚSQUEDA, DESCARGA EL CAPÍTULO DIRECTAMENTE
+    // POR DEFECTO: Si no estás respondiendo a la lista de búsqueda, descargamos el capítulo
     if (!session.episodes) {
         return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
     }
