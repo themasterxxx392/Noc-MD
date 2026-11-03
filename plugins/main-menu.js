@@ -139,7 +139,7 @@ try {
 let menuMessage;
 try {
   menuMessage = await conn.sendMessage(chatId, { 
-    image: { url: "https://i.ibb.co/XrNQsw2J/image.jpg" }, 
+    image: { url: "https://i.ibb.co/dsm9JFft/Rem.jpg" }, 
     caption: text,
     mentionedJid: await conn.parseMention(text)
   }, { quoted: m });
