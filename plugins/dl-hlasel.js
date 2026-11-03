@@ -24,7 +24,7 @@ let handler = async (m, { conn, text }) => {
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content'] || $('.cover img').attr('src') || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -45,11 +45,11 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hladl [número de capítulo]\``;
 
-        // Enviamos el mensaje del póster y guardamos sus capítulos en un mapa interno ligado al ID del mensaje
         const sentMsg = await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
         
         session.episodeStores = session.episodeStores || {};
         session.episodeStores[sentMsg.key.id] = finalEpisodes;
+        session.lastEpisodes = finalEpisodes; // Respaldo por si reinicias el bot
         global.hentailaStore.set(m.chat, session);
 
         await m.react('✔️');
