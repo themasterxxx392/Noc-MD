@@ -118,7 +118,7 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
 let handler = async (m, { conn, text }) => {
     if (!global.hentailaStore) return m.reply('⚠️ No hay ninguna búsqueda activa.');
     const session = global.hentailaStore.get(m.chat);
-    if (!session || !session.activeEpisodes) return m.reply('⚠️ Primero selecciona un anime usando *.hlasel [número]*');
+    if (!session || !session.episodeMap) return m.reply('⚠️ Primero selecciona un anime usando *.hlasel [número]*');
 
     if (!text || !text.trim()) {
         return m.reply('⚠️ Ingresa el número del capítulo (Ej: `.hladl 1`).');
@@ -127,9 +127,25 @@ let handler = async (m, { conn, text }) => {
     const epNum = parseInt(text.trim());
     if (isNaN(epNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    const episodes = session.activeEpisodes;
-    const targetEp = episodes.find(e => e.num === epNum) || episodes[epNum - 1];
+    // Leemos el texto o caption del mensaje al que estás respondiendo
+    const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
     
+    let episodes = null;
+    
+    // Buscamos dentro de los títulos guardados cuál coincide con el texto del mensaje citado
+    for (const [titleKey, epList] of Object.entries(session.episodeMap)) {
+        if (quotedText.toLowerCase().includes(titleKey)) {
+            episodes = epList;
+            break;
+        }
+    }
+
+    // Si no respondió a un mensaje válido o no encuentra el anime en el texto citado, damos error para evitar mezclar
+    if (!episodes) {
+        return m.reply('⚠️ Por favor, **responde al mensaje del póster** del anime exacto que deseas descargar para evitar confusiones.');
+    }
+
+    const targetEp = episodes.find(e => e.num === epNum) || episodes[epNum - 1];
     if (!targetEp) {
         return m.reply('⚠️ Número de capítulo no encontrado para este anime.');
     }
