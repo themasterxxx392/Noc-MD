@@ -45,8 +45,9 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hladl [número de capítulo]\``;
 
-        // Guardamos los capítulos activos de este chat de forma directa y limpia
-        session.activeEpisodes = finalEpisodes;
+        // Guardamos los episodios usando el título del anime en minúsculas como llave única e infalible
+        session.episodeMap = session.episodeMap || {};
+        session.episodeMap[title.toLowerCase()] = finalEpisodes;
         global.hentailaStore.set(m.chat, session);
 
         await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
