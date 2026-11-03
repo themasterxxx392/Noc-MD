@@ -42,20 +42,17 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
    *｡ Audio ›* ${d.audio || 'N/A'}
    *｡ Enlace ›* ${d.link || text}`.trim();
 
-      if (d.type === 'video') {
-        const videoUrl = d.media?.download || d.media?.watermark || d.watermark;
-        if (!videoUrl) throw new Error('No se encontró enlace de video.');
-        await conn.sendMessage(m.chat, {
-          video: { url: videoUrl },
-          caption: cap,
-          mimetype: 'video/mp4'
-        }, { quoted: m });
-      } else {
-        throw new Error(`Tipo de contenido no soportado: ${d.type}`);
-      }
+      const videoUrl = d.media?.download || d.media?.watermark || d.watermark;
+      if (!videoUrl) throw new Error('No se encontró enlace de video.');
+      
+      await conn.sendMessage(m.chat, {
+        video: { url: videoUrl },
+        caption: cap,
+        mimetype: 'video/mp4'
+      }, { quoted: m });
 
     } else {
-      // BÚSQUEDA (Limitado exactamente a 9 elementos como pediste)
+      // BÚSQUEDA (Exactamente 9 elementos enviados de forma limpia y secuencial)
       const searchUrl = `https://nexus--shadowxyz189.replit.app/search/tiktok?q=${encodeURIComponent(text)}&count=9&key=${apikey}`;
       const { data: response } = await axios.get(searchUrl);
       if (!response.status || !response.data?.length) throw new Error('No se encontraron resultados.');
@@ -83,32 +80,16 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
    *｡ Enlace ›* ${v.url || 'N/A'}`;
       };
 
-      const albumMedias = results.map((v, i) => ({
-        video: { url: v.download.video },
-        caption: makeCap(v, i)
-      }));
+      // Envío secuencial optimizado para evitar el error de álbum de videos
+      for (let i = 0; i < results.length; i++) {
+        await conn.sendMessage(m.chat, {
+          video: { url: results[i].download.video },
+          caption: makeCap(results[i], i),
+          mimetype: 'video/mp4'
+        }, { quoted: m });
 
-      // Intentamos enviar usando el sistema nativo de álbumes de LoliBot si está disponible
-      if (typeof conn.sendAlbumMessage === 'function') {
-        await conn.sendAlbumMessage(m.chat, albumMedias, { quoted: m });
-      } else if (typeof conn.sendSylphy === 'function') {
-        const medias = results.map((v, i) => ({
-          type: 'video',
-          data: { url: v.download.video },
-          caption: makeCap(v, i)
-        }));
-        await conn.sendSylphy(m.chat, medias, { quoted: m });
-      } else {
-        // Método seguro secuencial si el bot no tiene funciones de álbum activas en esta versión
-        for (let i = 0; i < results.length; i++) {
-          await conn.sendMessage(m.chat, {
-            video: { url: results[i].download.video },
-            caption: makeCap(results[i], i),
-            mimetype: 'video/mp4'
-          }, { quoted: m });
-          if (i < results.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1200));
-          }
+        if (i < results.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500)); // Pausa de 1.5s entre cada video
         }
       }
     }
@@ -118,8 +99,9 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   }
 };
 
-handler.help = ['tiktoksearch'];
-handler.tags = ['downloader'];
-handler.command = ['tiksearch'];
+handler.help = ['tiktok', 'tt', 'tiktoksearch'];
+handler.tags = ['download', 'search'];
+handler.command = ['tiktok', 'tt', 'tiktoks', 'tts', 'tiktoksearch', 'ttsearch', 'tiksearch'];
+handler.group = true;
 
 export default handler;
