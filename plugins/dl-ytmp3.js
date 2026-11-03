@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const MAX_SIZE_BYTES = 1024 * 1024 * 1024 // 1GB límite de seguridad
+const API_BASE = 'https://hikariapi.skyultraweb.com'
+const API_KEY = 'hk_live_iIxT8_V9a6AMxTG5EDEoOxOFPOr-AOV5ZHoMwhZtlXU'
+const MAX_SIZE_BYTES = 1024 * 1024 * 1024
 const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
@@ -28,11 +30,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     try {
         let resolveRes
         try {
-            resolveRes = await axios.get(`${global.info.nexus}/api/scrapers/youtube/audio`, {
+            resolveRes = await axios.get(`${API_BASE}/api/scrapers/youtube/audio`, {
                 params: { url: input, quality: '128k' },
                 headers: {
-                    'x-api-key': global.info.apikey,
-                    'Authorization': `Bearer ${global.info.apikey}`,
+                    'x-api-key': API_KEY,
+                    'Authorization': `Bearer ${API_KEY}`,
                     'Accept': 'application/json'
                 },
                 timeout: 30000
@@ -55,7 +57,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         try {
             fileResponse = await axios.get(info.url, {
                 responseType: 'arraybuffer',
-                headers: { 'x-api-key': global.info.apikey },
+                headers: { 'x-api-key': API_KEY },
                 timeout: 300000,
                 maxRedirects: 5,
                 maxContentLength: Infinity,
@@ -106,4 +108,4 @@ handler.help = ['ytmp3 <enlace>']
 handler.tags = ['downloader']
 handler.command = ['ytmp3']
 
-export default handler
+export default handler;
