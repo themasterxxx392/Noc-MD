@@ -44,20 +44,26 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
       const videoUrl = d.media?.download || d.media?.watermark || d.watermark;
       if (!videoUrl) throw new Error('No se encontró enlace de video.');
-      
+
+      // Descargamos el video como buffer para evitar bloqueos de stream
+      const videoBuffer = await axios.get(videoUrl, { 
+        responseType: 'arraybuffer',
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+
       await conn.sendMessage(m.chat, {
-        video: { url: videoUrl },
+        video: Buffer.from(videoBuffer.data),
         caption: cap,
         mimetype: 'video/mp4'
       }, { quoted: m });
 
     } else {
-      // BÚSQUEDA (Exactamente 9 elementos enviados de forma limpia y secuencial)
-      const searchUrl = `https://nexus--shadowxyz189.replit.app/search/tiktok?q=${encodeURIComponent(text)}&count=9&key=${apikey}`;
+      // BÚSQUEDA (Exactamente 10 elementos)
+      const searchUrl = `https://nexus--shadowxyz189.replit.app/search/tiktok?q=${encodeURIComponent(text)}&count=10&key=${apikey}`;
       const { data: response } = await axios.get(searchUrl);
       if (!response.status || !response.data?.length) throw new Error('No se encontraron resultados.');
 
-      const results = response.data.filter(v => v.download?.video).slice(0, 9);
+      const results = response.data.filter(v => v.download?.video).slice(0, 10);
       if (!results.length) throw new Error('No se encontraron videos válidos.');
 
       const makeCap = (v, i) => {
@@ -80,13 +86,24 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
    *｡ Enlace ›* ${v.url || 'N/A'}`;
       };
 
-      // Envío secuencial optimizado para evitar el error de álbum de videos
+      // Envío secuencial de los 10 videos usando buffer seguro
       for (let i = 0; i < results.length; i++) {
-        await conn.sendMessage(m.chat, {
-          video: { url: results[i].download.video },
-          caption: makeCap(results[i], i),
-          mimetype: 'video/mp4'
-        }, { quoted: m });
+        try {
+          const videoBuffer = await axios.get(results[i].download.video, { 
+            responseType: 'arraybuffer',
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 15000
+          });
+
+          await conn.sendMessage(m.chat, {
+            video: Buffer.from(videoBuffer.data),
+            caption: makeCap(results[i], i),
+            mimetype: 'video/mp4'
+          }, { quoted: m });
+
+        } catch (err) {
+          console.error(`Error al procesar el video ${i + 1}:`, err.message);
+        }
 
         if (i < results.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 1500)); // Pausa de 1.5s entre cada video
