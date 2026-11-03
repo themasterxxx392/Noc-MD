@@ -38,8 +38,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
-handler.help = ['ytsearch *« ǫᴜᴇʀʏ »*'];
-handler.tags = ['search'];
+handler.help = ['ytsearch'];
+handler.tags = ['buscadores'];
 handler.command = ['yts', 'ytsearch'];
 
 export default handler;
