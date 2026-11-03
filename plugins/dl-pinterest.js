@@ -12,7 +12,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     let images = [];
     let query = encodeURIComponent(text);
 
-    // Lista de endpoints de respaldo (si uno falla por Cloudflare, salta al siguiente)
     let apis = [
       `https://delirius-api-oficial.vercel.app/tools/pinterest?q=${query}`,
       `https://api.siputzx.my.id/api/s/pinterest?query=${query}`,
@@ -24,7 +23,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         let res = await fetch(apiUrl);
         let textData = await res.text();
         
-        // Verificamos que sea JSON válido y no una página de bloqueo de Cloudflare
         if (textData.startsWith('<') || textData.includes('This content')) continue;
         
         let json = JSON.parse(textData);
@@ -32,15 +30,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         
         if (Array.isArray(data) && data.length > 0) {
           images = data;
-          break; // Si una API responde bien, rompemos el ciclo y usamos sus datos
+          break;
         }
-      } catch (err) {
-        // Continuamos con la siguiente API si esta falla
-      }
+      } catch (err) {}
     }
 
     if (!images.length) {
-      throw new Error('Todas las APIs de Pinterest están bloqueadas temporalmente. Inténtalo más tarde.');
+      throw new Error('Todas las APIs de Pinterest están bloqueadas temporalmente.');
     }
 
     let selectedImages = images.slice(0, 10);
@@ -52,8 +48,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       
       if (imgUrl) {
         try {
-          // Descarga por búfer con Axios para evitar el error de archivo gris/dañado en WhatsApp
-          let imageResponse = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 5000 });
+          // Descarga por búfer con headers de navegador para evitar el bloqueo del CDN de Pinterest
+          let imageResponse = await axios.get(imgUrl, { 
+            responseType: 'arraybuffer', 
+            timeout: 7000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': 'https://www.pinterest.com/'
+            }
+          });
           let buffer = Buffer.from(imageResponse.data);
 
           await conn.sendMessage(m.chat, { 
@@ -67,7 +70,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
         } catch (err) {
-          console.error(`Error al descargar imagen individual:`, err.message);
+          console.error(`Error descargando imagen ${i}:`, err.message);
         }
       }
     }
@@ -92,4 +95,4 @@ handler.tags = ['search', 'downloader'];
 handler.command = ['pin', 'pinterest'];
 
 export default handler;
-      
+  
