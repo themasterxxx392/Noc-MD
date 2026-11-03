@@ -118,7 +118,7 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
 let handler = async (m, { conn, text }) => {
     if (!global.hentailaStore) return m.reply('⚠️ No hay ninguna búsqueda activa.');
     const session = global.hentailaStore.get(m.chat);
-    if (!session) return m.reply('⚠️ Primero realiza una búsqueda con *.hla [nombre]*');
+    if (!session || !session.episodeStores) return m.reply('⚠️ Primero selecciona un anime usando *.hlasel [número]*');
 
     if (!text || !text.trim()) {
         return m.reply('⚠️ Ingresa el número del capítulo (Ej: `.hladl 1`).');
@@ -129,16 +129,11 @@ let handler = async (m, { conn, text }) => {
 
     const quotedId = m.quoted ? m.quoted.id : null;
     
-    // Buscamos los capítulos: primero intentamos por el ID del mensaje citado; si no está (ej. por un reinicio), usamos la última lista activa en el chat.
-    let episodes = null;
-    if (quotedId && session.episodeStores && session.episodeStores[quotedId]) {
-        episodes = session.episodeStores[quotedId];
-    } else if (session.lastEpisodes) {
-        episodes = session.lastEpisodes;
-    }
+    // EXCLUSIVO: Solo buscamos los capítulos si el usuario está citando EXACTAMENTE el mensaje de ese anime
+    const episodes = (quotedId && session.episodeStores[quotedId]) ? session.episodeStores[quotedId] : null;
 
     if (!episodes) {
-        return m.reply('⚠️ Por favor, selecciona un anime usando `.hlasel [número]` primero.');
+        return m.reply('⚠️ Por favor, **responde directamente al mensaje del póster** del anime específico que deseas descargar.');
     }
 
     const targetEp = episodes.find(e => e.num === epNum) || episodes[epNum - 1];
