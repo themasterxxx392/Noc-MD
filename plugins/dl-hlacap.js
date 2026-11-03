@@ -138,17 +138,20 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido (Ej: *.hlacap 1*).');
 
-    // CASO 1: Viene de la búsqueda inicial y elige el anime
-    if (session.step === 'search') {
-        if (inputNum < 1 || inputNum > session.results.length) return m.reply(`⚠️ Número fuera de rango.`);
+    // Determinamos si el número ingresado corresponde a un resultado de la lista de búsqueda inicial
+    const isSelectingAnime = session.results && inputNum >= 1 && inputNum <= session.results.length;
+    // O si corresponde a un capítulo del anime que está actualmente abierto
+    const isSelectingEpisode = session.episodes && session.episodes.some(e => e.num === inputNum || session.episodes[inputNum - 1]);
 
+    // Si el número coincide con un anime de la lista de búsqueda, lo abrimos
+    if (isSelectingAnime) {
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src'] || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -169,8 +172,11 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
-        // Cambiamos el step a 'details' y GUARDAMOS los episodios de forma permanente en la sesión del chat
-        global.hentailaStore.set(m.chat, { step: 'details', episodes: finalEpisodes });
+        // Actualizamos la sesión conservando la lista de resultados original y seteando los nuevos episodios
+        global.hentailaStore.set(m.chat, { 
+            results: session.results, 
+            episodes: finalEpisodes 
+        });
 
         await m.react('✔️');
         if (poster) {
@@ -178,12 +184,12 @@ let handler = async (m, { conn, text }) => {
         } else {
             return m.reply(txt);
         }
-    }
-
-    // CASO 2: Ya está dentro de los capítulos y quiere descargar (permite repetir cuantas veces quiera)
-    if (session.step === 'details') {
+    } 
+    
+    // Si ya tenemos episodios cargados y el número coincide con un capítulo, procedemos a descargar
+    if (session.episodes && isSelectingEpisode) {
         const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
-        if (!targetEp) return m.reply('⚠️ Capítulo no encontrado o número fuera de rango.');
+        if (!targetEp) return m.reply('⚠️ Capítulo no encontrado.');
 
         await m.react('🕒');
 
@@ -221,7 +227,11 @@ let handler = async (m, { conn, text }) => {
             await m.react('✖️');
             return m.reply(`⚠︎ Error en la descarga: ${e.message}`);
         }
+        return;
     }
+
+    // Si no encaja en ninguno de los rangos válidos
+    return m.reply('⚠️ Número fuera de rango o inválido para la lista actual.');
 };
 
 handler.command = ['hlacap'];
