@@ -8,6 +8,8 @@ import crypto from "crypto";
 import { db, getSubbotConfig } from "./lib/postgres.js";
 import { logCommand, logError, logMessage, LogLevel } from "./lib/logger.js";
 import { smsg } from "./lib/simple.js";
+import axios from 'axios'
+import cheerio from 'cheerio'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginsFolder = path.join(__dirname, "plugins");
@@ -641,7 +643,8 @@ await db.query(`INSERT INTO chats (id)
 console.error(err);
 }
     // --- INTERCEPCIÓN HENTAILA ---
-    if (m.text && m.quoted && global.hentailaStore && global.hentailaStore.has(m.chat)) {
+        // --- INTERCEPCIÓN HENTAILA ---
+    if (m.text && global.hentailaStore && global.hentailaStore.has(m.chat)) {
         const session = global.hentailaStore.get(m.chat);
         const inputNum = parseInt(m.text.trim());
 
@@ -651,7 +654,7 @@ console.error(err);
                 await m.react('🕒');
                 
                 try {
-                    const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                    const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 12000 });
                     const $ = cheerio.load(html);
                     const title = $('h1').first().text().trim() || selected.title;
                     let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
@@ -673,7 +676,7 @@ console.error(err);
 
                     let txt = `*[🔞] ${title.toUpperCase()}*\n\n`;
                     txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
-                    txt += `> *DESCARGAR:* Escribe el número del capítulo que deseas.`;
+                    txt += `> *DESCARGAR:* Responde con el número del capítulo que deseas.`;
 
                     session.step = 'select_episode';
                     session.episodes = finalEpisodes;
@@ -688,21 +691,26 @@ console.error(err);
                     return; 
                 } catch (e) {
                     await m.react('✖️');
-                    return conn.reply(m.chat, '⚠️ Error al obtener los capítulos.', m);
+                    return conn.reply(m.chat, `⚠️ Error al obtener capítulos: ${e.message}`, m);
                 }
             }
         }
 
-        if (session.step === 'select_episode' && !isNaN(inputNum)) {
+        else if (session.step === 'select_episode' && !isNaN(inputNum)) {
             const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
             if (targetEp) {
+                // Limpiamos la sesión para que termine el flujo correctamente
+                global.hentailaStore.delete(m.chat);
+                
+                // Redirigimos la ejecución al comando de descarga existente o procesamos aquí
                 await m.react('🕒');
-                // Aquí puedes agregar la ejecución directa de la descarga si lo deseas
-                return;
+                // Disparamos la descarga enviando el enlace interno directamente al manejador del bot
+                return conn.reply(m.chat, `.hladl ${inputNum}`, m);
             }
         }
     }
     // --- FIN INTERCEPCIÓN HENTAILA ---
+                                                   
 
     const plugins = Object.values(global.plugins) // <-- Aquí sigue tu línea 644 original[span_3](start_span)[span_3](end_span)
   
