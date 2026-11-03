@@ -73,7 +73,7 @@ let handler = async (m, { conn, text }) => {
     const topResults = results.slice(0, 10);
     let txt = `🔞 *HENTAILA - BÚSQUEDA*\n\n`;
     topResults.forEach((item, i) => { txt += `*${i + 1})* ${item.title}\n\n`; });
-    txt += `➡️ *Usa el comando:* \`.hlacap [número]\` para seleccionar (Ej: \`.hlacap 1\`).`;
+    txt += `➡️ *Usa el comando:* \`.hlasel [número]\` para seleccionar (Ej: \`.hlasel 1\`).`;
 
     
         const sentMsg = await conn.reply(m.chat, txt, m);
