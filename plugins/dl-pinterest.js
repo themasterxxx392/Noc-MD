@@ -8,7 +8,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Tomamos la URL y la Apikey centralizadas desde config.js
     let searchUrl = `${global.info.nexus}/search/pinterest?q=${encodeURIComponent(text)}&key=${global.info.apikey}`;
     
     let { data: response } = await axios.get(searchUrl);
@@ -26,7 +25,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       
       if (imgUrl) {
         try {
-          // Descarga por búfer con cabeceras de navegador para evitar bloqueos del CDN
           let imageResponse = await axios.get(imgUrl, { 
             responseType: 'arraybuffer',
             headers: {
@@ -44,7 +42,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
           sentCount++;
 
           if (i < selectedImages.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
         } catch (err) {
           console.error(`Error al enviar imagen ${i}:`, err.message);
@@ -56,12 +54,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error('No se pudo procesar ninguna imagen.');
     }
 
-    // Reacción de éxito ✔️
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
 
   } catch (e) {
     console.error(e);
-    // Reacción de error ✖️ con el detalle exacto
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
     return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar en Pinterest.\n> *[Detalle: ${e.message}]*`, m);
   }
