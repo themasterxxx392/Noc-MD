@@ -1,5 +1,4 @@
 import fetch from 'node-fetch';
-import axios from 'axios';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
@@ -29,24 +28,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error('No se encontró un enlace de video válido.');
     }
 
-    // Descargamos el video por buffer usando Axios con headers de navegador
-    let videoBufferRes = await axios.get(selectedVideo.url, {
-      responseType: 'arraybuffer',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.youtube.com/'
-      }
-    });
-
-    let videoBuffer = Buffer.from(videoBufferRes.data);
-
     let txt = `*[ YOUTUBE MP4 DOCUMENT ]*\n\n` +
               `> *Titulo:* ${videoData.title}\n` +
               `> *Calidad:* ${selectedVideo.quality}\n` +
               `> *Peso:* ${selectedVideo.size_formatted || 'Desconocido'}`;
 
     await conn.sendMessage(m.chat, { 
-      document: videoBuffer, 
+      document: { url: selectedVideo.url }, 
       fileName: `${videoData.title || 'video'}.mp4`,
       caption: txt,
       mimetype: 'video/mp4'
@@ -66,4 +54,3 @@ handler.tags = ['downloader'];
 handler.command = ['ytmp4'];
 
 export default handler;
-                      
