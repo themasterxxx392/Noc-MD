@@ -642,7 +642,6 @@ await db.query(`INSERT INTO chats (id)
 } catch (err) {
 console.error(err);
 }
-    // --- INTERCEPCIÓN HENTAILA ---
         // --- INTERCEPCIÓN HENTAILA ---
     if (m.text && global.hentailaStore && global.hentailaStore.has(m.chat)) {
         const session = global.hentailaStore.get(m.chat);
@@ -657,7 +656,7 @@ console.error(err);
                     const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 12000 });
                     const $ = cheerio.load(html);
                     const title = $('h1').first().text().trim() || selected.title;
-                    let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
+                    let rawPoster = $('meta[property="og:image"]').attr('content'] || $('.cover img').attr('src') || '';
                     let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
                     const episodes = [];
@@ -684,14 +683,14 @@ console.error(err);
 
                     await m.react('✔️');
                     if (poster) {
-                        await conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
+                        await this.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
                     } else {
-                        await conn.reply(m.chat, txt, m);
+                        await this.reply(m.chat, txt, m);
                     }
                     return; 
                 } catch (e) {
                     await m.react('✖️');
-                    return conn.reply(m.chat, `⚠️ Error al obtener capítulos: ${e.message}`, m);
+                    return this.reply(m.chat, `⚠️ Error al obtener capítulos: ${e.message}`, m);
                 }
             }
         }
@@ -699,17 +698,14 @@ console.error(err);
         else if (session.step === 'select_episode' && !isNaN(inputNum)) {
             const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
             if (targetEp) {
-                // Limpiamos la sesión para que termine el flujo correctamente
                 global.hentailaStore.delete(m.chat);
-                
-                // Redirigimos la ejecución al comando de descarga existente o procesamos aquí
                 await m.react('🕒');
-                // Disparamos la descarga enviando el enlace interno directamente al manejador del bot
-                return conn.reply(m.chat, `.hladl ${inputNum}`, m);
+                return this.reply(m.chat, `.hladl ${inputNum}`, m);
             }
         }
     }
     // --- FIN INTERCEPCIÓN HENTAILA ---
+                      
                                                    
 
     const plugins = Object.values(global.plugins) // <-- Aquí sigue tu línea 644 original[span_3](start_span)[span_3](end_span)
