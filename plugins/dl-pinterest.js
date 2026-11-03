@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import axios from 'axios';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -9,49 +8,26 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    let images = [];
-    let query = encodeURIComponent(text);
+    const apikey = 'YUME_5e7b86855e968de6';
+    let searchUrl = `https://nexus--shadowxyz189.replit.app/search/pinterest?q=${encodeURIComponent(text)}&key=${apikey}`;
+    
+    let { data: response } = await axios.get(searchUrl);
+    let images = response.result?.images || response.data || [];
 
-    let apis = [
-      `https://delirius-api-oficial.vercel.app/tools/pinterest?q=${query}`,
-      `https://api.siputzx.my.id/api/s/pinterest?query=${query}`,
-      `https://api.vyturex.com/pinterest?query=${query}`
-    ];
-
-    for (let apiUrl of apis) {
-      try {
-        let res = await fetch(apiUrl);
-        let textData = await res.text();
-        
-        if (textData.startsWith('<') || textData.includes('This content')) continue;
-        
-        let json = JSON.parse(textData);
-        let data = json.data || json.result || json.results || (Array.isArray(json) ? json : []);
-        
-        if (Array.isArray(data) && data.length > 0) {
-          images = data;
-          break;
-        }
-      } catch (err) {}
-    }
-
-    if (!images.length) {
-      throw new Error('Todas las APIs de Pinterest están bloqueadas temporalmente.');
+    if (!Array.isArray(images) || images.length === 0) {
+      throw new Error('No se encontraron imágenes en Pinterest.');
     }
 
     let selectedImages = images.slice(0, 10);
     let sentCount = 0;
 
     for (let i = 0; i < selectedImages.length; i++) {
-      let item = selectedImages[i];
-      let imgUrl = typeof item === 'string' ? item : (item.image || item.url || item.thumbnail || item.media);
+      let imgUrl = selectedImages[i];
       
       if (imgUrl) {
         try {
-          // Descarga por búfer con headers de navegador para evitar el bloqueo del CDN de Pinterest
           let imageResponse = await axios.get(imgUrl, { 
-            responseType: 'arraybuffer', 
-            timeout: 7000,
+            responseType: 'arraybuffer',
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
               'Referer': 'https://www.pinterest.com/'
@@ -70,13 +46,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
         } catch (err) {
-          console.error(`Error descargando imagen ${i}:`, err.message);
+          console.error(`Error al enviar imagen ${i}:`, err.message);
         }
       }
     }
 
     if (sentCount === 0) {
-      throw new Error('No se pudo descargar ninguna imagen de los resultados obtenidos.');
+      throw new Error('No se pudo procesar ninguna imagen.');
     }
 
     // Reacción de éxito ✔️
@@ -91,8 +67,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.help = ['pin <texto>'];
-handler.tags = ['search', 'downloader'];
-handler.command = ['pin', 'pinterest'];
+handler.tags = ['downloader'];
+handler.command = ['pinterest'];
 
 export default handler;
-  
