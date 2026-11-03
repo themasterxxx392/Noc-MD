@@ -277,14 +277,19 @@ let handler = async (m, { conn, text }) => {
     }
 
     const topResults = results.slice(0, 10);
-    let txt = `🔞 *HENTAILA - BÚSQUEDA*\n\n`;
+        let txt = `🔞 *HENTAILA - BÚSQUEDA*\n\n`;
     topResults.forEach((item, i) => { txt += `*${i + 1})* ${item.title}\n\n`; });
     txt += `➡️ *Usa el comando:* \`.hlacap [número]\` para seleccionar (Ej: \`.hlacap 1\`).`;
 
-    await conn.reply(m.chat, txt, m);
+    // Guardamos el mensaje de la búsqueda con su ID único
+    const sentMsg = await conn.reply(m.chat, txt, m);
     await m.react('✔️');
 
-    global.hentailaStore.set(m.chat, { step: 'search', results: topResults });
+    global.hentailaStore.set(m.chat, { 
+        step: 'search', 
+        results: topResults, 
+        searchMsgId: sentMsg.key.id 
+    });
 };
 
 handler.command = ['hentaila', 'hla'];
