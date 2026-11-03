@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import axios from 'axios';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -9,13 +8,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    let res = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
-    let json = await res.json();
+    const apikey = 'YUME_30c75365cf5d8687';
+    let searchUrl = `https://nexus--shadowxyz189.replit.app/search/pinterest?q=${encodeURIComponent(text)}&count=10&key=${apikey}`;
     
-    let images = json.data || json.result || json.results || (Array.isArray(json) ? json : []);
+    let { data: response } = await axios.get(searchUrl);
+    let images = response.data?.results || response.data || response.result || [];
 
     if (!Array.isArray(images) || images.length === 0) {
-      throw new Error('La API no devolvió ninguna imagen válida.');
+      throw new Error('No se encontraron imágenes en Pinterest.');
     }
 
     let selectedImages = images.slice(0, 10);
@@ -23,13 +23,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     for (let i = 0; i < selectedImages.length; i++) {
       let item = selectedImages[i];
-      let imgUrl = typeof item === 'string' ? item : (item.image || item.url || item.thumbnail || item.media || item.pin || item.origin?.url);
+      let imgUrl = typeof item === 'string' ? item : (item.image || item.url || item.thumbnail);
       
       if (imgUrl) {
         try {
-          // Descargamos la imagen como búfer para evitar que WhatsApp rechace el enlace directo
-          let response = await axios.get(imgUrl, { responseType: 'arraybuffer' });
-          let buffer = Buffer.from(response.data);
+          // Descarga por búfer usando Axios directamente desde los enlaces estables de Nexus
+          let imageResponse = await axios.get(imgUrl, { responseType: 'arraybuffer' });
+          let buffer = Buffer.from(imageResponse.data);
 
           await conn.sendMessage(m.chat, { 
             image: buffer, 
@@ -39,25 +39,24 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
           sentCount++;
 
           if (i < selectedImages.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 400));
+            await new Promise(resolve => setTimeout(resolve, 300));
           }
         } catch (err) {
-          // Si una imagen específica falla en la descarga, la saltamos y seguimos con la que sigue
-          console.error(`Error descargando imagen ${i}:`, err.message);
+          console.error(`Fallo al enviar imagen ${i}:`, err.message);
         }
       }
     }
 
     if (sentCount === 0) {
-      throw new Error('No se pudo descargar ninguna imagen de los resultados.');
+      throw new Error('No se pudo procesar ninguna imagen.');
     }
 
-    // Reacción de éxito
+    // Reacción de éxito ✔️
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
 
   } catch (e) {
     console.error(e);
-    // Reacción de error y aviso en el chat
+    // Reacción de error ✖️ con el detalle exacto
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
     return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar en Pinterest.\n> *[Detalle: ${e.message}]*`, m);
   }
@@ -68,3 +67,4 @@ handler.tags = ['downloader'];
 handler.command = ['pinterest'];
 
 export default handler;
+                         
