@@ -20,7 +20,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     } catch (err) {}
 
-    // Intento 2 (Respaldo): Segunda API si la primera falla
+  
     if (images.length === 0) {
       let res2 = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
       let json2 = await res2.json();
