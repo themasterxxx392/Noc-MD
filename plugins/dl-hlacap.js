@@ -119,64 +119,18 @@ let handler = async (m, { conn, text }) => {
     if (!global.hentailaStore) return m.reply('⚠️ No hay ninguna búsqueda activa.');
     const session = global.hentailaStore.get(m.chat);
     if (!session || !session.results) return m.reply('⚠️ Primero realiza una búsqueda con *.hla [nombre]*');
+    if (!session.episodes) return m.reply('⚠️ Primero selecciona un anime usando *.hlasel [número]*');
 
     if (!text || !text.trim()) {
-        return m.reply('⚠️ Ingresa el número correspondiente (Ej: `.hlacap 1`).');
+        return m.reply('⚠️ Ingresa el número del capítulo (Ej: `.hlacap 1`).');
     }
 
-    const inputNum = parseInt(text.trim());
-    if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
+    const epNum = parseInt(text.trim());
+    if (isNaN(epNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    // Rango de la lista de búsqueda general (1 al 10)
-    const isChoosingAnime = inputNum >= 1 && inputNum <= session.results.length;
-
-    if (isChoosingAnime) {
-        const selected = session.results[inputNum - 1];
-        await m.react('🕒');
-
-        const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
-        const $ = cheerio.load(html);
-        const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
-        let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
-
-        const episodes = [];
-        $('a[href*="/ver/"], a[href*="/media/"]').each((_, el) => {
-            const href = $(el).attr('href');
-            if (href && (href.includes('/ver/') || href.match(/\/media\/[^\/]+\/\d+/))) {
-                const fullUrl = href.startsWith('http') ? href : `https://hentaila.com${href}`;
-                if (!episodes.some(e => e.url === fullUrl)) {
-                    const matchEp = href.match(/(?:-|\/)(\d+)$/);
-                    episodes.push({ num: matchEp ? parseInt(matchEp[1]) : episodes.length + 1, url: fullUrl });
-                }
-            }
-        });
-        episodes.sort((a, b) => a.num - b.num);
-        const finalEpisodes = episodes.length > 0 ? episodes : [{ num: 1, url: selected.url }];
-
-        let txt = `*[🔞] ${title.toUpperCase()}*\n\n`;
-        txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
-        txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
-
-        session.episodes = finalEpisodes;
-        global.hentailaStore.set(m.chat, session);
-
-        await m.react('✔️');
-        if (poster) {
-            return conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
-        } else {
-            return m.reply(txt);
-        }
-    }
-
-    // Si mandas un número de capítulo (ej. 1, 2, 3...)
-    if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime de la lista.');
-    }
-
-    const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
+    const targetEp = session.episodes.find(e => e.num === epNum) || session.episodes[epNum - 1];
     if (!targetEp) {
-        return m.reply('⚠️ Número de capítulo no encontrado.');
+        return m.reply('⚠️ Número de capítulo no encontrado para este anime.');
     }
 
     await m.react('🕒');
