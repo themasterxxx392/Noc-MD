@@ -115,7 +115,7 @@ async function getHentaiLADownloadUrl(pageUrl, episodeNum) {
 
     const providers = [
         { link: links.mediafire, extract: u => getMediafireDirectLink(u).then(d => d ? { downloadUrl: d, referer: 'https://mediafire.com/' } : null) },
-        { link: links.yourupload, extract: u => getYourUploadDirectLink(u).then(d => d ? { downloadUrl: d, referer: 'https://www.yourupload.com/' } : null) },
+        { link: links.yourupload, extract: u => getYourUploadDirectLink(u).then(d => d ? { referer: 'https://www.yourupload.com/' } : null) },
         { link: links.mp4upload, extract: u => getMp4UploadDirectLink(u).then(d => d ? { downloadUrl: d, referer: 'https://www.mp4upload.com/' } : null) },
         { link: links.mega, extract: u => getMegaBuffer(u).then(res => res && !res.error ? { buffer: res.buffer } : null) }
     ];
@@ -138,12 +138,13 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido (Ej: *.hlacap 1*).');
 
-    // Determinamos si el número ingresado corresponde a un resultado de la lista de búsqueda inicial
-    const isSelectingAnime = session.results && inputNum >= 1 && inputNum <= session.results.length;
-    // O si corresponde a un capítulo del anime que está actualmente abierto
-    const isSelectingEpisode = session.episodes && session.episodes.some(e => e.num === inputNum || session.episodes[inputNum - 1]);
+    // Verificamos si el mensaje respondido es exactamente el mensaje de búsqueda inicial
+    const quotedMessageId = m.quoted ? m.quoted.id : null;
+    const isReplyingToSearch = session.searchMessageId && quotedMessageId === session.searchMessageId;
 
-    // Si el número coincide con un anime de la lista de búsqueda, lo abrimos
+    // Si el usuario está respondiendo directamente al mensaje de búsqueda o el número coincide con un índice de la lista y no hay conflicto
+    const isSelectingAnime = session.results && inputNum >= 1 && inputNum <= session.results.length && (isReplyingToSearch || !session.episodes || inputNum > session.episodes.length);
+
     if (isSelectingAnime) {
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
@@ -172,25 +173,26 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
-        // Actualizamos la sesión conservando la lista de resultados original y seteando los nuevos episodios
+        // Guardamos la sesión manteniendo el ID del mensaje de búsqueda original para que puedas seguir respondiéndole
         global.hentailaStore.set(m.chat, { 
+            searchMessageId: session.searchMessageId,
             results: session.results, 
             episodes: finalEpisodes 
         });
 
         await m.react('✔️');
         if (poster) {
-            return conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
+            const sentMsg = await conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
+            return;
         } else {
             return m.reply(txt);
         }
     } 
-    
-    // Si ya tenemos episodios cargados y el número coincide con un capítulo, procedemos a descargar
-    if (session.episodes && isSelectingEpisode) {
-        const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
-        if (!targetEp) return m.reply('⚠️ Capítulo no encontrado.');
 
+    // De lo contrario, intentamos descargar el capítulo del anime activo
+    const targetEp = session.episodes && (session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1]);
+
+    if (targetEp) {
         await m.react('🕒');
 
         try {
@@ -230,8 +232,7 @@ let handler = async (m, { conn, text }) => {
         return;
     }
 
-    // Si no encaja en ninguno de los rangos válidos
-    return m.reply('⚠️ Número fuera de rango o inválido para la lista actual.');
+    return m.reply('⚠️ Número fuera de rango o inválido.');
 };
 
 handler.command = ['hlacap'];
