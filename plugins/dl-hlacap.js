@@ -140,7 +140,7 @@ let handler = async (m, { conn, text }) => {
 
     const quotedId = m.quoted ? m.quoted.id : null;
 
-    // CASO A: Si el usuario respondió específicamente al mensaje de la lista de búsqueda inicial
+    // 1. REVISAR SI ESTÁ RESPONDIENDO AL MENSAJE DE BÚSQUEDA INICIAL
     const isReplyingToSearch = session.searchMsgId && quotedId === session.searchMsgId;
 
     if (isReplyingToSearch) {
@@ -154,7 +154,7 @@ let handler = async (m, { conn, text }) => {
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src'] || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -175,65 +175,74 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
-        // Actualizamos la sesión guardando los capítulos nuevos, pero conservando el searchMsgId para futuros cambios
-        const updatedMsg = await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
+        // Enviamos el nuevo menú de descarga y guardamos su ID exacto como detailsMsgId
+        const sentDetailsMsg = await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
 
         global.hentailaStore.set(m.chat, {
             searchMsgId: session.searchMsgId,
             results: session.results,
-            episodes: finalEpisodes
+            episodes: finalEpisodes,
+            detailsMsgId: sentDetailsMsg.key.id // Guardamos el ID del mensaje de este anime
         });
 
         await m.react('✔️');
         return;
     }
 
-    // CASO B: Si NO respondió a la búsqueda, asumimos que quiere descargar un capítulo del anime actualmente seleccionado
-    if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
-    }
+    // 2. REVISAR SI ESTÁ RESPONDIENDO AL MENSAJE DE DETALLES/DESCARGA (O si no hay un quote de búsqueda)
+    const isReplyingToDetails = session.detailsMsgId && quotedId === session.detailsMsgId;
 
-    const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
-    if (!targetEp) {
-        return m.reply('⚠️ Capítulo no encontrado o número fuera de rango para este anime.');
-    }
+    // Permitimos la descarga si respondió al mensaje de detalles o si mandó el comando directamente sin citar la búsqueda
+    if (isReplyingToDetails || !isReplyingToSearch) {
+        if (!session.episodes) {
+            return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
+        }
 
-    await m.react('🕒');
+        const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
+        if (!targetEp) {
+            return m.reply('⚠️ Capítulo no encontrado o número fuera de rango.');
+        }
 
-    try {
-        const resolved = await getHentaiLADownloadUrl(targetEp.url, targetEp.num);
-        if (!resolved) {
+        await m.react('🕒');
+
+        try {
+            const resolved = await getHentaiLADownloadUrl(targetEp.url, targetEp.num);
+            if (!resolved) {
+                await m.react('✖️');
+                return m.reply('❌ No se pudo extraer el enlace de descarga de este capítulo.');
+            }
+
+            const { downloadUrl, fileName, referer, buffer: directBuffer } = resolved;
+            let buffer = directBuffer;
+
+            if (!buffer && downloadUrl) {
+                let contentLength = 0;
+                try {
+                    const head = await axios.head(downloadUrl, { headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 10000 });
+                    contentLength = Number(head.headers['content-length'] || 0);
+                } catch {}
+
+                await conn.reply(m.chat, `🔞 Descargando: \`${fileName}\`${contentLength ? ` (*${formatMB(contentLength)} MB*)` : ''}`, m);
+
+                const fileRes = await axios.get(downloadUrl, { responseType: 'arraybuffer', headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 300000 });
+                buffer = Buffer.from(fileRes.data);
+            }
+
+            if (!buffer || buffer.length < 100000) {
+                await m.react('✖️');
+                return m.reply('⚠️ Error: Archivo vacío o enlace caducado.');
+            }
+
+            await conn.sendMessage(m.chat, { document: buffer, fileName, mimetype: lookup(fileName) || 'video/mp4' }, { quoted: m });
+            await m.react('✔️');
+        } catch (e) {
             await m.react('✖️');
-            return m.reply('❌ No se pudo extraer el enlace de descarga de este capítulo.');
+            return m.reply(`⚠︎ Error en la descarga: ${e.message}`);
         }
-
-        const { downloadUrl, fileName, referer, buffer: directBuffer } = resolved;
-        let buffer = directBuffer;
-
-        if (!buffer && downloadUrl) {
-            let contentLength = 0;
-            try {
-                const head = await axios.head(downloadUrl, { headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 10000 });
-                contentLength = Number(head.headers['content-length'] || 0);
-            } catch {}
-
-            await conn.reply(m.chat, `🔞 Descargando: \`${fileName}\`${contentLength ? ` (*${formatMB(contentLength)} MB*)` : ''}`, m);
-
-            const fileRes = await axios.get(downloadUrl, { responseType: 'arraybuffer', headers: { 'User-Agent': UA, 'Referer': referer }, timeout: 300000 });
-            buffer = Buffer.from(fileRes.data);
-        }
-
-        if (!buffer || buffer.length < 100000) {
-            await m.react('✖️');
-            return m.reply('⚠️ Error: Archivo vacío o enlace caducado.');
-        }
-
-        await conn.sendMessage(m.chat, { document: buffer, fileName, mimetype: lookup(fileName) || 'video/mp4' }, { quoted: m });
-        await m.react('✔️');
-    } catch (e) {
-        await m.react('✖️');
-        return m.reply(`⚠︎ Error en la descarga: ${e.message}`);
+        return;
     }
+
+    return m.reply('⚠️ Acción no reconocida. Responde al menú correspondiente.');
 };
 
 handler.command = ['hlacap'];
