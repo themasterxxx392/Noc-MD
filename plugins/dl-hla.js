@@ -76,15 +76,14 @@ let handler = async (m, { conn, text }) => {
     txt += `➡️ *Usa el comando:* \`.hlacap [número]\` para seleccionar (Ej: \`.hlacap 1\`).`;
 
     // Enviamos el mensaje de búsqueda y guardamos su ID exacto
-    const sentMsg = await conn.reply(m.chat, txt, m);
+        const sentMsg = await conn.reply(m.chat, txt, m);
     await m.react('✔️');
 
     global.hentailaStore.set(m.chat, { 
         results: topResults, 
         searchMsgId: sentMsg.key.id 
     });
-};
-
+                                                         
 handler.command = ['hentaila', 'hla'];
 handler.tags = ['downloader'];
 export default handler;
