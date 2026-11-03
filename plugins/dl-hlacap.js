@@ -9,20 +9,6 @@ function formatMB(bytes) {
 }
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
-const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 8, keepAliveMsecs: 10000 });
-
-function unpackJS(packed) {
-    try {
-        const regex = /eval\(function\(p,a,c,k,e,d\).+?\}\('(.+?)',(\d+),(\d+),'(.+?)'\.split\('\|'\)/s;
-        const match = packed.match(regex);
-        if (!match) return packed;
-        let [_, p, a, c, k] = match;
-        a = parseInt(a); c = parseInt(c); k = k.split('|');
-        function e(c) { return (c < a ? '' : e(Math.floor(c / a))) + ((c = c % a) > 35 ? String.fromCharCode(c + 29) : c.toString(36)); }
-        while (c--) { if (k[c]) p = p.replace(new RegExp('\\b' + e(c) + '\\b', 'g'), k[c]); }
-        return p;
-    } catch { return packed; }
-}
 
 async function resolveRedirectIfNeeded(url) {
     if (!url) return null;
@@ -74,8 +60,7 @@ async function getMp4UploadDirectLink(mp4Url) {
         const match = target.match(/mp4upload\.com\/(?:embed-)?([a-zA-Z0-9]+)/i);
         if (!match) return null;
         const { data: html } = await axios.get(`https://www.mp4upload.com/embed-${match[1]}.html`, { headers: { 'User-Agent': UA, 'Referer': 'https://www.mp4upload.com/' }, timeout: 15000 });
-        const unpacked = unpackJS(html);
-        const videoMatch = unpacked.match(/src:\s*["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i);
+        const videoMatch = html.match(/src:\s*["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i);
         return videoMatch ? videoMatch[1] : null;
     } catch { return null; }
 }
@@ -142,10 +127,10 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    const quotedId = m.quoted ? m.quoted.id : null;
-
-    // CONDICIÓN ESTRICTA: Solo cambiamos de anime si estás respondiendo EXACTAMENTE al mensaje de búsqueda inicial
-    const isReplyingToSearch = session.searchMsgId && quotedId === session.searchMsgId;
+    const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
+    
+    // Identificamos de manera estricta si está respondiendo al menú de búsqueda
+    const isReplyingToSearch = quotedText.includes('HENTAILA - BÚSQUEDA') || quotedText.includes('Usa el comando: .hlacap [número]');
 
     if (isReplyingToSearch) {
         if (inputNum < 1 || inputNum > session.results.length) {
@@ -158,7 +143,7 @@ let handler = async (m, { conn, text }) => {
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src'] || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -190,7 +175,7 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // SI NO ESTÁS RESPONDIENDO A LA BÚSQUEDA, PROCEDEMOS A DESCARGAR EL CAPÍTULO
+    // SI NO ESTÁ RESPONDIENDO A LA BÚSQUEDA, PROCEDE A DESCARGAR EL CAPÍTULO
     if (!session.episodes) {
         return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
     }
