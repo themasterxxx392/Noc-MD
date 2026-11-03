@@ -9,10 +9,7 @@ function formatMB(bytes) {
 }
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
-const activeDownloads = new Set();
-const LOCK_TTL_MS = 3 * 60 * 1000;
-const CONCURRENCY = 6;
-const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY + 2, keepAliveMsecs: 10000 });
+const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 8, keepAliveMsecs: 10000 });
 
 function unpackJS(packed) {
     try {
@@ -141,17 +138,17 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido (Ej: *.hlacap 1*).');
 
+    // CASO 1: Viene de la búsqueda inicial y elige el anime
     if (session.step === 'search') {
         if (inputNum < 1 || inputNum > session.results.length) return m.reply(`⚠️ Número fuera de rango.`);
 
-        // Aquí sí podemos limpiar o mantener, pero necesitamos conservar el step 'details'
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src'] || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -172,7 +169,7 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
-        // Guardamos la sesión en modo 'details' sin borrarla al seleccionar el anime
+        // Cambiamos el step a 'details' y GUARDAMOS los episodios de forma permanente en la sesión del chat
         global.hentailaStore.set(m.chat, { step: 'details', episodes: finalEpisodes });
 
         await m.react('✔️');
@@ -183,11 +180,11 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
+    // CASO 2: Ya está dentro de los capítulos y quiere descargar (permite repetir cuantas veces quiera)
     if (session.step === 'details') {
         const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
-        if (!targetEp) return m.reply('⚠️ Capítulo no encontrado.');
+        if (!targetEp) return m.reply('⚠️ Capítulo no encontrado o número fuera de rango.');
 
-        // ❌ QUITAMOS global.hentailaStore.delete(m.chat) PARA QUE NO SE BORRE LA SESIÓN Y PUEDAS USARLO VARIAS VECES
         await m.react('🕒');
 
         try {
