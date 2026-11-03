@@ -144,7 +144,7 @@ let handler = async (m, { conn, text }) => {
     if (session.step === 'search') {
         if (inputNum < 1 || inputNum > session.results.length) return m.reply(`⚠️ Número fuera de rango.`);
 
-        global.hentailaStore.delete(m.chat);
+        // Aquí sí podemos limpiar o mantener, pero necesitamos conservar el step 'details'
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
@@ -172,6 +172,7 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
+        // Guardamos la sesión en modo 'details' sin borrarla al seleccionar el anime
         global.hentailaStore.set(m.chat, { step: 'details', episodes: finalEpisodes });
 
         await m.react('✔️');
@@ -186,7 +187,7 @@ let handler = async (m, { conn, text }) => {
         const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
         if (!targetEp) return m.reply('⚠️ Capítulo no encontrado.');
 
-        global.hentailaStore.delete(m.chat);
+        // ❌ QUITAMOS global.hentailaStore.delete(m.chat) PARA QUE NO SE BORRE LA SESIÓN Y PUEDAS USARLO VARIAS VECES
         await m.react('🕒');
 
         try {
@@ -227,4 +228,4 @@ let handler = async (m, { conn, text }) => {
 };
 
 handler.command = ['hlacap'];
-export default handler;                                                                  
+export default handler;
