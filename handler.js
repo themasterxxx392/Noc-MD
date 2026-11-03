@@ -8,8 +8,6 @@ import crypto from "crypto";
 import { db, getSubbotConfig } from "./lib/postgres.js";
 import { logCommand, logError, logMessage, LogLevel } from "./lib/logger.js";
 import { smsg } from "./lib/simple.js";
-import axios from 'axios'
-import cheerio from 'cheerio'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginsFolder = path.join(__dirname, "plugins");
@@ -642,71 +640,7 @@ await db.query(`INSERT INTO chats (id)
 } catch (err) {
 console.error(err);
 }
-            // --- INTERCEPCIÓN HENTAILA ---
-    if (m.text && global.hentailaStore && global.hentailaStore.has(m.chat)) {
-        const session = global.hentailaStore.get(m.chat);
-        const inputNum = parseInt(m.text.trim());
-
-        if (session.step === 'select_anime' && !isNaN(inputNum)) {
-            if (inputNum >= 1 && inputNum <= session.results.length) {
-                const selected = session.results[inputNum - 1];
-                await m.react('🕒');
-                
-                try {
-                    const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 12000 });
-                    const $ = cheerio.load(html);
-                    const title = $('h1').first().text().trim() || selected.title;
-                    let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
-                    let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
-
-                    const episodes = [];
-                    $('a[href*="/ver/"], a[href*="/media/"]').each((_, el) => {
-                        const href = $(el).attr('href');
-                        if (href && (href.includes('/ver/') || href.match(/\/media\/[^\/]+\/\d+/))) {
-                            const fullUrl = href.startsWith('http') ? href : `https://hentaila.com${href}`;
-                            if (!episodes.some(e => e.url === fullUrl)) {
-                                const matchEp = href.match(/(?:-|\/)(\d+)$/);
-                                episodes.push({ num: matchEp ? parseInt(matchEp[1]) : episodes.length + 1, url: fullUrl });
-                            }
-                        }
-                    });
-                    episodes.sort((a, b) => a.num - b.num);
-                    const finalEpisodes = episodes.length > 0 ? episodes : [{ num: 1, url: selected.url }];
-
-                    let txt = `*[🔞] ${title.toUpperCase()}*\n\n`;
-                    txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
-                    txt += `> *DESCARGAR:* Responde con el número del capítulo que deseas.`;
-
-                    session.step = 'select_episode';
-                    session.episodes = finalEpisodes;
-                    global.hentailaStore.set(m.chat, session);
-
-                    await m.react('✔️');
-                    if (poster) {
-                        await conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
-                    } else {
-                        await conn.reply(m.chat, txt, m);
-                    }
-                    return; 
-                } catch (e) {
-                    await m.react('✖️');
-                    return conn.reply(m.chat, `⚠️ Error al obtener capítulos: ${e.message}`, m);
-                }
-            }
-        }
-
-        else if (session.step === 'select_episode' && !isNaN(inputNum)) {
-            const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
-            if (targetEp) {
-                global.hentailaStore.delete(m.chat);
-                await m.react('🕒');
-                return conn.reply(m.chat, `.hladl ${inputNum}`, m);
-            }
-        }
-    }
-    // --- FIN INTERCEPCIÓN HENTAILA ---         
-                                                   
-
+                     
 
 const plugins = Object.values(global.plugins || {});
 
