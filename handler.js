@@ -642,7 +642,7 @@ await db.query(`INSERT INTO chats (id)
 } catch (err) {
 console.error(err);
 }
-        // --- INTERCEPCIÓN HENTAILA ---
+            // --- INTERCEPCIÓN HENTAILA ---
     if (m.text && global.hentailaStore && global.hentailaStore.has(m.chat)) {
         const session = global.hentailaStore.get(m.chat);
         const inputNum = parseInt(m.text.trim());
@@ -683,14 +683,14 @@ console.error(err);
 
                     await m.react('✔️');
                     if (poster) {
-                        await this.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
+                        await conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
                     } else {
-                        await this.reply(m.chat, txt, m);
+                        await conn.reply(m.chat, txt, m);
                     }
                     return; 
                 } catch (e) {
                     await m.react('✖️');
-                    return this.reply(m.chat, `⚠️ Error al obtener capítulos: ${e.message}`, m);
+                    return conn.reply(m.chat, `⚠️ Error al obtener capítulos: ${e.message}`, m);
                 }
             }
         }
@@ -700,12 +700,11 @@ console.error(err);
             if (targetEp) {
                 global.hentailaStore.delete(m.chat);
                 await m.react('🕒');
-                return this.reply(m.chat, `.hladl ${inputNum}`, m);
+                return conn.reply(m.chat, `.hladl ${inputNum}`, m);
             }
         }
     }
-    // --- FIN INTERCEPCIÓN HENTAILA ---
-                      
+    // --- FIN INTERCEPCIÓN HENTAILA ---         
                                                    
 
     const plugins = Object.values(global.plugins) // <-- Aquí sigue tu línea 644 original[span_3](start_span)[span_3](end_span)
