@@ -707,8 +707,6 @@ console.error(err);
     // --- FIN INTERCEPCIÓN HENTAILA ---         
                                                    
 
-    const plugins = Object.values(global.plugins) // <-- Aquí sigue tu línea 644 original[span_3](start_span)[span_3](end_span)
-  
 
 const plugins = Object.values(global.plugins || {});
 
