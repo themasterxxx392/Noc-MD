@@ -18,11 +18,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       if (Array.isArray(data1) && data1.length > 0) {
         images = data1;
       }
-    } catch (err) {
-      // Si falla, pasamos al respaldo silenciosamente
-    }
+    } catch (err) {}
 
-    // Intento 2 (Respaldo): Si la primera falló, probamos con otra fuente directa
+    // Intento 2 (Respaldo): Segunda API si la primera falla
     if (images.length === 0) {
       let res2 = await fetch(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}`);
       let json2 = await res2.json();
@@ -38,23 +36,40 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let selectedImages = images.slice(0, 10);
 
-    let albumMedias = selectedImages.map((img) => ({
-      image: { url: typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media) },
-      caption: ''
-    }));
+    // Mapeo estricto para asegurar que cada elemento cumpla con el formato de álbum de Baileys
+    let albumCards = selectedImages.map((img) => {
+      let imgUrl = typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media);
+      return {
+        header: '',
+        footer: '',
+        body: { text: '' },
+        image: { url: imgUrl }
+      };
+    });
 
+    // Envío en álbum nativo usando la función interna de LoliBot o Baileys
     if (typeof conn.sendAlbumMessage === 'function') {
-      await conn.sendAlbumMessage(m.chat, albumMedias, { quoted: m });
-    } else if (typeof conn.sendSylphy === 'function') {
-      let medias = albumMedias.map(item => ({ type: 'image', data: { url: item.image.url }, caption: '' }));
-      await conn.sendSylphy(m.chat, medias, { quoted: m });
+      await conn.sendAlbumMessage(m.chat, albumCards, { quoted: m });
+    } else if (conn.relayMessage && conn.generateWAMessageFromContent) {
+      // Estructura directa de álbum multimedia por Baileys core
+      let content = {
+        albumMessage: {
+          expectedImageCount: albumCards.length,
+          cards: albumCards
+        }
+      };
+      let msg = conn.generateWAMessageFromContent(m.chat, content, { quoted: m });
+      await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
     } else {
-      for (let media of albumMedias) {
-        await conn.sendMessage(m.chat, { image: { url: media.image.url }, caption: '' }, { quoted: m });
-      }
+      // Método alternativo si el bot usa otro gestor de álbumes en su framework
+      let mediaArray = selectedImages.map(img => {
+        let imgUrl = typeof img === 'string' ? img : (img.image || img.url || img.thumbnail || img.media);
+        return { type: 'image', url: imgUrl, caption: '' };
+      });
+      await conn.sendHydrated ? await conn.sendHydrated(m.chat, '', '', mediaArray, '', '', '', '', []) : throw new Error('El sistema de álbumes no es compatible en esta versión.');
     }
 
-    // Reacción de éxito
+    // Reacción de éxito si se envió el álbum correctamente
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
 
   } catch (e) {
@@ -66,7 +81,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.help = ['pin <texto>'];
-handler.tags = ['search', 'downloader'];
-handler.command = ['pin', 'pinterest'];
+handler.tags = ['downloader'];
+handler.command = ['pinterest'];
 
 export default handler;
