@@ -2,22 +2,26 @@ import fetch from 'node-fetch';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
-    return conn.reply(m.chat, `✿ Ingresa qué quieres buscar en Pinterest.\n\n*Ejemplo:* \`${usedPrefix + command} anime\``, m);
+    return conn.reply(m.chat, `✿ Ingresa qué quieres buscar en Pinterest.\n\n*Ejemplo:* \`${usedPrefix + command} rem re zero\``, m);
   }
 
+  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
+
   try {
-    let res = await fetch(`https://pinterest-api-v8.vercel.app/search?q=${encodeURIComponent(text)}`);
+    // Usamos una API pública y directa para Pinterest que no gasta tus requests de Nexus
+    let res = await fetch(`https://delirius-api-oficial.vercel.app/tools/pinterest?q=${encodeURIComponent(text)}`);
     let json = await res.json();
-    let images = json.result || json.data || json;
+    
+    let images = json.data || json.result || json;
 
     if (!Array.isArray(images) || images.length === 0) {
-      throw new Error('No se encontraron imágenes.');
+      throw new Error('No se encontraron imágenes para esa búsqueda.');
     }
 
     let selectedImages = images.slice(0, 10);
 
     let albumMedias = selectedImages.map((img) => ({
-      image: { url: typeof img === 'string' ? img : (img.images?.url || img.url || img.thumbnail) },
+      image: { url: typeof img === 'string' ? img : (img.image || img.url || img.thumbnail) },
       caption: ''
     }));
 
@@ -32,16 +36,19 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       }
     }
 
+    // Reacción de éxito
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
 
   } catch (e) {
     console.error(e);
+    // Reacción de error y mensaje explicativo en el chat para saber qué pasó
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
+    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar en Pinterest.\n> *[Detalle: ${e.message}]*`, m);
   }
 };
 
 handler.help = ['pin <texto>'];
-handler.tags = ['search'];
+handler.tags = ['search', 'downloader'];
 handler.command = ['pin', 'pinterest'];
 
 export default handler;
