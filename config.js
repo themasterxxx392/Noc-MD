@@ -6,7 +6,8 @@ import fs from 'fs'
 //owner
 global.owner = [
 ['51972409783'],
-['51987812968']
+['51987812968'],
+['51922902497'],
 ]
 
 //Información 
