@@ -45,13 +45,11 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hladl [número de capítulo]\``;
 
-        const sentMsg = await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
-        
-        session.episodeStores = session.episodeStores || {};
-        session.episodeStores[sentMsg.key.id] = finalEpisodes;
-        session.lastEpisodes = finalEpisodes; // Respaldo por si reinicias el bot
+        // Guardamos los capítulos activos de este chat de forma directa y limpia
+        session.activeEpisodes = finalEpisodes;
         global.hentailaStore.set(m.chat, session);
 
+        await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
         await m.react('✔️');
     } catch (e) {
         await m.react('✖️');
