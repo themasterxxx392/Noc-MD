@@ -127,16 +127,10 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
-    
-    // Identificamos de manera estricta si está respondiendo al menú de búsqueda
-    const isReplyingToSearch = quotedText.includes('HENTAILA - BÚSQUEDA') || quotedText.includes('Usa el comando: .hlacap [número]');
+    // Si el número está entre 1 y el total de resultados de la búsqueda (1 al 10), selecciona/cambia de anime
+    const isChoosingAnime = inputNum >= 1 && inputNum <= session.results.length;
 
-    if (isReplyingToSearch) {
-        if (inputNum < 1 || inputNum > session.results.length) {
-            return m.reply(`⚠️ Elige un número válido de la lista (1 al ${session.results.length}).`);
-        }
-
+    if (isChoosingAnime) {
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
@@ -175,14 +169,14 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // SI NO ESTÁ RESPONDIENDO A LA BÚSQUEDA, PROCEDE A DESCARGAR EL CAPÍTULO
+    // De lo contrario, si pones un número de capítulo (ej. 1, 2, 3...), descarga el capítulo del anime actual
     if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
+        return m.reply('⚠️ Primero selecciona un anime de la lista.');
     }
 
     const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
     if (!targetEp) {
-        return m.reply('⚠️ Número de capítulo no encontrado para este anime.');
+        return m.reply('⚠️ Número de capítulo no encontrado.');
     }
 
     await m.react('🕒');
