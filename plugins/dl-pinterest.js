@@ -9,14 +9,38 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Usamos un endpoint de búsqueda directa con respaldo múltiple de estructura
-    let res = await fetch(`https://delirius-api-oficial.vercel.app/tools/pinterest?q=${encodeURIComponent(text)}`);
-    let json = await res.json();
-    
-    let images = json.data || json.result || json.results || (Array.isArray(json) ? json : []);
+    let images = [];
+    let query = encodeURIComponent(text);
 
-    if (!Array.isArray(images) || images.length === 0) {
-      throw new Error('No se encontraron imágenes para esa búsqueda.');
+    // Lista de endpoints de respaldo (si uno falla por Cloudflare, salta al siguiente)
+    let apis = [
+      `https://delirius-api-oficial.vercel.app/tools/pinterest?q=${query}`,
+      `https://api.siputzx.my.id/api/s/pinterest?query=${query}`,
+      `https://api.vyturex.com/pinterest?query=${query}`
+    ];
+
+    for (let apiUrl of apis) {
+      try {
+        let res = await fetch(apiUrl);
+        let textData = await res.text();
+        
+        // Verificamos que sea JSON válido y no una página de bloqueo de Cloudflare
+        if (textData.startsWith('<') || textData.includes('This content')) continue;
+        
+        let json = JSON.parse(textData);
+        let data = json.data || json.result || json.results || (Array.isArray(json) ? json : []);
+        
+        if (Array.isArray(data) && data.length > 0) {
+          images = data;
+          break; // Si una API responde bien, rompemos el ciclo y usamos sus datos
+        }
+      } catch (err) {
+        // Continuamos con la siguiente API si esta falla
+      }
+    }
+
+    if (!images.length) {
+      throw new Error('Todas las APIs de Pinterest están bloqueadas temporalmente. Inténtalo más tarde.');
     }
 
     let selectedImages = images.slice(0, 10);
@@ -28,8 +52,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       
       if (imgUrl) {
         try {
-          // Descarga por búfer usando Axios para evitar errores de enlace directo
-          let imageResponse = await axios.get(imgUrl, { responseType: 'arraybuffer' });
+          // Descarga por búfer con Axios para evitar el error de archivo gris/dañado en WhatsApp
+          let imageResponse = await axios.get(imgUrl, { responseType: 'arraybuffer', timeout: 5000 });
           let buffer = Buffer.from(imageResponse.data);
 
           await conn.sendMessage(m.chat, { 
@@ -43,13 +67,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
         } catch (err) {
-          console.error(`Error al enviar imagen individual:`, err.message);
+          console.error(`Error al descargar imagen individual:`, err.message);
         }
       }
     }
 
     if (sentCount === 0) {
-      throw new Error('No se pudo descargar ninguna imagen.');
+      throw new Error('No se pudo descargar ninguna imagen de los resultados obtenidos.');
     }
 
     // Reacción de éxito ✔️
@@ -64,7 +88,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.help = ['pin <texto>'];
-handler.tags = ['downloader'];
-handler.command = ['pinterest'];
+handler.tags = ['search', 'downloader'];
+handler.command = ['pin', 'pinterest'];
 
 export default handler;
+      
