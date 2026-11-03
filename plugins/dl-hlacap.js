@@ -142,21 +142,18 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    const quotedId = m.quoted ? m.quoted.id : null;
+    // Verificamos si el número ingresado corresponde a un resultado de la lista de búsqueda (1 al 10)
+    const isChoosingFromSearch = inputNum >= 1 && inputNum <= session.results.length;
 
-    // Detectar con precisión si está respondiendo al mensaje de búsqueda inicial
-    const isReplyingToSearch = session.searchMsgId && quotedId === session.searchMsgId;
-    // Si no está respondiendo a la búsqueda pero el número está en rango de la lista y no hay capítulos activos, también lo tomamos como selección
-    const isChoosingAnime = isReplyingToSearch || (inputNum >= 1 && inputNum <= session.results.length && (!session.episodes || quotedId === session.searchMessageId));
-
-    if (isChoosingAnime && inputNum >= 1 && inputNum <= session.results.length) {
+    // Si el usuario pone un número de la lista de búsqueda, abrimos ese anime (independiente de a qué mensaje responda)
+    if (isChoosingFromSearch) {
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src'] || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -177,20 +174,20 @@ let handler = async (m, { conn, text }) => {
         txt += `» *CAPÍTULOS:* \`${finalEpisodes.length}\`\n\n`;
         txt += `> *DESCARGAR:* Usa \`.hlacap [número de capítulo]\``;
 
-        const sentDetails = await conn.sendMessage(m.chat, poster ? { image: { url: poster }, caption: txt } : { text: txt }, { quoted: m });
-
-        // Guardamos los datos y registramos el ID del mensaje de detalles actual
         session.episodes = finalEpisodes;
-        session.detailsMsgId = sentDetails.key.id;
         global.hentailaStore.set(m.chat, session);
 
         await m.react('✔️');
-        return;
+        if (poster) {
+            return conn.sendMessage(m.chat, { image: { url: poster }, caption: txt }, { quoted: m });
+        } else {
+            return m.reply(txt);
+        }
     }
 
-    // Si NO está seleccionando un anime nuevo, procedemos a descargar el capítulo
+    // Si el número no es de la lista de búsqueda, intentamos descargar el capítulo del anime actual
     if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
+        return m.reply('⚠️ Primero selecciona un anime de la lista respondiendo con un número del 1 al 10.');
     }
 
     const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
