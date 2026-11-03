@@ -6,8 +6,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    const apikey = 'YUME_30c75365cf5d8687';
-    const searchUrl = `https://nexus--shadowxyz189.replit.app/search/yts?q=${encodeURIComponent(text)}&key=${apikey}`;
+    const searchUrl = `${global.info.nexus}/search/yts?q=${encodeURIComponent(text)}&key=${global.info.apikey}`;
     
     let res = await fetch(searchUrl);
     let json = await res.json();
