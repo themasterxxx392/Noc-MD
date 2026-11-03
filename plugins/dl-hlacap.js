@@ -127,17 +127,23 @@ let handler = async (m, { conn, text }) => {
     const inputNum = parseInt(text.trim());
     if (isNaN(inputNum)) return m.reply('⚠️ Ingresa un número válido.');
 
-    // Si el número está entre 1 y el total de resultados de la búsqueda (1 al 10), selecciona/cambia de anime
-    const isChoosingAnime = inputNum >= 1 && inputNum <= session.results.length;
+    const quotedText = m.quoted ? (m.quoted.text || m.quoted.caption || '') : '';
+    
+    // Identificamos que sea EXCLUSIVAMENTE el menú de búsqueda (debe decir HENTAILA - BÚSQUEDA)
+    const isReplyingToSearch = quotedText.includes('HENTAILA - BÚSQUEDA');
 
-    if (isChoosingAnime) {
+    if (isReplyingToSearch) {
+        if (inputNum < 1 || inputNum > session.results.length) {
+            return m.reply(`⚠️ Elige un número válido de la lista (1 al ${session.results.length}).`);
+        }
+
         const selected = session.results[inputNum - 1];
         await m.react('🕒');
 
         const { data: html } = await axios.get(selected.url, { headers: { 'User-Agent': UA }, timeout: 12000 });
         const $ = cheerio.load(html);
         const title = $('h1').first().text().trim() || selected.title;
-        let rawPoster = $('meta[property="og:image"]').attr('content') || $('.cover img').attr('src') || '';
+        let rawPoster = $('meta[property="og:image"]').attr('content'] || $('.cover img').attr('src') || '';
         let poster = rawPoster.startsWith('//') ? 'https:' + rawPoster : rawPoster;
 
         const episodes = [];
@@ -169,14 +175,14 @@ let handler = async (m, { conn, text }) => {
         }
     }
 
-    // De lo contrario, si pones un número de capítulo (ej. 1, 2, 3...), descarga el capítulo del anime actual
+    // SI NO ESTÁS RESPONDIENDO A LA BÚSQUEDA, DESCARGA EL CAPÍTULO DIRECTAMENTE
     if (!session.episodes) {
-        return m.reply('⚠️ Primero selecciona un anime de la lista.');
+        return m.reply('⚠️ Primero selecciona un anime respondiendo a la lista de búsqueda.');
     }
 
     const targetEp = session.episodes.find(e => e.num === inputNum) || session.episodes[inputNum - 1];
     if (!targetEp) {
-        return m.reply('⚠️ Número de capítulo no encontrado.');
+        return m.reply('⚠️ Número de capítulo no encontrado para este anime.');
     }
 
     await m.react('🕒');
