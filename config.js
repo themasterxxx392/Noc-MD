@@ -10,29 +10,30 @@ global.owner = [
 ['51922902497'],
 ]
 
-//Información 
+//Información
 globalThis.info = {
-wm: "Rem Bot",
-vs: "2.0.5",
-packname: "𝗦𝗧𝗜𝗖𝗞𝗘𝗥𝗦❤️‍🔥 - Rem",
-author: "Owner: 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•",
-apis: "https://api.delirius.store",
-img2: "https://telegra.ph/file/39fb047cdf23c790e0146.jpg",
-img4: fs.readFileSync('./media/Menu2.jpg'),
-yt: "",
-tiktok: "",
-md: "https://github.com/themasterxxx392/YukiBot-MD",
-fb: "",
-ig: "",
-nn: "", //Grupo ofc1
-nn2: "", //Grupo ofc2
-nn3: "", //Colab 
-nn4: "", //Enlace Bot
-nn5: "", 
-nn6: "", 
-nna: "",
-nna2: "",
-}
+    wm: "Rem Bot",
+    vs: "2.0.5",
+    packname: "STICKERS🔥 - Rem",
+    author: "Owner: Platanito...",
+    apis: "https://api.delirius.store",
+    nexus: "https://nexus--shadowxyz189.replit.app",
+    apikey: "YUME_5e7b86855e968de6",
+    img2: "https://telegra.ph/file/39fb047cdf23c7",
+    img4: fs.readFileSync('./media/Menu2.jpg'),
+    yt: "",
+    tiktok: "",
+    md: "https://github.com/themasterxxx392/YukiB",
+    fb: "",
+    ig: "",
+    nn: "", //Grupo ofc1
+    nn2: "", //Grupo ofc2
+    nn3: "", //Colab
+    nn4: "", //Enlace Bot
+    nn5: "",
+    nn6: "",
+    nna: "",
+  }
 
 //----------------------------------------------------
 
