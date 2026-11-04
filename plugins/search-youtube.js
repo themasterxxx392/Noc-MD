@@ -1,3 +1,5 @@
+import fetch from 'node-fetch';
+
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
     return conn.reply(m.chat, "✿ Ingresa texto para buscar en Youtube.", m);
@@ -6,26 +8,26 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    const searchUrl = `${global.info.nexus}/search/yts?q=${encodeURIComponent(text)}&key=${global.info.apikey}`;
+    const searchUrl = `${global.info.evogb}/search/yt?key=${global.info.evogbkey}&query=${encodeURIComponent(text)}`;
     
     let res = await fetch(searchUrl);
     let json = await res.json();
 
-    if (!json.status || !json.data?.results?.length) {
+    if (!json.status || !json.result?.length) {
       throw new Error('No se encontraron resultados en YouTube.');
     }
 
-    let videos = json.data.results.slice(0, 20);
+    let videos = json.result.slice(0, 20);
 
     let txt = videos.map((v, i) => 
 `*[${i+1}] ${v.title}*
-> Canal: ${v.channel.name}
+> Canal: ${v.autor}
 > Duración: ${v.duration}
-> Fecha: ${v.published}
+> Fecha: ${v.uploaded}
 > Link: ${v.url}`).join("\n\n");
 
     await conn.sendMessage(m.chat, { 
-      image: { url: videos[0].thumbnail }, 
+      image: { url: videos[0].banner }, 
       caption: txt 
     }, { quoted: m });
 
