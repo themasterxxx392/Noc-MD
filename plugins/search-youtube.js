@@ -23,7 +23,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 `*[${i+1}] ${v.title}*
 > Canal: ${v.channel?.name || 'Desconocido'}
 > Duración: ${v.duration || 'Desconocida'}
-> Visitas: ${v.views || v.viewsCount || v.viewCount || 'No disponible'}
+> Visualizaciones: ${v.views || v.viewsCount || v.viewCount || 'No disponible'}
 > Fecha: ${v.published || v.publishedTime || 'Desconocida'}
 > Link: ${v.url}`).join("\n\n");
 
