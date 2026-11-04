@@ -19,7 +19,7 @@ globalThis.info = {
     apis: "https://api.delirius.store",
     nexus: "https://nexus--shadowxyz189.replit.app",
     apikey: "YUME_30c75365cf5d8687",
-    evogb: "https://api.evogb.org/beta",
+    evogb: "https://api.evogb.org",
     evogbkey: "evogb-TyswGrUB",
     img2: "https://telegra.ph/file/39fb047cdf23c7",
     img4: fs.readFileSync('./media/Menu2.jpg'),
