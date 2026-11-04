@@ -4,10 +4,14 @@ let handler = async (m, { conn, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // API key integrada directamente en la URL
-    const url = 'https://api.evogb.org/sfw/neko?key=evogb-TyswGrUB';
+    // URL y API Key separadas para mayor orden y control
+    const API_URL = 'https://api.evogb.org';
+    const ENDPOINT = '/beta/sfw/neko';
+    const API_KEY = 'evogb-TyswGrUB';
+
+    const fullUrl = `${API_URL}${ENDPOINT}?key=${API_KEY}`;
     
-    let res = await fetch(url, {
+    let res = await fetch(fullUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*'
@@ -25,21 +29,21 @@ let handler = async (m, { conn, command }) => {
     try {
       json = JSON.parse(rawText);
     } catch (err) {
-      console.error("[Evogb API Error] Respuesta no es JSON:", rawText);
-      throw new Error("La API no devolvió un JSON válido.");
+      // Si por alguna razón la API devuelve la imagen directamente en texto/buffer
+      console.error("[Evogb API Error] No es JSON, intentando usar texto plano como URL");
+      json = { data: rawText };
     }
 
-    // Buscamos la imagen en las propiedades comunes que suelen usar estas APIs
-    let img = json.url || json.result || json.data || json.image;
+    // Extraemos la URL tal como se ve en el JSON del video (json.data o json.result)
+    let imageUrl = json.data || json.result || json.url;
 
-    if (!img || typeof img !== 'string') {
-      console.error("[Evogb API Error] Estructura JSON inesperada:", json);
-      throw new Error('La respuesta de la API no contiene un enlace de imagen válido.');
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      throw new Error('No se encontró una URL de imagen válida en la respuesta de la API.');
     }
 
-    // Intentamos enviar la imagen capturando posibles errores de WhatsApp al descargar la URL
+    // Enviar la imagen usando el enlace obtenido
     await conn.sendMessage(m.chat, { 
-      image: { url: img }, 
+      image: { url: imageUrl }, 
       caption: '🐱 *Neko*' 
     }, { quoted: m });
 
@@ -53,7 +57,8 @@ let handler = async (m, { conn, command }) => {
 };
 
 handler.help = ['neko'];
-handler.tags = ['nsfw'];
+handler.tags = ['anime'];
 handler.command = ['neko'];
 
 export default handler;
+                    
