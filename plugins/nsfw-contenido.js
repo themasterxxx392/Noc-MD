@@ -103,15 +103,14 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       : `\`${fromName}\` ${captionText} ${getRandomSymbol()}.`
 
     const apiEndpoint = endpointMap[currentCommand] || currentCommand
-    const apiUrl = `${global.info.nexus}/reaction/nsfw/${apiEndpoint}?key=${global.info.apikey}`
+    // Usamos el enlace de Render que usaba el bot original
+    const apiUrl = `https://nexus-light.onrender.com/reaction/nsfw/${apiEndpoint}`
     
-    console.log('[NSFW API URL]:', apiUrl) // Para que veas en la consola si la URL se arma bien
-
     const response = await fetch(apiUrl)
     const json = await response.json()
 
     if (!json.status || !json.data?.dl) {
-      throw new Error('La API de Nexus no devolvió el archivo (dl).')
+      throw new Error('La API no devolvió el archivo (dl).')
     }
 
     await conn.sendMessage(m.chat, {
