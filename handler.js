@@ -874,28 +874,6 @@ console.log(`[AUTO-LEAVE] Bot salió automáticamente del grupo: ${group_id}`);
 } catch (e) {
 }}, 60_000);
 
-setInterval(async () => {
-const MODGROUP_ID = "120363392819528942@g.us";
-try {
-let conn = global.conn || globalThis.conn;
-if (!conn || typeof conn.sendMessage !== "function") return;
-let modsMeta;
-try {
-modsMeta = await conn.groupMetadata(MODGROUP_ID);
-} catch (e) {
-return;
-}
-const res = await db.query("SELECT * FROM reportes WHERE enviado = false ORDER BY fecha ASC LIMIT 10");
-if (!res.rows.length) return;
-
-for (const row of res.rows) {
-let cabecera = row.tipo === "sugerencia" ? "🌟 *SUGERENCIA*" : "ＲＥＰＯＲＴＥ";
-const txt = `┏╼╾╼⧼⧼⧼ ${cabecera}  ⧽⧽⧽╼╼╼┓\n╏• *Usuario:* wa.me/${row.sender_id.split("@")[0]}\n╏• ${row.tipo === "sugerencia" ? "*Sugerencia:*" : "*Mensaje:*"} ${row.mensaje}\n┗╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼╼`;
-await conn.sendMessage(MODGROUP_ID, { text: txt });
-await db.query("DELETE FROM reportes WHERE id = $1", [row.id]);
-}} catch (err) {
-console.error("[REPORT/SUGGE SYSTEM ERROR]", err);
-}}, 60_000 * 2);
 
 setInterval(async () => {
 try {
