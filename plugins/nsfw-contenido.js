@@ -4,7 +4,12 @@ let handler = async (m, { conn, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    const fullUrl = 'https://api.evogb.org/sfw/neko?key=evogb-TyswGrUB';
+    // Extraemos la URL base y la API key desde config.js
+    const baseUrl = global.info?.evogb || 'https://api.evogb.org';
+    const apiKey = global.info?.evogbkey || 'evogb-TyswGrUB';
+    const endpoint = '/sfw/neko';
+
+    const fullUrl = `${baseUrl}${endpoint}?key=${apiKey}`;
     
     let res = await fetch(fullUrl, {
       headers: {
@@ -17,18 +22,15 @@ let handler = async (m, { conn, command }) => {
       throw new Error(`Error HTTP ${res.status}: Not Found`);
     }
 
-    // Verificamos si la respuesta es una imagen directa (Buffer) o un JSON
     const contentType = res.headers.get('content-type') || '';
     
     if (contentType.includes('image')) {
-      // Si la API devuelve los bytes de la imagen directamente
       let buffer = await res.buffer();
       await conn.sendMessage(m.chat, { 
         image: buffer, 
         caption: '🐱 *Neko*' 
       }, { quoted: m });
     } else {
-      // Si la API devuelve JSON con un enlace
       let rawText = await res.text();
       let json = JSON.parse(rawText);
       let imageUrl = json.data || json.result || json.url || json.image;
@@ -55,4 +57,3 @@ handler.tags = ['anime'];
 handler.command = ['neko', 'neko2'];
 
 export default handler;
-    
