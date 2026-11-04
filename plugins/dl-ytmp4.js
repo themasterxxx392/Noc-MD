@@ -51,9 +51,19 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error('[paso 1/2] La API no devolvió un link de descarga.')
         }
 
-        // Limpiamos el nombre del archivo eliminando cosas como (480p, h264)
+        // Limpiamos el nombre: quitamos paréntesis de calidad y también el guion con el canal (ej. " - Spreen Plus")
         let rawFileName = info.filename || 'video.mp4'
-        let cleanFileName = rawFileName.replace(/\s*\([^)]*\)/g, '').trim()
+        let cleanFileName = rawFileName
+            .replace(/\s*\([^)]*\)/g, '')        // Quita (480p, h264)
+            .replace(/\s*-\s*[^.-]+(?=\.[^.]+دى*$)/i, '') // Quita el " - NombreDelCanal" antes de la extensión
+            .replace(/\s*-\s*[^.-]+(?=\.mp4$)/i, '')     // Asegura quitar el guion y el canal antes de .mp4
+            .trim()
+
+        // Si por alguna razón queda feo, intentamos cortar antes del primer guion si viene estructurado como "Título - Canal"
+        if (cleanFileName.includes(' - ')) {
+            cleanFileName = cleanFileName.split(' - ')[0].trim()
+        }
+
         if (!/\.[a-z0-9]{2,4}$/i.test(cleanFileName)) cleanFileName += '.mp4'
 
         let fileResponse
@@ -84,8 +94,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         const mimetype = fileResponse.headers['content-type'] || 'video/mp4'
 
-        // Mensaje minimalista sin cabecera grande y sin la calidad estorbando
+        // Texto con título limpio, calidad devuelta y peso
         let txt = `> *Titulo:* ${cleanFileName}\n` +
+                  `> *Calidad:* 480p\n` +
                   `> *Peso:* ${formatMB(buffer.length)} MB`
 
         await conn.sendMessage(m.chat, {
