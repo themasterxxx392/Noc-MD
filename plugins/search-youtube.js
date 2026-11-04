@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
     return conn.reply(m.chat, "✿ Ingresa texto para buscar en Youtube.", m);
@@ -21,10 +19,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let txt = videos.map((v, i) => 
 `*[${i+1}] ${v.title}*
-> Canal: ${v.channel?.name || 'Desconocido'}
-> Duración: ${v.duration || 'Desconocida'}
-> Visualizaciones: ${v.views || v.viewsCount || v.viewCount || 'No disponible'}
-> Fecha: ${v.published || v.publishedTime || 'Desconocida'}
+> Canal: ${v.channel.name}
+> Duración: ${v.duration}
+> Fecha: ${v.published}
 > Link: ${v.url}`).join("\n\n");
 
     await conn.sendMessage(m.chat, { 
@@ -32,7 +29,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       caption: txt 
     }, { quoted: m });
 
-    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
+    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
 
   } catch (e) {
     console.error(e);
