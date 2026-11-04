@@ -1,75 +1,43 @@
 import axios from 'axios'
-import fetch from 'node-fetch'
 
-const contenidoNSFW = {
-  pack: { label: '_🥵 aqui tiene mi Pack 😏_', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/pack.json', aliases: [] },
-  pack2: { label: '_🥵 aqui tiene mi Pack 😏_', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/packgirl.json', aliases: [] },
-  pack3: { label: '_🥵 aqui tiene mi Pack 😏_', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/packmen.json', aliases: [] },
-  tetas: { label: '🥵 dame lechita de hay 🥵', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/tetas.json', aliases: ['pechos'] },
-  videoxxx: { label: '_*ᴅɪsғʀᴜᴛᴀ ᴅᴇʟ ᴠɪᴅᴇᴏ 🥵_', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/videoxxxc.json', aliases: ['vídeoxxx'] },
-  videoxxxlesbi: { label: '_*ᴅɪsғʀᴜᴛᴀ ᴅᴇʟ ᴠɪᴅᴇᴏ 🥵_', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/videoxxxc2.json', aliases: ['videolesbixxx', 'pornolesbivid'] },
-  pornololi: { label: '🥵', type: 'json', url: 'https://raw.githubusercontent.com/elrebelde21/The-LoliBot-MD2/main/src/nsfw/pornololi.json', aliases: ['pornololi'] },
-  yuri: { label: '👩‍❤️‍👩 Yuri', type: 'json', url: 'https://raw.githubusercontent.com/BrunoSobrino/TheMystic-Bot-MD/master/src/JSON/yuri.json', aliases: [] },
-  yaoi: { label: '👨‍❤️‍👨 Yaoi', type: 'api', api: 'https://nekobot.xyz/api/image?type=yaoi', field: 'message', aliases: [] },
-  corean: { label: '🥵', type: 'api', api: 'https://delirius-apiofc.vercel.app/nsfw/corean', aliases: ["china"] },
-  boobs: { label: 'Upa la paja 😱', type: 'api', api: 'https://delirius-apiofc.vercel.app/nsfw/boobs', aliases: [] },
-  girls: { label: '🥵 Uff pa una pajita 🥵', type: 'api', api: 'https://delirius-apiofc.vercel.app/nsfw/girls', aliases: ["porno"] },
-  trapito: { label: '🚺 Trapito', type: 'waifu', api: 'trap', aliases: ['trap'] },
+let handler = async (m, { conn, usedPrefix, command }) => {
+    await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+
+    try {
+        let res = await axios.get(`${global.info.nexus}/reaction/nsfw/spank`, {
+            params: { key: global.info.apikey },
+            timeout: 30000
+        })
+
+        const json = res.data
+
+        if (!json.status || !json.data || !json.data.dl) {
+            throw new Error('La API no devolvió un enlace de video válido.')
+        }
+
+        let videoUrl = json.data.dl
+        let fileName = json.data.name || 'spank.mp4'
+
+        let txt = `*[ NSFW SPANK ]*\n\n` +
+                  `> *Archivo:* ${fileName}`
+
+        await conn.sendMessage(m.chat, { 
+            video: { url: videoUrl }, 
+            caption: txt,
+            mimetype: 'video/mp4'
+        }, { quoted: m })
+
+        await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
+
+    } catch (e) {
+        console.error('Error en spank:', e.message)
+        await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+        return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar el comando.\n> *[Detalle: ${e.message}]*`, m)
+    }
 }
 
-const aliasMap = {}
-for (const [key, item] of Object.entries(contenidoNSFW)) {
-  aliasMap[key.toLowerCase()] = item
-  for (const alias of (item.aliases || [])) {
-    aliasMap[alias.toLowerCase()] = item
-  }
-}
-
-let handler = async (m, { conn, command }) => {
-try {
-const item = aliasMap[command.toLowerCase()]
-if (!item) return m.reply('❌ Comando NSFW no reconocido.')
-
-if (item.type === 'array') {
-const url = item.array[Math.floor(Math.random() * item.array.length)]
-await conn.sendFile(m.chat, url, 'nsfw.jpg', item.label, m)
-return
-}
-
-if (item.type === 'json') {
-const { data } = await axios.get(item.url)
-const img = data[Math.floor(Math.random() * data.length)]
-await conn.sendFile(m.chat, img, 'nsfw.jpg', item.label, m)
-return
-}
-
-if (item.type === 'waifu') {
-const res = await fetch(`https://api.waifu.pics/nsfw/${item.api}`)
-const { url } = await res.json()
-await conn.sendFile(m.chat, url, 'waifu.jpg', item.label, m)
-return
-}
-
-if (item.type === 'api') {
-const res = await fetch(item.api)
-const contentType = res.headers.get('content-type') || ''
-if (contentType.startsWith('image/')) {
-const buffer = await res.buffer()
-await conn.sendFile(m.chat, buffer, 'img.jpg', item.label, m)
-return
-}
-const json = await res.json()
-const url = item.field ? json[item.field] : json.url || json.message
-await conn.sendFile(m.chat, url, 'nsfw.jpg', item.label, m)
-return
-}
-m.reply('❌ Fuente NSFW no soportada.')
-} catch (e) {
-console.error('[NSFW ERROR]', e)
-m.reply('❌ Error al enviar imagen/video +18.')
-}}
-handler.help = Object.keys(aliasMap)
+handler.help = ['spank']
 handler.tags = ['nsfw']
-handler.command = new RegExp(`^(${Object.keys(aliasMap).join('|')})$`, 'i')
-handler.limit = 2
+handler.command = ['spank']
+
 export default handler
