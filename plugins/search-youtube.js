@@ -8,20 +8,31 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Limpiamos la URL base por si tiene o no slash final
     const baseUrl = (global.info.evogb || 'https://api.evogb.org/beta').replace(/\/+$/, '');
-    const searchUrl = `${baseUrl}/search/yt?key=${global.info.evogbkey}&query=${encodeURIComponent(text)}`;
+    const apiKey = global.info.evogbkey || 'evogb-TyswGrUB';
+    const searchUrl = `${baseUrl}/search/yt?key=${apiKey}&query=${encodeURIComponent(text)}`;
     
-    let res = await fetch(searchUrl);
-    let contentType = res.headers.get("content-type");
+    let res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
+    });
 
-    if (!contentType || !contentType.includes("application/json")) {
-      let rawText = await res.text();
-      console.error("Respuesta no-JSON recibida de Evogb:", rawText);
-      throw new Error("La API de Evogb no devolvió un JSON válido (posible servidor caído o API Key errónea).");
+    let rawText = await res.text();
+
+    if (!res.ok) {
+      console.error(`[Evogb API Error] Status: ${res.status} | Body:`, rawText);
+      throw new Error(`La API respondió con código HTTP ${res.status}`);
     }
 
-    let json = await res.json();
+    let json;
+    try {
+      json = JSON.parse(rawText);
+    } catch (err) {
+      console.error("[Evogb API Error] Respuesta no es JSON:", rawText);
+      throw new Error("La API no devolvió un JSON válido (posible bloqueo o error de servidor).");
+    }
 
     if (!json.status || !json.result?.length) {
       throw new Error('No se encontraron resultados en YouTube.');
@@ -55,4 +66,4 @@ handler.tags = ['buscadores'];
 handler.command = ['yts', 'ytsearch'];
 
 export default handler;
-                      
+      
