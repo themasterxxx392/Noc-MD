@@ -51,8 +51,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error('[paso 1/2] La API no devolvió un link de descarga.')
         }
 
-        let fileName = info.filename || 'video.mp4'
-        if (!/\.[a-z0-9]{2,4}$/i.test(fileName)) fileName += '.mp4'
+        // Limpiamos el nombre del archivo eliminando cosas como (480p, h264)
+        let rawFileName = info.filename || 'video.mp4'
+        let cleanFileName = rawFileName.replace(/\s*\([^)]*\)/g, '').trim()
+        if (!/\.[a-z0-9]{2,4}$/i.test(cleanFileName)) cleanFileName += '.mp4'
 
         let fileResponse
         try {
@@ -82,14 +84,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         const mimetype = fileResponse.headers['content-type'] || 'video/mp4'
 
-        let txt = `*[ YOUTUBE MP4 DOCUMENT ]*\n\n` +
-                  `> *Titulo:* ${fileName}\n` +
-                  `> *Calidad:* 480p\n` +
+        // Mensaje minimalista sin cabecera grande y sin la calidad estorbando
+        let txt = `> *Titulo:* ${cleanFileName}\n` +
                   `> *Peso:* ${formatMB(buffer.length)} MB`
 
         await conn.sendMessage(m.chat, {
             document: buffer,
-            fileName,
+            fileName: cleanFileName,
             caption: txt,
             mimetype
         }, { quoted: m })
