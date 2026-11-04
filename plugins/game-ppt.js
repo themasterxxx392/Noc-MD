@@ -32,12 +32,12 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         if (resultado === 'gana') {
             await m.db.query('UPDATE usuarios SET exp = exp + $1 WHERE id = $2', [xp, userId]);
             text += `✅ *Ganaste* y obtuviste *${formatNumber(xp)} XP*`;
-            result = '𝙃𝘼 𝙂𝘼𝙉𝘼𝘿𝙊! 🎉';
+            result = '𝙃𝘼 𝙂𝘼𝙉𝘼𝘿O! 🎉';
         } else if (resultado === 'pierde') {
             const nuevaXP = Math.max(0, user.exp - xp);
             await m.db.query('UPDATE usuarios SET exp = $1 WHERE id = $2', [nuevaXP, userId]);
             text += `❌ *Perdiste*. Te quitaron *${formatNumber(xp)} XP*`;
-            result = '𝙃𝘼 𝙋𝙀𝙍𝘿𝙄𝘿𝙊! 🤡';
+            result = '𝙃𝘼 𝙋𝙀𝙍𝘿𝙄𝘿O! 🤡';
         } else {
             result = '𝙀𝙈𝙋𝘼𝙏𝙀 🤝';
             text += `🤝 *Empate*. No ganaste ni perdiste XP.`;
@@ -47,7 +47,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         return m.reply(`\`「 ${result} 」\`\n\n> Bot: ${botJugada}\n> Tú: ${input}\n\n${text}`);
     }
 
-    // 2. Retar a otro usuario (PVP)
+    // 2. Retar a otro usuario (PVP con tags nativos)
     if (opponent) {
         if (opponent === userId) {
             await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
@@ -64,12 +64,20 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             chat: m.chat,
             timeout: setTimeout(() => {
                 retos.delete(opponent);
-                conn.reply(m.chat, `⏳ 𝙏𝙄𝙀𝙈𝙋𝙊 𝘼𝙂𝙊𝙏𝘼𝘿𝙊, 𝙀𝙇 𝙋𝙑𝙋 𝙎𝙀 𝘾𝘼𝙉𝘾𝙀𝙇𝘼 𝙋𝙊𝙍 𝙁𝘼𝙇𝙏𝘼 𝘿𝙀 𝙍𝙀𝙎𝙋𝙐𝙀𝙎𝙏𝘼 𝘿𝙀 @${opponent.split('@')[0]}`, m, { mentions: [opponent] });
+                conn.sendMessage(m.chat, {
+                    text: `⏳ 𝙏𝙄𝙀𝙈𝙋𝙊 𝘼𝙂𝙊𝙏𝘼𝘿𝙊, 𝙀𝙇 𝙋𝙑𝙋 𝙎𝙀 𝘾𝘼𝙉𝘾𝙀𝙇𝘼 𝙋𝙊𝙍 𝙁𝘼𝙇𝙏𝘼 𝘿𝙀 𝙍𝙀𝙎𝙋𝙐𝙀𝙎𝙏𝘼 𝘿𝙀 @${opponent.split('@')[0]}`,
+                    mentions: [opponent]
+                });
             }, 60000)
         });
 
         await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
-        return conn.reply(m.chat, `🎮👾 𝙋𝙑𝙋 - 𝙋𝙄𝙀𝘿𝙍𝘼, 𝙋𝘼𝙋𝙀𝙇 𝙊 𝙏𝙄𝙅𝙀𝙍𝘼 👾🎮\n\n> @${m.sender.split('@')[0]} desafía a @${opponent.split('@')[0]}.\n\n> _*Escribe (aceptar) para aceptar*_\n> _*Escribe (rechazar) para rechazar*_`, m, { mentions: [m.sender, opponent] });
+        
+        // Mensaje con el tag del retador y del retado limpios usando mentions nativas
+        return conn.sendMessage(m.chat, {
+            text: `🎮👾 𝙋𝙑𝙋 - 𝙋𝙄𝙀𝘿𝙍𝘼, 𝙋𝘼𝙋𝙀𝙇 𝙊 𝙏𝙄𝙅𝙀𝙍𝘼 👾🎮\n\n> @${userId.split('@')[0]} desafía a @${opponent.split('@')[0]}.\n\n> _*Escribe (aceptar) para aceptar*_\n> _*Escribe (rechazar) para rechazar*_`,
+            mentions: [userId, opponent]
+        }, { quoted: m });
     }
 
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
@@ -86,7 +94,10 @@ handler.before = async (m, { conn }) => {
         retos.delete(userId);
 
         if (text === 'rechazar') {
-            return conn.reply(chat, `⚠️ @${userId.split('@')[0]} rechazó el reto de @${retador.split('@')[0]}.`, m, { mentions: [userId, retador] });
+            return conn.sendMessage(chat, {
+                text: `⚠️ @${userId.split('@')[0]} rechazó el reto de @${retador.split('@')[0]}.`,
+                mentions: [userId, retador]
+            }, { quoted: m });
         }
 
         jugadas.set(chat, {
@@ -98,7 +109,10 @@ handler.before = async (m, { conn }) => {
             }, 60000)
         });
 
-        conn.reply(chat, `✅ Reto aceptado. Las opciones fueron enviadas por privado a @${retador.split('@')[0]} y @${userId.split('@')[0]}.`, m, { mentions: [retador, userId] });
+        await conn.sendMessage(chat, {
+            text: `✅ Reto aceptado. Las opciones fueron enviadas por privado a @${retador.split('@')[0]} y @${userId.split('@')[0]}.`,
+            mentions: [retador, userId]
+        }, { quoted: m });
 
         await conn.sendMessage(retador, { text: '✊🖐✌️ Escribe *piedra*, *papel* o *tijera* por aquí para registrar tu jugada.' });
         await conn.sendMessage(userId, { text: '✊🖐✌️ Escribe *piedra*, *papel* o *tijera* por aquí para registrar tu jugada.' });
@@ -142,7 +156,7 @@ handler.before = async (m, { conn }) => {
 
 handler.help = ['ppt piedra|papel|tijera', 'ppt @usuario'];
 handler.tags = ['game'];
-handler.command = ['ppt', 'pvp',];
+handler.command = ['ppt', 'pvp'];
 
 export default handler;
 
@@ -160,4 +174,4 @@ function msToTime(ms) {
     const s = Math.floor(ms / 1000) % 60;
     const m = Math.floor(ms / 60000) % 60;
     return `${m ? `${m}m ` : ''}${s}s`;
-}
+    }
