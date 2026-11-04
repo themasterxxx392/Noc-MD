@@ -4,13 +4,14 @@ let handler = async (m, { conn, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Definimos la URL base, el endpoint correcto sin /beta y la API Key por separado
+    // Probamos con la ruta que incluye /beta/sfw/neko que es la estructura estándar de la plataforma
     const API_URL = 'https://api.evogb.org';
-    const ENDPOINT = '/sfw/neko';
+    const ENDPOINT = '/beta/sfw/neko';
     const API_KEY = 'evogb-TyswGrUB';
 
     const fullUrl = `${API_URL}${ENDPOINT}?key=${API_KEY}`;
-    
+    console.log("[DEBUG Evogb] URL intentada:", fullUrl); // Esto saldrá en tu consola del panel
+
     let res = await fetch(fullUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -21,26 +22,23 @@ let handler = async (m, { conn, command }) => {
     let rawText = await res.text();
 
     if (!res.ok) {
-      console.error(`[Evogb API Error] Status: ${res.status} | Body:`, rawText);
-      throw new Error(`La API respondió con código HTTP ${res.status}`);
+      console.error(`[Evogb API Error] Status: ${res.status} | URL: ${fullUrl} | Body:`, rawText);
+      throw new Error(`Error HTTP ${res.status}: Not Found`);
     }
 
     let json;
     try {
       json = JSON.parse(rawText);
     } catch (err) {
-      // Por si la API devuelve texto plano directamente
       json = { data: rawText };
     }
 
-    // Extraemos la URL de la imagen de las propiedades que suele devolver el JSON
     let imageUrl = json.data || json.result || json.url || json.image;
 
     if (!imageUrl || typeof imageUrl !== 'string') {
-      throw new Error('No se encontró una URL de imagen válida en la respuesta de la API.');
+      throw new Error('No se encontró una URL de imagen válida en la respuesta.');
     }
 
-    // Enviar la imagen usando el enlace obtenido
     await conn.sendMessage(m.chat, { 
       image: { url: imageUrl }, 
       caption: '🐱 *Neko*' 
@@ -56,7 +54,7 @@ let handler = async (m, { conn, command }) => {
 };
 
 handler.help = ['neko'];
-handler.tags = ['nsfw'];
+handler.tags = ['anime'];
 handler.command = ['neko2'];
 
 export default handler;
