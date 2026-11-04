@@ -1,133 +1,187 @@
-const getNum = jid => (jid || '').split('@')[0].replace(/\D/g, '')
+const cooldown = 30_000;
+const retos = new Map();
+const jugadas = new Map();
+const cooldowns = new Map();
+const jugadasValidas = ['piedra', 'papel', 'tijera'];
 
-async function resolveJid(conn, chat, jid) {
-    if (!jid || !jid.endsWith('@lid')) return jid
-    try {
-        const meta = await conn.groupMetadata(chat)
-        const p = meta.participants.find(p => p.id === jid || p.lid === jid)
-        const real = [p?.phoneNumber, p?.jid, p?.id].find(x => x && x.endsWith('@s.whatsapp.net'))
-        if (real) return real
-    } catch {}
-    return jid
-}
-
-let handler = async (m, { conn, command, text }) => {
-    conn.bomba = conn.bomba || {}
-    let chat = m.chat
-    let g = conn.bomba[chat]
-    let body = (text || m.text || '').trim()
-
-    if (command === 'bomba') {
-        if (g) return m.reply('⚠️ Ya hay un juego de bomba en curso en este chat')
-        if (!m.quoted) return m.reply(`Uso: Responde al mensaje de la persona con *.bomba*`)
-
-        let jugador1 = await resolveJid(conn, chat, m.sender)
-        let jugador2 = await resolveJid(conn, chat, m.quoted.sender)
-
-        if (jugador1 === jugador2) return m.reply('❌ No puedes jugar contigo mismo')
-
-        conn.bomba[chat] = {
-            jugador1,
-            jugador2,
-            raw1: m.sender,
-            raw2: m.quoted.sender,
-            turno: null,
-            bomba: Math.floor(Math.random() * 10) + 1,
-            abiertas: [],
-            chat: chat,
-            estado: 'esperando'
-        }
-
-        setTimeout(async () => {
-            let juego = conn.bomba[chat]
-            if (juego && juego.estado === 'esperando') {
-                await conn.reply(chat, `⏱️ El reto de bomba expiró porque @${getNum(jugador2)} no respondió a tiempo.`, null, { mentions: [jugador2] })
-                delete conn.bomba[chat]
-            }
-        }, 60000)
-
-        return conn.reply(chat, `🎁 *CAJA SORPRESA EXTREMA* 💣\n\n@${getNum(jugador1)} reta a @${getNum(jugador2)}\n\nHay *10 cajas*: 1 a 10. Solo 1 tiene 💣\nQuien la abra es ELIMINADO del grupo 😈\n\n@${getNum(jugador2)} responde *.aceptar* para jugar o *.rechazar* para salvarte (Tienes 60 segundos)`, null, { mentions: [jugador1, jugador2] })
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+    const now = Date.now();
+    const userId = m.sender;
+    const cooldownRestante = (cooldowns.get(userId) || 0) + cooldown - now;
+    
+    if (cooldownRestante > 0) {
+        return conn.fakeReply(m.chat, `*🕓 𝙃𝙚𝙮, 𝙀𝙨𝙥𝙚𝙧𝙖 ${msToTime(cooldownRestante)} 𝙖𝙣𝙩𝙚𝙨 𝙙𝙚 𝙪𝙨𝙖𝙧 𝙤𝙩𝙧𝙤𝙨 𝙘𝙤𝙢𝙖𝙣𝙙𝙤*`, m.sender, `ᴺᵒ ʰᵃᵍᵃⁿ ˢᵖᵃᵐ`, 'status@broadcast');
     }
 
-    if (command === 'aceptar') {
-        if (!g) return m.reply('No hay ningún reto pendiente')
-        let sender = await resolveJid(conn, chat, m.sender)
-        if (sender !== g.jugador2) return m.reply('No eres el retado')
-        if (g.estado !== 'esperando') return
+    await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
-        g.estado = 'jugando'
-        g.turno = Math.random() < 0.5 ? g.jugador1 : g.jugador2
+    const res = await m.db.query('SELECT exp FROM usuarios WHERE id = $1', [userId]);
+    const user = res.rows[0];
 
-        return conn.reply(chat, `✅ @${getNum(g.jugador2)} ACEPTÓ EL RETO!\n\n🎁 *CAJA SORPRESA* 💣\nCajas: .1 .2 .3 .4 .5 .6 .7 .8 .9 .10\nEmpieza @${getNum(g.turno)}\nManda el número con punto (ej. .1) para abrir una caja.`, null, { mentions: [g.jugador1, g.jugador2] })
-    }
-
-    if (command === 'rechazar') {
-        if (!g) return m.reply('No hay ningún reto pendiente')
-        let sender = await resolveJid(conn, chat, m.sender)
-        if (sender !== g.jugador2) return m.reply('No eres el retado')
-
-        await conn.reply(chat, `😌 @${getNum(g.jugador2)} RECHAZÓ EL RETO\nSe salvó de la bomba por ahora...`, null, { mentions: [g.jugador2] })
-        delete conn.bomba[chat]
-        return
-    }
-
-    if (body.startsWith('.')) {
-        let num = parseInt(body.slice(1))
-        if (!isNaN(num) && num >= 1 && num <= 10 && m.isGroup) {
-            if (!g || g.chat !== chat || g.estado !== 'jugando') return
-
-            let sender = await resolveJid(conn, chat, m.sender)
-            if (sender !== g.turno) return conn.reply(chat, `@${getNum(sender)} No es tu turno`, null, { mentions: [sender] })
-            if (g.abiertas.includes(num)) return m.reply(`La caja ${num} ya fue abierta`)
-
-            g.abiertas.push(num)
-
-            let esJ1 = sender === g.jugador1
-            let otro = esJ1 ? g.jugador2 : g.jugador1
-
-            if (num === g.bomba) {
-                let perdedorRaw = esJ1 ? g.raw1 : g.raw2
-
-                await conn.reply(chat, `💥 *BOOM* 💥\n\n@${getNum(sender)} ABRIÓ LA CAJA ${num} Y EXPLOTÓ! 💣\n\n@${getNum(sender)} HA SIDO ELIMINADO 😹\nGana @${getNum(otro)} 🎉`, null, { mentions: [g.jugador1, g.jugador2] })
-
-                setTimeout(async () => {
-                    try {
-                        await conn.groupParticipantsUpdate(chat, [perdedorRaw], 'remove')
-                    } catch (e) {
-                        conn.reply(chat, `⚠️ No pude eliminar. ¿Soy admin?`)
-                    }
-                }, 3000)
-
-                delete conn.bomba[chat]
-                return
-            }
-
-            let restantes = 10 - g.abiertas.length
-            g.turno = otro
-
-            await conn.reply(chat, `✅ @${getNum(sender)} abrió la caja ${num}... nada! 😮‍💨\nQuedan ${restantes} cajas\nTurno de @${getNum(otro)}`, null, { mentions: [g.jugador1, g.jugador2] })
-
-            if (g.abiertas.length === 9) {
-                let perdedorRaw = esJ1 ? g.raw1 : g.raw2
-
-                await conn.reply(chat, `🏆 Se abrieron 9 cajas y no explotó!\n@${getNum(sender)} PIERDE POR NUV👻\nGana @${getNum(otro)} 🎉`, null, { mentions: [g.jugador1, g.jugador2] })
-
-                setTimeout(async () => {
-                    try {
-                        await conn.groupParticipantsUpdate(chat, [perdedorRaw], 'remove')
-                    } catch (e) {
-                        conn.reply(chat, `⚠️ No pude eliminar. ¿Soy admin?`)
-                    }
-                }, 3000)
-
-                delete conn.bomba[chat]
-            }
+    // Resolución limpia de JIDs y LIDs para evitar números extraños
+    let rawOpponent = m.mentionedJid?.[0] || m.quoted?.sender;
+    let opponent = null;
+    
+    if (rawOpponent) {
+        opponent = conn.parseMention ? (conn.parseMention(rawOpponent)[0] || rawOpponent) : rawOpponent;
+        if (typeof conn.decodeJid === 'function') {
+            opponent = conn.decodeJid(opponent);
         }
     }
+
+    const input = args[0]?.toLowerCase();
+
+    // 1. Jugar contra el bot
+    if (!opponent && jugadasValidas.includes(input)) {
+        cooldowns.set(userId, now);
+        const botJugada = jugadasValidas[Math.floor(Math.random() * 3)];
+        const resultado = evaluar(input, botJugada);
+        const xp = Math.floor(Math.random() * 2000) + 500;
+
+        let text = '';
+        let result = "";
+        if (resultado === 'gana') {
+            await m.db.query('UPDATE usuarios SET exp = exp + $1 WHERE id = $2', [xp, userId]);
+            text += `✅ *Ganaste* y obtuviste *${formatNumber(xp)} XP*`;
+            result = '𝙃𝘼 𝙂𝘼𝙉𝘼𝘿𝙊! 🎉';
+        } else if (resultado === 'pierde') {
+            const nuevaXP = Math.max(0, user.exp - xp);
+            await m.db.query('UPDATE usuarios SET exp = $1 WHERE id = $2', [nuevaXP, userId]);
+            text += `❌ *Perdiste*. Te quitaron *${formatNumber(xp)} XP*`;
+            result = '𝙃𝘼 𝙋𝙀𝙍𝘿𝙄𝘿𝙊! 🤡';
+        } else {
+            result = '𝙀𝙈𝙋𝘼𝙏𝙀 🤝';
+            text += `🤝 *Empate*. No ganaste ni perdiste XP.`;
+        }
+
+        await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
+        return m.reply(`\`「 ${result} 」\`\n\n> Bot: ${botJugada}\n> Tú: ${input}\n\n${text}`);
+    }
+
+    // 2. Retar a otro usuario (PVP)
+    if (opponent) {
+        if (opponent === userId) {
+            await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
+            return m.reply('⚠️ No puedes retarte a ti mismo.');
+        }
+
+        if (retos.has(opponent)) {
+            await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
+            return m.reply('⚠️ Ese usuario ya tiene un reto pendiente.');
+        }
+
+        retos.set(opponent, {
+            retador: userId,
+            chat: m.chat,
+            timeout: setTimeout(() => {
+                retos.delete(opponent);
+                conn.sendMessage(m.chat, {
+                    text: `⏳ 𝙏𝙄𝙀𝙈𝙋𝙊 𝘼𝙂𝙊𝙏𝘼𝘿𝙊, 𝙀𝙇 𝙋𝙑𝙋 𝙎𝙀 𝘾𝘼𝙉𝘾𝙀𝙇𝘼 𝙋𝙊𝙍 𝙁𝘼𝙇𝙏𝘼 𝘿𝙀 𝙍𝙀𝙎𝙋𝙐𝙀𝙎𝙏𝘼 𝘿𝙀 @${opponent.split('@')[0]}`,
+                    mentions: [opponent]
+                });
+            }, 60000)
+        });
+
+        await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
+        
+        return conn.sendMessage(m.chat, {
+            text: `🎮👾 𝙋𝙑𝙋 - 𝙋𝙄𝙀𝘿𝙍𝘼, 𝙋𝘼𝙋𝙀𝙇 𝙊 𝙏𝙄𝙅𝙀𝙍𝘼 👾🎮\n\n> @${userId.split('@')[0]} desafía a @${opponent.split('@')[0]}.\n\n> _*Escribe (aceptar) para aceptar*_\n> _*Escribe (rechazar) para rechazar*_`,
+            mentions: [userId, opponent]
+        }, { quoted: m });
+    }
+
+    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
+    m.reply(`> 𝐏𝐢𝐞𝐝𝐫𝐚 🗿, 𝐏𝐚𝐩𝐞𝐥 📄 𝐨 𝐓𝐢𝐣𝐞𝐫𝐚 ✂️\n\n👾 **Jugar con el bot:**\n> • ${usedPrefix + command} piedra\n> • ${usedPrefix + command} papel\n> • ${usedPrefix + command} tijera\n\n🕹 **Jugar con un usuario:**\n> • ${usedPrefix + command} @usuario`);
+};
+
+handler.before = async (m, { conn }) => {
+    const text = m.text?.toLowerCase()?.trim();
+    const userId = m.sender;
+
+    if (['aceptar', 'rechazar'].includes(text) && retos.has(userId)) {
+        const { retador, chat, timeout } = retos.get(userId);
+        clearTimeout(timeout);
+        retos.delete(userId);
+
+        if (text === 'rechazar') {
+            return conn.sendMessage(chat, {
+                text: `⚠️ @${userId.split('@')[0]} rechazó el reto de @${retador.split('@')[0]}.`,
+                mentions: [userId, retador]
+            }, { quoted: m });
+        }
+
+        jugadas.set(chat, {
+            jugadores: [retador, userId],
+            eleccion: {},
+            timeout: setTimeout(() => {
+                jugadas.delete(chat);
+                conn.reply(chat, `⏰ El duelo expiró por inactividad.`, m);
+            }, 60000)
+        });
+
+        await conn.sendMessage(chat, {
+            text: `✅ Reto aceptado. Las opciones fueron enviadas por privado a @${retador.split('@')[0]} y @${userId.split('@')[0]}.`,
+            mentions: [retador, userId]
+        }, { quoted: m });
+
+        await conn.sendMessage(retador, { text: '✊🖐✌️ Escribe *piedra*, *papel* o *tijera* por aquí para registrar tu jugada.' });
+        await conn.sendMessage(userId, { text: '✊🖐✌️ Escribe *piedra*, *papel* o *tijera* por aquí para registrar tu jugada.' });
+        return;
+    }
+
+    if (jugadasValidas.includes(text)) {
+        for (const [chat, partida] of jugadas) {
+            const { jugadores, eleccion, timeout } = partida;
+            if (!jugadores.includes(userId)) continue;
+
+            eleccion[userId] = text;
+            await conn.sendMessage(userId, { text: '✅ Elección recibida. Vuelve al grupo y espera el resultado.' });
+
+            if (Object.keys(eleccion).length < 2) return;
+            clearTimeout(timeout);
+            jugadas.delete(chat);
+
+            const [j1, j2] = jugadores;
+            const jugada1 = eleccion[j1];
+            const jugada2 = eleccion[j2];
+            const resultado = evaluar(jugada1, jugada2);
+            const xp = Math.floor(Math.random() * 2000) + 500;
+            
+            let mensaje = `✊🖐✌️ *Piedra, Papel o Tijera - Resultado*\n\n> @${j1.split('@')[0]} eligió: *${jugada1}*\n> @${j2.split('@')[0]} eligió: *${jugada2}*\n\n`;
+
+            if (resultado === 'empate') {
+                mensaje += '🤝 ¡Empate! Nadie gana ni pierde XP.';
+            } else {
+                const ganador = resultado === 'gana' ? j1 : j2;
+                const perdedor = ganador === j1 ? j2 : j1;
+                await m.db.query('UPDATE usuarios SET exp = exp + $1 WHERE id = $2', [xp * 2, ganador]);
+                await m.db.query('UPDATE usuarios SET exp = exp - $1 WHERE id = $2', [xp, perdedor]);
+                mensaje += `🎉 @${ganador.split('@')[0]} gana *${formatNumber(xp * 2)} XP*\n💀 @${perdedor.split('@')[0]} pierde *${formatNumber(xp)} XP*`;
+            }
+
+            return conn.sendMessage(chat, { text: mensaje, mentions: [j1, j2] });
+        }
+    }
+};
+
+handler.help = ['ppt piedra|papel|tijera', 'ppt @usuario'];
+handler.tags = ['game'];
+handler.command = ['ppt', 'pvp'];
+
+export default handler;
+
+function evaluar(a, b) {
+    if (a === b) return 'empate';
+    if ((a === 'piedra' && b === 'tijera') || (a === 'tijera' && b === 'papel') || (a === 'papel' && b === 'piedra')) return 'gana';
+    return 'pierde';
 }
 
-handler.command = ['bomba', 'aceptar', 'rechazar', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-handler.group = true
-handler.botAdmin = true
+function formatNumber(n) {
+    return n.toLocaleString('en').replace(/,/g, '.');
+}
 
-export default handler
+function msToTime(ms) {
+    const s = Math.floor(ms / 1000) % 60;
+    const m = Math.floor(ms / 60000) % 60;
+    return `${m ? `${m}m ` : ''}${s}s`;
+                                             }
