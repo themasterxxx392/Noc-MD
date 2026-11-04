@@ -4,9 +4,23 @@ const jugadas = new Map();
 const cooldowns = new Map();
 const jugadasValidas = ['piedra', 'papel', 'tijera'];
 
+const getNum = jid => (jid || '').split('@')[0].replace(/\D/g, '')
+
+async function resolveJid(conn, chat, jid) {
+    if (!jid || !jid.endsWith('@lid')) return jid
+    try {
+        const meta = await conn.groupMetadata(chat)
+        const p = meta.participants.find(p => p.id === jid || p.lid === jid)
+        const real = [p?.phoneNumber, p?.jid, p?.id].find(x => x && x.endsWith('@s.whatsapp.net'))
+        if (real) return real
+    } catch {}
+    return jid
+}
+
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     const now = Date.now();
-    const userId = m.sender;
+    const chat = m.chat;
+    const userId = await resolveJid(conn, chat, m.sender);
     const cooldownRestante = (cooldowns.get(userId) || 0) + cooldown - now;
     
     if (cooldownRestante > 0) {
@@ -18,17 +32,8 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     const res = await m.db.query('SELECT exp FROM usuarios WHERE id = $1', [userId]);
     const user = res.rows[0];
 
-    // Resolución limpia de JIDs y LIDs para evitar números extraños
     let rawOpponent = m.mentionedJid?.[0] || m.quoted?.sender;
-    let opponent = null;
-    
-    if (rawOpponent) {
-        opponent = conn.parseMention ? (conn.parseMention(rawOpponent)[0] || rawOpponent) : rawOpponent;
-        if (typeof conn.decodeJid === 'function') {
-            opponent = conn.decodeJid(opponent);
-        }
-    }
-
+    let opponent = rawOpponent ? await resolveJid(conn, chat, rawOpponent) : null;
     const input = args[0]?.toLowerCase();
 
     // 1. Jugar contra el bot
@@ -76,7 +81,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             timeout: setTimeout(() => {
                 retos.delete(opponent);
                 conn.sendMessage(m.chat, {
-                    text: `⏳ 𝙏𝙄𝙀𝙈𝙋𝙊 𝘼𝙂𝙊𝙏𝘼𝘿𝙊, 𝙀𝙇 𝙋𝙑𝙋 𝙎𝙀 𝘾𝘼𝙉𝘾𝙀𝙇𝘼 𝙋𝙊𝙍 𝙁𝘼𝙇𝙏𝘼 𝘿𝙀 𝙍𝙀𝙎𝙋𝙐𝙀𝙎𝙏𝘼 𝘿𝙀 @${opponent.split('@')[0]}`,
+                    text: `⏳ 𝙏𝙄𝙀𝙈𝙋𝙊 𝘼𝙂𝙊𝙏𝘼𝘿𝙊, 𝙀𝙇 𝙋𝙑𝙋 𝙎𝙀 𝘾𝘼𝙉𝘾𝙀𝙇𝘼 𝙋𝙊𝙍 𝙁𝘼𝙇𝙏𝘼 𝘿𝙀 𝙍𝙀𝙎𝙋𝙐𝙀𝙎𝙏𝘼 𝘿𝙀 @${getNum(opponent)}`,
                     mentions: [opponent]
                 });
             }, 60000)
@@ -85,7 +90,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
         
         return conn.sendMessage(m.chat, {
-            text: `🎮👾 𝙋𝙑𝙋 - 𝙋𝙄𝙀𝘿𝙍𝘼, 𝙋𝘼𝙋𝙀𝙇 𝙊 𝙏𝙄𝙅𝙀𝙍𝘼 👾🎮\n\n> @${userId.split('@')[0]} desafía a @${opponent.split('@')[0]}.\n\n> _*Escribe (aceptar) para aceptar*_\n> _*Escribe (rechazar) para rechazar*_`,
+            text: `🎮👾 𝙋𝙑𝙋 - 𝙋𝙄𝙀𝘿𝙍𝘼, 𝙋𝘼𝙋𝙀𝙇 𝙊 𝙏𝙄𝙅𝙀𝙍𝘼 👾🎮\n\n> @${getNum(userId)} desafía a @${getNum(opponent)}.\n\n> _*Escribe (aceptar) para aceptar*_\n> _*Escribe (rechazar) para rechazar*_`,
             mentions: [userId, opponent]
         }, { quoted: m });
     }
@@ -96,31 +101,32 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.before = async (m, { conn }) => {
     const text = m.text?.toLowerCase()?.trim();
-    const userId = m.sender;
+    const chat = m.chat;
+    const userId = await resolveJid(conn, chat, m.sender);
 
     if (['aceptar', 'rechazar'].includes(text) && retos.has(userId)) {
-        const { retador, chat, timeout } = retos.get(userId);
+        const { retador, chat: targetChat, timeout } = retos.get(userId);
         clearTimeout(timeout);
         retos.delete(userId);
 
         if (text === 'rechazar') {
-            return conn.sendMessage(chat, {
-                text: `⚠️ @${userId.split('@')[0]} rechazó el reto de @${retador.split('@')[0]}.`,
+            return conn.sendMessage(targetChat, {
+                text: `⚠️ @${getNum(userId)} rechazó el reto de @${getNum(retador)}.`,
                 mentions: [userId, retador]
             }, { quoted: m });
         }
 
-        jugadas.set(chat, {
+        jugadas.set(targetChat, {
             jugadores: [retador, userId],
             eleccion: {},
             timeout: setTimeout(() => {
-                jugadas.delete(chat);
-                conn.reply(chat, `⏰ El duelo expiró por inactividad.`, m);
+                jugadas.delete(targetChat);
+                conn.reply(targetChat, `⏰ El duelo expiró por inactividad.`, m);
             }, 60000)
         });
 
-        await conn.sendMessage(chat, {
-            text: `✅ Reto aceptado. Las opciones fueron enviadas por privado a @${retador.split('@')[0]} y @${userId.split('@')[0]}.`,
+        await conn.sendMessage(targetChat, {
+            text: `✅ Reto aceptado. Las opciones fueron enviadas por privado a @${getNum(retador)} y @${getNum(userId)}.`,
             mentions: [retador, userId]
         }, { quoted: m });
 
@@ -130,7 +136,7 @@ handler.before = async (m, { conn }) => {
     }
 
     if (jugadasValidas.includes(text)) {
-        for (const [chat, partida] of jugadas) {
+        for (const [chatKey, partida] of jugadas) {
             const { jugadores, eleccion, timeout } = partida;
             if (!jugadores.includes(userId)) continue;
 
@@ -139,7 +145,7 @@ handler.before = async (m, { conn }) => {
 
             if (Object.keys(eleccion).length < 2) return;
             clearTimeout(timeout);
-            jugadas.delete(chat);
+            jugadas.delete(chatKey);
 
             const [j1, j2] = jugadores;
             const jugada1 = eleccion[j1];
@@ -147,7 +153,7 @@ handler.before = async (m, { conn }) => {
             const resultado = evaluar(jugada1, jugada2);
             const xp = Math.floor(Math.random() * 2000) + 500;
             
-            let mensaje = `✊🖐✌️ *Piedra, Papel o Tijera - Resultado*\n\n> @${j1.split('@')[0]} eligió: *${jugada1}*\n> @${j2.split('@')[0]} eligió: *${jugada2}*\n\n`;
+            let mensaje = `✊🖐✌️ *Piedra, Papel o Tijera - Resultado*\n\n> @${getNum(j1)} eligió: *${jugada1}*\n> @${getNum(j2)} eligió: *${jugada2}*\n\n`;
 
             if (resultado === 'empate') {
                 mensaje += '🤝 ¡Empate! Nadie gana ni pierde XP.';
@@ -156,10 +162,10 @@ handler.before = async (m, { conn }) => {
                 const perdedor = ganador === j1 ? j2 : j1;
                 await m.db.query('UPDATE usuarios SET exp = exp + $1 WHERE id = $2', [xp * 2, ganador]);
                 await m.db.query('UPDATE usuarios SET exp = exp - $1 WHERE id = $2', [xp, perdedor]);
-                mensaje += `🎉 @${ganador.split('@')[0]} gana *${formatNumber(xp * 2)} XP*\n💀 @${perdedor.split('@')[0]} pierde *${formatNumber(xp)} XP*`;
+                mensaje += `🎉 @${getNum(ganador)} gana *${formatNumber(xp * 2)} XP*\n💀 @${getNum(perdedor)} pierde *${formatNumber(xp)} XP*`;
             }
 
-            return conn.sendMessage(chat, { text: mensaje, mentions: [j1, j2] });
+            return conn.sendMessage(chatKey, { text: mensaje, mentions: [j1, j2] });
         }
     }
 };
@@ -184,4 +190,4 @@ function msToTime(ms) {
     const s = Math.floor(ms / 1000) % 60;
     const m = Math.floor(ms / 60000) % 60;
     return `${m ? `${m}m ` : ''}${s}s`;
-                                             }
+                                 }
