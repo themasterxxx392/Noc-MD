@@ -18,7 +18,7 @@ globalThis.info = {
     author: "Owner: Platanito...",
     apis: "https://api.delirius.store",
     nexus: "https://nexus--shadowxyz189.replit.app",
-    apikey: "YUME_5e7b86855e968de6",
+    apikey: "YUME_30c75365cf5d8687",
     img2: "https://telegra.ph/file/39fb047cdf23c7",
     img4: fs.readFileSync('./media/Menu2.jpg'),
     yt: "",
