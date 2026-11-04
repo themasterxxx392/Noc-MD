@@ -8,9 +8,19 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    const searchUrl = `${global.info.evogb}/search/yt?key=${global.info.evogbkey}&query=${encodeURIComponent(text)}`;
+    // Limpiamos la URL base por si tiene o no slash final
+    const baseUrl = (global.info.evogb || 'https://api.evogb.org/beta').replace(/\/+$/, '');
+    const searchUrl = `${baseUrl}/search/yt?key=${global.info.evogbkey}&query=${encodeURIComponent(text)}`;
     
     let res = await fetch(searchUrl);
+    let contentType = res.headers.get("content-type");
+
+    if (!contentType || !contentType.includes("application/json")) {
+      let rawText = await res.text();
+      console.error("Respuesta no-JSON recibida de Evogb:", rawText);
+      throw new Error("La API de Evogb no devolvió un JSON válido (posible servidor caído o API Key errónea).");
+    }
+
     let json = await res.json();
 
     if (!json.status || !json.result?.length) {
@@ -45,3 +55,4 @@ handler.tags = ['buscadores'];
 handler.command = ['yts', 'ytsearch'];
 
 export default handler;
+                      
