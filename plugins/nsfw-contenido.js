@@ -57,6 +57,6 @@ let handler = async (m, { conn, command }) => {
 
 handler.help = ['neko'];
 handler.tags = ['nsfw'];
-handler.command = ['neko'];
+handler.command = ['neko2'];
 
 export default handler;
