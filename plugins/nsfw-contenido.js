@@ -4,25 +4,22 @@ let handler = async (m, { conn, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // Probamos con la ruta que incluye /beta/sfw/neko que es la estructura estándar de la plataforma
-    const API_URL = 'https://api.evogb.org';
-    const ENDPOINT = '/beta/sfw/neko';
-    const API_KEY = 'evogb-TyswGrUB';
-
-    const fullUrl = `${API_URL}${ENDPOINT}?key=${API_KEY}`;
-    console.log("[DEBUG Evogb] URL intentada:", fullUrl); // Esto saldrá en tu consola del panel
-
+    // URL exacta basada en el endpoint /sfw/neko que mostraste en la documentación
+    const fullUrl = 'https://api.evogb.org/sfw/neko?key=evogb-TyswGrUB';
+    
     let res = await fetch(fullUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://api.evogb.org/',
+        'Origin': 'https://api.evogb.org'
       }
     });
 
     let rawText = await res.text();
 
     if (!res.ok) {
-      console.error(`[Evogb API Error] Status: ${res.status} | URL: ${fullUrl} | Body:`, rawText);
+      console.error(`[Evogb API Error] Status: ${res.status} | Body:`, rawText);
       throw new Error(`Error HTTP ${res.status}: Not Found`);
     }
 
@@ -55,6 +52,7 @@ let handler = async (m, { conn, command }) => {
 
 handler.help = ['neko'];
 handler.tags = ['anime'];
-handler.command = ['neko2'];
+handler.command = ['neko', 'neko2'];
 
 export default handler;
+      
