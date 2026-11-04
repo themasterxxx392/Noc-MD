@@ -15,6 +15,19 @@ const pluginsFolder = path.join(__dirname, "plugins");
 const processedMessages = new Set();
 const lastDbUpdate = new Map();
 const groupMetaCache = new Map(); 
+
+async function resolveJid(conn, chat, jid) {
+    if (!jid || !jid.endsWith('@lid')) return jid;
+    try {
+        const meta = groupMetaCache.get(chat) || await conn.groupMetadata(chat);
+        if (!groupMetaCache.has(chat)) groupMetaCache.set(chat, meta);
+        const p = meta.participants.find(p => p.id === jid || p.lid === jid);
+        const real = [p?.phoneNumber, p?.jid, p?.id].find(x => x && x.endsWith('@s.whatsapp.net'));
+        if (real) return real;
+    } catch {}
+    return jid;
+}
+
 export async function participantsUpdate(conn, { id, participants, action, author, authorPn }) {
 try {
 if (!id || !Array.isArray(participants) || !action) return
@@ -214,7 +227,7 @@ for (const update of updates) {
 const id = update?.id
 if (!id) continue
 
-const author = cleanJid(update.authorPn || update.author || "")
+  const author = cleanJid(update.authorPn || update.author || "")
 const isCreator = fixedOwners.includes(author) || fixedOwners.includes(botJid)
 
 if (modo === "private" && !isCreator && author !== botJid) continue
@@ -380,20 +393,22 @@ const prefijo = Array.isArray(botConfig.prefix) ? botConfig.prefix : [botConfig.
 const modo = botConfig.mode || "public";
 m.isGroup = chatId.endsWith("@g.us");
 
-if (m.key?.participantAlt && m.key.participantAlt.endsWith("@s.whatsapp.net")) {
-m.sender = m.key.participantAlt;   
-m.lid = m.key.participant;
-} else {
-m.sender = m.key?.participant || chatId;
-}
+let rawSender = m.key?.participantAlt && m.key.participantAlt.endsWith("@s.whatsapp.net") 
+    ? m.key.participantAlt 
+    : (m.key?.participant || chatId);
 
 if (m.key?.fromMe) {
-m.sender = conn.user?.id || m.sender;
+    rawSender = conn.user?.id || rawSender;
 }
 
-if (typeof m.sender === "string") {
-m.sender = m.sender.replace(/:\d+/, "");
+rawSender = cleanJid(rawSender);
+
+if (m.isGroup && rawSender.endsWith("@lid")) {
+    rawSender = await resolveJid(conn, chatId, rawSender);
 }
+
+m.sender = rawSender;
+m.lid = cleanJid(m.key?.senderLid || m.lid || "");
 
 m.reply = async (text) => {
 return await conn.sendMessage(chatId, { text }, { quoted: m });
@@ -406,7 +421,6 @@ if (processedMessages.has(hash)) return;
 processedMessages.add(hash);
 setTimeout(() => processedMessages.delete(hash), 60_000);
 
-// contador 
 if (m.isGroup) {
   const botClean = (conn.user?.id || "").replace(/:\d+/, "")
   const senderIds = [
@@ -441,7 +455,6 @@ if (m.isGroup) {
   }
 }
 
-//antifake
 if (m.isGroup && m.sender && m.sender.endsWith("@s.whatsapp.net")) {
 try {
 const settings = (await db.query("SELECT antifake FROM group_settings WHERE group_id = $1", [chatId])).rows[0];
@@ -902,7 +915,7 @@ const lastUpdated = new Date(updated_at).getTime();
 const ttl = memory_ttl * 1000; 
 
 if (now - lastUpdated > ttl) {
-await db.query("DELETE FROM chat_memory WHERE chat_id = $1", [chat_id]);
+await db.query("DELETE FROM chat_memory WHERE chat_id = $1", [chatId]);
 console.log(`🧹 Memoria del grupo ${chat_id} eliminada automáticamente`);
 }}
 } catch (err) {
