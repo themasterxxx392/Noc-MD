@@ -4,9 +4,9 @@ let handler = async (m, { conn, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // URL y API Key separadas para mayor orden y control
+    // Definimos la URL base, el endpoint correcto sin /beta y la API Key por separado
     const API_URL = 'https://api.evogb.org';
-    const ENDPOINT = '/beta/sfw/neko';
+    const ENDPOINT = '/sfw/neko';
     const API_KEY = 'evogb-TyswGrUB';
 
     const fullUrl = `${API_URL}${ENDPOINT}?key=${API_KEY}`;
@@ -29,13 +29,12 @@ let handler = async (m, { conn, command }) => {
     try {
       json = JSON.parse(rawText);
     } catch (err) {
-      // Si por alguna razón la API devuelve la imagen directamente en texto/buffer
-      console.error("[Evogb API Error] No es JSON, intentando usar texto plano como URL");
+      // Por si la API devuelve texto plano directamente
       json = { data: rawText };
     }
 
-    // Extraemos la URL tal como se ve en el JSON del video (json.data o json.result)
-    let imageUrl = json.data || json.result || json.url;
+    // Extraemos la URL de la imagen de las propiedades que suele devolver el JSON
+    let imageUrl = json.data || json.result || json.url || json.image;
 
     if (!imageUrl || typeof imageUrl !== 'string') {
       throw new Error('No se encontró una URL de imagen válida en la respuesta de la API.');
@@ -57,8 +56,7 @@ let handler = async (m, { conn, command }) => {
 };
 
 handler.help = ['neko'];
-handler.tags = ['anime'];
+handler.tags = ['nsfw'];
 handler.command = ['neko'];
 
 export default handler;
-                    
