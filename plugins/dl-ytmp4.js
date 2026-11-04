@@ -51,20 +51,21 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error('[paso 1/2] La API no devolvió un link de descarga.')
         }
 
-        // Limpiamos el nombre: quitamos paréntesis de calidad y también el guion con el canal (ej. " - Spreen Plus")
         let rawFileName = info.filename || 'video.mp4'
         let cleanFileName = rawFileName
-            .replace(/\s*\([^)]*\)/g, '')        // Quita (480p, h264)
-            .replace(/\s*-\s*[^.-]+(?=\.[^.]+دى*$)/i, '') // Quita el " - NombreDelCanal" antes de la extensión
-            .replace(/\s*-\s*[^.-]+(?=\.mp4$)/i, '')     // Asegura quitar el guion y el canal antes de .mp4
+            .replace(/\s*\([^)]*\)/g, '')
+            .replace(/\s*-\s*[^.-]+(?=\.[^.]+دى*$)/i, '')
+            .replace(/\s*-\s*[^.-]+(?=\.mp4$)/i, '')
             .trim()
 
-        // Si por alguna razón queda feo, intentamos cortar antes del primer guion si viene estructurado como "Título - Canal"
         if (cleanFileName.includes(' - ')) {
             cleanFileName = cleanFileName.split(' - ')[0].trim()
         }
 
         if (!/\.[a-z0-9]{2,4}$/i.test(cleanFileName)) cleanFileName += '.mp4'
+
+        // Creamos una versión sin la extensión para mostrarla estéticamente en el texto del mensaje
+        const displayTitle = cleanFileName.replace(/\.[a-z0-9]{2,4}$/i, '')
 
         let fileResponse
         try {
@@ -94,14 +95,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         const mimetype = fileResponse.headers['content-type'] || 'video/mp4'
 
-        // Texto con título limpio, calidad devuelta y peso
-        let txt = `> *Titulo:* ${cleanFileName}\n` +
+        // Usamos displayTitle para que el texto salga sin el .mp4
+        let txt = `> *Titulo:* ${displayTitle}\n` +
                   `> *Calidad:* 480p\n` +
                   `> *Peso:* ${formatMB(buffer.length)} MB`
 
         await conn.sendMessage(m.chat, {
             document: buffer,
-            fileName: cleanFileName,
+            fileName: cleanFileName, // El archivo mantiene el .mp4 para que WhatsApp lo lea bien
             caption: txt,
             mimetype
         }, { quoted: m })
