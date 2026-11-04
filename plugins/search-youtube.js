@@ -66,4 +66,3 @@ handler.tags = ['buscadores'];
 handler.command = ['yts', 'ytsearch'];
 
 export default handler;
-      
