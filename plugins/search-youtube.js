@@ -8,9 +8,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    const baseUrl = (global.info.evogb || 'https://api.evogb.org/beta').replace(/\/+$/, '');
-    const apiKey = global.info.evogbkey || 'evogb-TyswGrUB';
-    const searchUrl = `${baseUrl}/search/yt?key=${apiKey}&query=${encodeURIComponent(text)}`;
+    // URL y Apikey integradas directamente para evitar errores 404
+    const searchUrl = `https://api.evogb.org/beta/search/yt?key=evogb-TyswGrUB&query=${encodeURIComponent(text)}`;
     
     let res = await fetch(searchUrl, {
       headers: {
@@ -31,7 +30,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       json = JSON.parse(rawText);
     } catch (err) {
       console.error("[Evogb API Error] Respuesta no es JSON:", rawText);
-      throw new Error("La API no devolvió un JSON válido (posible bloqueo o error de servidor).");
+      throw new Error("La API no devolvió un JSON válido.");
     }
 
     if (!json.status || !json.result?.length) {
