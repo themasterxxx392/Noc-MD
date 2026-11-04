@@ -82,11 +82,6 @@ const alias = {
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   try {
-    // Validación de NSFW en grupos (asegúrate de que tu base de datos lo soporte, o remueve si da conflicto)
-    if (db.data.chats[m.chat] && !db.data.chats[m.chat].nsfw && m.isGroup) {
-      return m.reply(`ꕥ El contenido *NSFW* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n» *${usedPrefix}nsfw on*`)
-    }
-
     await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command
@@ -110,16 +105,17 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const apiEndpoint = endpointMap[currentCommand] || currentCommand
     const apiUrl = `${global.info.nexus}/reaction/nsfw/${apiEndpoint}?key=${global.info.apikey}`
     
-    const response = await fetch(apiUrl)
-    const data = await response.json()
+    console.log('[NSFW API URL]:', apiUrl) // Para que veas en la consola si la URL se arma bien
 
-    if (!data.status || !data.data?.dl) {
-      await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-      return conn.reply(m.chat, `⚠︎ No se pudo obtener el contenido.`, m)
+    const response = await fetch(apiUrl)
+    const json = await response.json()
+
+    if (!json.status || !json.data?.dl) {
+      throw new Error('La API de Nexus no devolvió el archivo (dl).')
     }
 
     await conn.sendMessage(m.chat, {
-      video: { url: data.data.dl },
+      video: { url: json.data.dl },
       gifPlayback: true,
       caption,
       mentions: [who, m.sender]
@@ -128,15 +124,15 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
   } catch (e) {
-    console.error('Error en comando NSFW:', e)
+    console.error('Error detallado en NSFW:', e)
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-    await conn.reply(m.chat, `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`, m)
+    await conn.reply(m.chat, `> ✿︎ Ocurrió un error en el comando NSFW.\n> *[Detalle: ${e.message}]*`, m)
   }
 }
 
 handler.help = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','bj','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','futanari','futa','yaoi','bukkake','orgy','orgia','squirt','squirting']
 handler.tags = ['nsfw']
-handler.command = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgraded','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','bj','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','futanari','futa','yaoi','bukkake','orgy','orgia','squirt','squirting']
+handler.command = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','bj','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','futanari','futa','yaoi','bukkake','orgy','orgia','squirt','squirting']
 handler.group = true
 
 export default handler
