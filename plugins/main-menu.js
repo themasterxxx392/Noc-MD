@@ -8,6 +8,7 @@ const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_17
 let thumbCache = null
 
 async function getThumb() {
+async function getThumb() {
   if (thumbCache) return thumbCache
   try {
     const res = await fetch(THUMB_URL)
@@ -15,9 +16,10 @@ async function getThumb() {
     const raw = Buffer.from(await res.arrayBuffer())
     try {
       const { default: sharp } = await import('sharp')
+      // Usamos 'contain' con un fondo o 'entropy' para que no recorte la cara de golpe, o ajustamos el fit
       thumbCache = await sharp(raw)
-        .resize(600, 600, { fit: 'cover', position: sharp.strategy.attention })
-        .jpeg({ quality: 80 })
+        .resize(600, 600, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
+        .jpeg({ quality: 90 })
         .toBuffer()
     } catch {
       thumbCache = raw
