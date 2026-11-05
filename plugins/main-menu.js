@@ -136,10 +136,15 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  // Usamos el enlace directo de Cloudflare R2 que mantiene los headers de imagen correctos
-  await conn.sendFile(chatId, "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg", "menu.jpg", text, m, null, { 
-    mentionedJid: await conn.parseMention(text) 
-  });
+  // Descargamos la imagen como buffer directamente desde la URL de Alya para asegurar el renderizado nativo
+  const imgRes = await fetch("https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg");
+  const imgBuffer = await imgRes.buffer();
+
+  await conn.sendMessage(chatId, { 
+    image: imgBuffer, 
+    caption: text,
+    mentionedJid: await conn.parseMention(text)
+  }, { quoted: m });
 
   m.react('🙌');
 } catch (err) {    
@@ -148,8 +153,8 @@ try {
   } catch (e) {}
   m.react('❌');
   console.error(err);
-}}
-
+  }
+  
 handler.help = ['menu']
 handler.tags = ['main']
 handler.command = /^(menu|help|allmenu|menú)$/i
