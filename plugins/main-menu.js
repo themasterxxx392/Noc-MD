@@ -136,14 +136,21 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  // Descargamos la imagen como buffer directamente desde la URL de Alya para asegurar el renderizado nativo
-  const imgRes = await fetch("https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg");
-  const imgBuffer = await imgRes.buffer();
-
+  // Enviamos la imagen con un enlace externo incrustado (externalAdReply)
   await conn.sendMessage(chatId, { 
-    image: imgBuffer, 
+    image: { url: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg" }, 
     caption: text,
-    mentionedJid: await conn.parseMention(text)
+    mentionedJid: await conn.parseMention(text),
+    contextInfo: {
+      externalAdReply: {
+        title: "Rem Bot - Menú Principal",
+        body: "Visita nuestra web oficial",
+        thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg",
+        sourceUrl: "https://web.alya-team.xyz/home#home",
+        mediaType: 1,
+        renderLargerThumbnail: true
+      }
+    }
   }, { quoted: m });
 
   m.react('🙌');
@@ -153,7 +160,8 @@ try {
   } catch (e) {}
   m.react('❌');
   console.error(err);
-  }
+}
+  
   
 handler.help = ['menu']
 handler.tags = ['main']
