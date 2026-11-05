@@ -42,6 +42,7 @@ owner: '👑 OWNER'
 }
 
 const defaultMenu = {
+const defaultMenu = {
 before: `┌ Rem Bot ┐
 
 *• Fecha:* %fecha
@@ -50,6 +51,7 @@ before: `┌ Rem Bot ┐
 *• Tiempo activos:* %muptime
 *• Tu limite:* %limit
 %botOfc
+*• Canal:* ${LINK}
 `.trimStart(),
   header: '`<[ %category ]>`',
   body: ' %cmd %islimit %isPremium',
