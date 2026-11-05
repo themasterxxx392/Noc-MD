@@ -2,7 +2,6 @@ import moment from 'moment-timezone'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
-import fetch from 'node-fetch'
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -137,20 +136,19 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-try {
-  // Usamos sendFile que maneja internamente la conversión fluida en Baileys
-  await conn.sendFile(chatId, "https://i.ibb.co/dsm9JFft/Rem.jpg", "menu.jpg", text, m, null, { 
+  // Usamos el enlace directo de Cloudflare R2 que mantiene los headers de imagen correctos
+  await conn.sendFile(chatId, "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg", "menu.jpg", text, m, null, { 
     mentionedJid: await conn.parseMention(text) 
   });
 
   m.react('🙌');
-} catch (e) {
-  // Si falla sendFile, mandamos texto plano de respaldo
-  await conn.sendMessage(chatId, { text: text, mentionedJid: await conn.parseMention(text) }, { quoted: m });
+} catch (err) {    
+  try {
+    await conn.sendMessage(chatId, { text: text, mentionedJid: await conn.parseMention(text) }, { quoted: m });
+  } catch (e) {}
   m.react('❌');
-  console.error(e);
-  }
-  
+  console.error(err);
+}}
 
 handler.help = ['menu']
 handler.tags = ['main']
@@ -169,4 +167,5 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-}
+                           }
+                     
