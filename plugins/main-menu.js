@@ -158,6 +158,13 @@ try {
   text: text,
   contextInfo: {
     mentionedJid: await conn.parseMention(text),
+    externalAdReply: {
+      title: "✨ Rem Bot • Menú Principal",
+      body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
+      thumbnail: thumbBuffer,
+      sourceUrl: "https://wa.me/51922902497",
+      mediaType: 1,
+      renderLargerThumbnail: true
     }
   }
 }, { quoted: m });
