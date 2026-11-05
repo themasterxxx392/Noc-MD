@@ -137,26 +137,20 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-let menuMessage;
 try {
-  // Descargamos la imagen a buffer para que cargue instantáneamente sin requerir descarga manual
-  const imgRes = await fetch("https://i.ibb.co/dsm9JFft/Rem.jpg");
-  const imgBuffer = await imgRes.buffer();
+  // Usamos sendFile que maneja internamente la conversión fluida en Baileys
+  await conn.sendFile(chatId, "https://i.ibb.co/dsm9JFft/Rem.jpg", "menu.jpg", text, m, null, { 
+    mentionedJid: await conn.parseMention(text) 
+  });
 
-  menuMessage = await conn.sendMessage(chatId, { 
-    image: imgBuffer, 
-    caption: text,
-    mentionedJid: await conn.parseMention(text)
-  }, { quoted: m });
+  m.react('🙌');
 } catch (e) {
-  menuMessage = await conn.sendMessage(chatId, { text: text, mentionedJid: await conn.parseMention(text) }, { quoted: m });
-}
-
-m.react('🙌');
-} catch (err) {    
-m.react('❌')
-console.error(err);
-}}
+  // Si falla sendFile, mandamos texto plano de respaldo
+  await conn.sendMessage(chatId, { text: text, mentionedJid: await conn.parseMention(text) }, { quoted: m });
+  m.react('❌');
+  console.error(e);
+  }
+  
 
 handler.help = ['menu']
 handler.tags = ['main']
