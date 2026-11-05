@@ -136,7 +136,6 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  // Enviamos la imagen con un enlace externo incrustado (externalAdReply)
   await conn.sendMessage(chatId, { 
     image: { url: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg" }, 
     caption: text,
@@ -160,9 +159,8 @@ try {
   } catch (e) {}
   m.react('❌');
   console.error(err);
-}
-  
-  
+}}
+
 handler.help = ['menu']
 handler.tags = ['main']
 handler.command = /^(menu|help|allmenu|menú)$/i
@@ -180,5 +178,5 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-                           }
-                     
+    }
+  
