@@ -2,6 +2,7 @@ import moment from 'moment-timezone'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
+import fetch from 'node-fetch'
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -136,6 +137,14 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
+  let thumbBuffer;
+  try {
+    const thumbRes = await fetch("https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg");
+    thumbBuffer = await thumbRes.buffer();
+  } catch (e) {
+    thumbBuffer = null;
+  }
+
   await conn.sendMessage(chatId, { 
     text: text,
     mentionedJid: await conn.parseMention(text),
@@ -144,6 +153,7 @@ try {
         title: "✨ Rem Bot • Menú Principal",
         body: "Visita nuestra web oficial",
         thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg",
+        jpegThumbnail: thumbBuffer,
         sourceUrl: "https://web.alya-team.xyz/home#home",
         mediaType: 1,
         renderLargerThumbnail: true
@@ -174,5 +184,5 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-        }
+  }
   
