@@ -22,7 +22,7 @@ async function loadBaileys() {
   return null
 }
 
-// Miniatura generada con Jimp 1.x (respaldo si Baileys no la genera)
+// Miniatura y medidas del banner con Jimp 1.x (respaldo)
 let thumbCache = null
 async function getThumb() {
   if (thumbCache) return thumbCache
@@ -31,8 +31,11 @@ async function getThumb() {
     if (!res.ok) return null
     const buffer = Buffer.from(await res.arrayBuffer())
     const image = await Jimp.read(buffer)
+    const width = image.bitmap.width
+    const height = image.bitmap.height
     image.resize({ w: 400 })
-    thumbCache = await image.getBuffer('image/jpeg', { quality: 60 })
+    const jpeg = await image.getBuffer('image/jpeg', { quality: 60 })
+    thumbCache = { jpeg, width, height }
     return thumbCache
   } catch (e) {
     console.error('❌ No pude generar la miniatura con Jimp:', e.message)
@@ -178,16 +181,37 @@ try {
   let linkPreview
   try {
     const baileys = await loadBaileys()
+    if (!baileys) throw new Error('No encontré la librería Baileys')
+    if (!conn.waUploadToServer) throw new Error('conn.waUploadToServer no existe')
+
     const { imageMessage } = await baileys.prepareWAMessageMedia(
       { image: { url: THUMB_URL } },
       { upload: conn.waUploadToServer, mediaTypeOverride: 'thumbnail-link' }
     )
 
-    let jpegThumbnail = imageMessage?.jpegThumbnail ? Buffer.from(imageMessage.jpegThumbnail) : null
-    if (!jpegThumbnail) {
-      console.log('⚠️ Baileys no generó la miniatura del menú, la genero con Jimp')
-      jpegThumbnail = await getThumb()
+    // Respaldo: si faltan medidas o miniatura, las saco con Jimp
+    const dims = await getThumb()
+    if (imageMessage) {
+      if (!imageMessage.width || !imageMessage.height) {
+        imageMessage.width = dims?.width
+        imageMessage.height = dims?.height
+      }
     }
+
+    // DIAGNÓSTICO: mira esto en la consola al usar .menu
+    console.log('🖼 Banner del menú →', {
+      directPath: imageMessage?.directPath ? 'ok' : 'FALTA',
+      mediaKey: imageMessage?.mediaKey ? 'ok' : 'FALTA',
+      fileSha256: imageMessage?.fileSha256 ? 'ok' : 'FALTA',
+      fileEncSha256: imageMessage?.fileEncSha256 ? 'ok' : 'FALTA',
+      width: imageMessage?.width,
+      height: imageMessage?.height,
+      jpegThumbnail: imageMessage?.jpegThumbnail ? 'ok' : 'FALTA'
+    })
+
+    const jpegThumbnail = imageMessage?.jpegThumbnail
+      ? Buffer.from(imageMessage.jpegThumbnail)
+      : dims?.jpeg
 
     linkPreview = {
       'canonical-url': LINK,
@@ -238,4 +262,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-}
+      }
