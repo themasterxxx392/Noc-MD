@@ -4,7 +4,7 @@ import { db } from '../lib/postgres.js'
 import fs from "fs"
 import fetch from 'node-fetch'
 
-const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793846591924_1gemtx.jpeg"
+const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793848495314_n9kynz.jpeg"
 let thumbCache = null
 
 async function getThumb() {
