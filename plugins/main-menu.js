@@ -3,6 +3,20 @@ import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
 import fetch from 'node-fetch'
+const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg"
+let thumbCache = null
+
+async function getThumb() {
+  if (thumbCache) return thumbCache
+  try {
+    const res = await fetch(THUMB_URL)
+    if (!res.ok) return null
+    thumbCache = Buffer.from(await res.arrayBuffer())
+    return thumbCache
+  } catch {
+    return null
+  }
+}
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -137,13 +151,7 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  let thumbBuffer;
-  try {
-    const thumbRes = await fetch("https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg");
-    thumbBuffer = await thumbRes.buffer();
-  } catch (e) {
-    thumbBuffer = null;
-  }
+  const thumbBuffer = await getThumb();
 
   await conn.sendMessage(chatId, { 
     text: text,
@@ -152,8 +160,8 @@ try {
       externalAdReply: {
         title: "✨ Rem Bot • Menú Principal",
         body: "Visita nuestra web oficial",
-        thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg",
-        jpegThumbnail: thumbBuffer,
+        thumbnailUrl: THUMB_URL,
+        thumbnail: thumbBuffer,
         sourceUrl: "https://web.alya-team.xyz/home#home",
         mediaType: 1,
         renderLargerThumbnail: true
