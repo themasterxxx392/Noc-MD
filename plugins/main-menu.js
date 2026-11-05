@@ -2,6 +2,7 @@ import moment from 'moment-timezone'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
+import fetch from 'node-fetch'
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -138,8 +139,12 @@ text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, '
 try {
 let menuMessage;
 try {
+  // Descargamos la imagen a buffer para que cargue instantáneamente sin requerir descarga manual
+  const imgRes = await fetch("https://i.ibb.co/dsm9JFft/Rem.jpg");
+  const imgBuffer = await imgRes.buffer();
+
   menuMessage = await conn.sendMessage(chatId, { 
-    image: { url: "https://i.ibb.co/dsm9JFft/Rem.jpg" }, 
+    image: imgBuffer, 
     caption: text,
     mentionedJid: await conn.parseMention(text)
   }, { quoted: m });
