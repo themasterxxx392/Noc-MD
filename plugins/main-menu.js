@@ -137,13 +137,12 @@ text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, '
 
 try {
   await conn.sendMessage(chatId, { 
-    image: { url: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg" }, 
-    caption: text,
+    text: text,
     mentionedJid: await conn.parseMention(text),
     contextInfo: {
       externalAdReply: {
-        title: "Rem Bot - Menú Principal",
-        body: "Visita nuestra web oficial",
+        title: "✨ Alya Kujou ឵• AI Assistant",
+        body: "POWERED BY -Ander",
         thumbnailUrl: "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg",
         sourceUrl: "https://web.alya-team.xyz/home#home",
         mediaType: 1,
@@ -178,5 +177,5 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-    }
-  
+  }
+                                 
