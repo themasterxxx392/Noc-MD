@@ -9,7 +9,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   await m.reply('⏳ Buscando y procesando tu audio, por favor espera un momento...')
 
   try {
-    // Usa exactamente las variables que ya tienes definidas en tu config global
     const apiUrl = `${info.evogb}/dl/youtubeplay?key=${info.evogbkey}&query=${encodeURIComponent(query)}&type=audio&quality=auto`
     
     const response = await fetch(apiUrl)
@@ -20,6 +19,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const json = await response.json()
 
+    // Extraer URL de descarga
     const audioUrl = json.resultado?.download || json.resultado?.url || json.data?.url || json.url || json.resultado
     const title = json.resultado?.title || json.title || query
     const duration = json.resultado?.duration || json.duration || ''
@@ -28,6 +28,11 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
       return m.reply('❌ No se pudo extraer el enlace de descarga de la respuesta de la API.')
     }
 
+    // Descargamos el audio como Buffer para evitar bloqueos de WhatsApp al cargar enlaces directos
+    const audioRes = await fetch(audioUrl)
+    if (!audioRes.ok) throw new Error('No se pudo descargar el archivo de audio desde el enlace de la API.')
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+
     let txt = `✨ *• YOUTUBE PLAY •*\n\n`
     txt += `• *Título:* ${title}\n`
     if (duration) txt += `• *Duración:* ${duration}\n`
@@ -35,9 +40,10 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     await conn.reply(m.key.remoteJid, txt, m)
 
+    // Enviamos el buffer directamente
     await conn.sendMessage(m.key.remoteJid, {
-      audio: { url: audioUrl },
-      mimetype: 'audio/mp4',
+      audio: audioBuffer,
+      mimetype: 'audio/mpeg',
       fileName: `${title}.mp3`,
       ptt: false
     }, { quoted: m })
@@ -55,3 +61,4 @@ handler.tags = ['downloader']
 handler.command = /^(play|playaudio|ytplay)$/i
 
 export default handler
+      
