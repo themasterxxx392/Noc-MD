@@ -2,32 +2,26 @@ import fetch from 'node-fetch'
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!args[0]) {
-    return conn.reply(m.key.remoteJid, `⚠️ Por favor, ingresa el título o el enlace de lo que deseas buscar en YouTube.\n\nEjemplo:\n*${usedPrefix + command} Takagi san*`, m)
+    return conn.reply(m.key.remoteJid, `⚠️ Por favor, ingresa el título o el enlace de lo que deseas buscar en YouTube.\n\nEjemplo:\n*${usedPrefix + command} Shape of You*`, m)
   }
 
   const query = args.join(' ')
   await m.reply('⏳ Buscando y procesando tu audio, por favor espera un momento...')
 
   try {
-    // Probamos con la ruta estándar de la beta de Evogb para play/audio
-    const apiUrl = `https://api.evogb.org/beta/dl/play?query=${encodeURIComponent(query)}`
-    let response = await fetch(apiUrl)
+    // Usa exactamente las variables que ya tienes definidas en tu config global
+    const apiUrl = `${info.evogb}/dl/youtubeplay?key=${info.evogbkey}&query=${encodeURIComponent(query)}&type=audio&quality=auto`
     
-    // Si da 404, probamos una ruta alternativa común en su API
-    if (!response.ok) {
-      const altUrl = `https://api.evogb.org/beta/dl/youtube?q=${encodeURIComponent(query)}`
-      response = await fetch(altUrl)
-    }
-
+    const response = await fetch(apiUrl)
+    
     if (!response.ok) {
       throw new Error(`La API no respondió correctamente (Código: ${response.status})`)
     }
 
     const json = await response.json()
 
-    // Verificamos las posibles estructuras que devuelve Evogb
     const audioUrl = json.resultado?.download || json.resultado?.url || json.data?.url || json.url || json.resultado
-    const title = json.resultado?.title || json.title || 'Audio de YouTube'
+    const title = json.resultado?.title || json.title || query
     const duration = json.resultado?.duration || json.duration || ''
 
     if (!audioUrl) {
