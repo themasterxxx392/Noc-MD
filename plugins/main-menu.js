@@ -160,10 +160,10 @@ try {
     contextInfo: {
       externalAdReply: {
         title: "✨ Rem Bot • Menú Principal",
-        body: "Visita nuestra web oficial",
+        body: "⤹ ⠂𖣫╎© POWERED BY 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•",
         thumbnailUrl: THUMB_URL,
         thumbnail: thumbBuffer,
-        sourceUrl: "https://web.alya-team.xyz/home#home",
+        sourceUrl: "https://wa.me/51922902497",
         mediaType: 1,
         renderLargerThumbnail: true
       }
