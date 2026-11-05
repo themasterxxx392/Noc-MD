@@ -12,7 +12,16 @@ async function getThumb() {
   try {
     const res = await fetch(THUMB_URL)
     if (!res.ok) return null
-    thumbCache = Buffer.from(await res.arrayBuffer())
+    const raw = Buffer.from(await res.arrayBuffer())
+    try {
+      const { default: sharp } = await import('sharp')
+      thumbCache = await sharp(raw)
+        .resize(600, 600, { fit: 'cover', position: sharp.strategy.attention })
+        .jpeg({ quality: 80 })
+        .toBuffer()
+    } catch {
+      thumbCache = raw
+    }
     return thumbCache
   } catch {
     return null
