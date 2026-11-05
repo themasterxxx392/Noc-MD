@@ -9,7 +9,6 @@ let handler = async (m, { conn }) => {
 handler.help = ['jid']
 handler.tags = ['owner']
 handler.command = /^(jid|getjid)$/i
-handler.rowner = true // Solo para owners
 
 export default handler
     
