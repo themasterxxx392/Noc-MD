@@ -171,8 +171,7 @@ try {
       externalAdReply: {
         title: "✨ Rem Bot • Menú Principal",
         body: "Visita nuestra web oficial",
-        thumbnailUrl: THUMB_URL,
-        thumbnail: thumbBuffer,
+        thumbnail: thumbBuffer, // <-- Sin thumbnailUrl, solo usando el buffer local recortado
         sourceUrl: "https://web.alya-team.xyz/home#home",
         mediaType: 1,
         renderLargerThumbnail: true
@@ -203,5 +202,5 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-  }
-                                                                                                                    
+}
+  
