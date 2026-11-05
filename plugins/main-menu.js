@@ -2,22 +2,12 @@ import moment from 'moment-timezone'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
-import fetch from 'node-fetch'
 
 const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793848495314_n9kynz.jpeg"
-let thumbCache = null
 
-async function getThumb() {
-  if (thumbCache) return thumbCache
-  try {
-    const res = await fetch(THUMB_URL)
-    if (!res.ok) return null
-    thumbCache = Buffer.from(await res.arrayBuffer())
-    return thumbCache
-  } catch {
-    return null
-  }
-}
+// Datos del canal (el menú se envía como reenviado desde aquí)
+const NEWSLETTER_JID = '120363411871314247@newsletter'
+const NEWSLETTER_NAME = 'Rem Bot • Canal' // cámbialo por el nombre real de tu canal
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -152,26 +142,30 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  const thumbBuffer = await getThumb();
-
   await conn.sendMessage(chatId, {
-  text: text,
-  contextInfo: {
-    mentionedJid: await conn.parseMention(text),
-    externalAdReply: {
-      title: "✨ Rem Bot • Menú Principal",
-      body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
-      thumbnail: thumbBuffer,
-      sourceUrl: "https://wa.me/51922902497",
-      mediaType: 1,
-      renderLargerThumbnail: true
+    text: text,
+    contextInfo: {
+      mentionedJid: await conn.parseMention(text),
+      isForwarded: true,
+      forwardingScore: 999,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: NEWSLETTER_JID,
+        newsletterName: NEWSLETTER_NAME,
+        serverMessageId: 100
+      },
+      externalAdReply: {
+        title: "✨ Rem Bot • Menú Principal",
+        body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
+        thumbnailUrl: THUMB_URL,
+        sourceUrl: "https://wa.me/51922902497",
+        mediaType: 1,
+        renderLargerThumbnail: true
+      }
     }
-  }
-}, { quoted: m });
+  }, { quoted: m });
 
-  
   m.react('🙌');
-} catch (err) {    
+} catch (err) {
   m.react('❌');
   console.error(err);
 }}
@@ -193,5 +187,5 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-  }
+                }
   
