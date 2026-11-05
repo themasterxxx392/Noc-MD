@@ -12,14 +12,12 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     const apiUrl = `${info.evogb}/dl/youtubeplay?key=${info.evogbkey}&query=${encodeURIComponent(query)}&type=audio&quality=auto`
     
     const response = await fetch(apiUrl)
-    
     if (!response.ok) {
       throw new Error(`La API no respondió correctamente (Código: ${response.status})`)
     }
 
     const json = await response.json()
 
-    // Extraer URL de descarga
     const audioUrl = json.resultado?.download || json.resultado?.url || json.data?.url || json.url || json.resultado
     const title = json.resultado?.title || json.title || query
     const duration = json.resultado?.duration || json.duration || ''
@@ -28,10 +26,17 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
       return m.reply('❌ No se pudo extraer el enlace de descarga de la respuesta de la API.')
     }
 
-    // Descargamos el audio como Buffer para evitar bloqueos de WhatsApp al cargar enlaces directos
+    // Descargamos el buffer del audio
     const audioRes = await fetch(audioUrl)
-    if (!audioRes.ok) throw new Error('No se pudo descargar el archivo de audio desde el enlace de la API.')
-    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+    if (!audioRes.ok) throw new Error('No se pudo descargar el archivo desde el enlace provisto.')
+    
+    const buffer = Buffer.from(await audioRes.arrayBuffer())
+
+    // Validamos que el buffer no sea un texto HTML de error
+    if (buffer.length < 10000) {
+      throw.error = true
+      throw new Error('El archivo devuelto por la API está corrupto o es demasiado pequeño.')
+    }
 
     let txt = `✨ *• YOUTUBE PLAY •*\n\n`
     txt += `• *Título:* ${title}\n`
@@ -40,10 +45,10 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     await conn.reply(m.key.remoteJid, txt, m)
 
-    // Enviamos el buffer directamente
+    // Enviamos el audio configurando correctamente el documento o audio con ptt falso
     await conn.sendMessage(m.key.remoteJid, {
-      audio: audioBuffer,
-      mimetype: 'audio/mpeg',
+      audio: buffer,
+      mimetype: 'audio/mp4',
       fileName: `${title}.mp3`,
       ptt: false
     }, { quoted: m })
@@ -61,4 +66,3 @@ handler.tags = ['downloader']
 handler.command = /^(play|playaudio|ytplay)$/i
 
 export default handler
-      
