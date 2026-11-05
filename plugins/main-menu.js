@@ -154,22 +154,22 @@ text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, '
 try {
   const thumbBuffer = await getThumb();
 
-  await conn.sendMessage(chatId, { 
-    text: text,
+  await conn.sendMessage(chatId, {
+  text: text,
+  contextInfo: {
     mentionedJid: await conn.parseMention(text),
-    contextInfo: {
-      externalAdReply: {
-        title: "✨ Rem Bot • Menú Principal",
-        body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
-        thumbnailUrl: THUMB_URL,
-        thumbnail: thumbBuffer,
-        sourceUrl: "https://wa.me/51922902497",
-        mediaType: 1,
-        renderLargerThumbnail: true
-      }
+    externalAdReply: {
+      title: "✨ Rem Bot • Menú Principal",
+      body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
+      thumbnail: thumbBuffer,
+      sourceUrl: "https://wa.me/51922902497",
+      mediaType: 1,
+      renderLargerThumbnail: true
     }
-  }, { quoted: m });
+  }
+}, { quoted: m });
 
+  
   m.react('🙌');
 } catch (err) {    
   m.react('❌');
