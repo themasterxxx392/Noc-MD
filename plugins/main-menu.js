@@ -160,7 +160,7 @@ try {
     contextInfo: {
       externalAdReply: {
         title: "✨ Rem Bot • Menú Principal",
-        body: "⤹ ⠂𖣫╎© POWERED BY 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•",
+        body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
         thumbnailUrl: THUMB_URL,
         thumbnail: thumbBuffer,
         sourceUrl: "https://wa.me/51922902497",
