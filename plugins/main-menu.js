@@ -1,4 +1,6 @@
 import moment from 'moment-timezone'
+import fetch from 'node-fetch'
+import { Jimp } from 'jimp'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
@@ -18,6 +20,24 @@ async function loadBaileys() {
     try { return await import(pkg) } catch {}
   }
   return null
+}
+
+// Miniatura generada con Jimp 1.x (respaldo si Baileys no la genera)
+let thumbCache = null
+async function getThumb() {
+  if (thumbCache) return thumbCache
+  try {
+    const res = await fetch(THUMB_URL)
+    if (!res.ok) return null
+    const buffer = Buffer.from(await res.arrayBuffer())
+    const image = await Jimp.read(buffer)
+    image.resize({ w: 400 })
+    thumbCache = await image.getBuffer('image/jpeg', { quality: 60 })
+    return thumbCache
+  } catch (e) {
+    console.error('❌ No pude generar la miniatura con Jimp:', e.message)
+    return null
+  }
 }
 
 const tags = {
@@ -41,7 +61,6 @@ efec: '🎙 EFECTO NOTA DE VOZ',
 owner: '👑 OWNER'
 }
 
-const defaultMenu = {
 const defaultMenu = {
 before: `┌ Rem Bot ┐
 
@@ -163,12 +182,19 @@ try {
       { image: { url: THUMB_URL } },
       { upload: conn.waUploadToServer, mediaTypeOverride: 'thumbnail-link' }
     )
+
+    let jpegThumbnail = imageMessage?.jpegThumbnail ? Buffer.from(imageMessage.jpegThumbnail) : null
+    if (!jpegThumbnail) {
+      console.log('⚠️ Baileys no generó la miniatura del menú, la genero con Jimp')
+      jpegThumbnail = await getThumb()
+    }
+
     linkPreview = {
       'canonical-url': LINK,
       'matched-text': LINK,
       title: '✨ Rem Bot • Menú Principal',
       description: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ • Platanito 🍌',
-      jpegThumbnail: imageMessage?.jpegThumbnail ? Buffer.from(imageMessage.jpegThumbnail) : undefined,
+      jpegThumbnail: jpegThumbnail || undefined,
       highQualityThumbnail: imageMessage || undefined
     }
   } catch (e) {
@@ -212,4 +238,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-  }
+}
