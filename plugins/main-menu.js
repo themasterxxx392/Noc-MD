@@ -3,6 +3,7 @@ import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
 import fetch from 'node-fetch'
+
 const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793839548098_r9c4h6.jpg"
 let thumbCache = null
 
@@ -193,4 +194,4 @@ const toNum = n => {
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
   }
-  
+    
