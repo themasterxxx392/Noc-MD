@@ -194,7 +194,7 @@ try {
         title: "✨ Rem Bot • Menú Principal",
         body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•",
         thumbnailUrl: THUMB_URL,
-        sourceUrl: "https://wa.me/51922902497",
+        sourceUrl: "https://whatsapp.com/channel/0029VbDZX3iCnA82Y5zlWE21",
         mediaType: 1,
         renderLargerThumbnail: true
       }
