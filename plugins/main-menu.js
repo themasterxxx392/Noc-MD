@@ -5,8 +5,12 @@ import fs from "fs"
 
 const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793848495314_n9kynz.jpeg"
 
-// Link que se muestra en la tarjeta (dominio visible bajo el banner)
+// Link que se muestra bajo el banner (cámbialo por tu web si tienes una)
 const LINK = 'https://whatsapp.com/channel/0029VbDZX3iCnA82Y5zlWE21'
+
+// Datos del canal (el menú se envía como reenviado desde aquí)
+const NEWSLETTER_JID = '120363411871314247@newsletter'
+const NEWSLETTER_NAME = 'Rem Bot • Canal'
 
 // Carga Baileys sin importar con qué nombre esté instalado en tu bot
 async function loadBaileys() {
@@ -15,10 +19,6 @@ async function loadBaileys() {
   }
   return null
 }
-
-// Datos del canal (el menú se envía como reenviado desde aquí)
-const NEWSLETTER_JID = '120363411871314247@newsletter'
-const NEWSLETTER_NAME = 'Rem Bot • Canal' // cámbialo por el nombre real de tu canal
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -153,7 +153,7 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  // Tarjeta de enlace con banner (en vez de externalAdReply)
+  // Tarjeta de enlace con banner (como Yuki/Alya)
   let linkPreview
   try {
     const baileys = await loadBaileys()
@@ -165,7 +165,7 @@ try {
       'canonical-url': LINK,
       'matched-text': LINK,
       title: '✨ Rem Bot • Menú Principal',
-      description: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ • 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩',
+      description: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ • Platanito 🍌',
       jpegThumbnail: imageMessage?.jpegThumbnail ? Buffer.from(imageMessage.jpegThumbnail) : undefined,
       highQualityThumbnail: imageMessage || undefined
     }
@@ -211,4 +211,3 @@ const toNum = n => {
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
   }
-    
