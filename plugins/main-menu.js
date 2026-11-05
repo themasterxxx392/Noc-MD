@@ -12,17 +12,7 @@ async function getThumb() {
   try {
     const res = await fetch(THUMB_URL)
     if (!res.ok) return null
-    const raw = Buffer.from(await res.arrayBuffer())
-    try {
-      const { default: sharp } = await import('sharp')
-      thumbCache = await sharp(raw)
-        .resize(600, 600, { fit: 'cover', position: sharp.strategy.attention })
-        .jpeg({ quality: 80 })
-        .toBuffer()
-    } catch (e) {
-      console.error('sharp falló:', e.message)
-      thumbCache = raw
-    }
+    thumbCache = Buffer.from(await res.arrayBuffer())
     return thumbCache
   } catch {
     return null
@@ -164,10 +154,8 @@ text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, '
 try {
   const thumbBuffer = await getThumb();
 
-  // Envío como mensaje de IMAGEN real para que despliegue el tamaño completo (cuadrado perfecto)
   await conn.sendMessage(chatId, { 
-    image: { url: THUMB_URL },
-    caption: text,
+    text: text,
     mentionedJid: await conn.parseMention(text),
     contextInfo: {
       externalAdReply: {
@@ -206,4 +194,4 @@ const toNum = n => {
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
   }
-    
+  
