@@ -3,9 +3,6 @@ import axios from 'axios'
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   const base = global.info?.evogb
   const key = global.info?.evogbkey
-  if (!base || !key) {
-    return conn.reply(m.chat, '⚠️ Falta configurar *evogb* y *evogbkey* en config.js', m)
-  }
 
   if (!text) {
     return conn.reply(m.chat, `✿ Ingresa el enlace de la página web.\n\n*Ejemplo:* \`${usedPrefix + command} https://google.com\``, m)
