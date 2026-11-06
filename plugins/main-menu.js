@@ -1,47 +1,14 @@
 import moment from 'moment-timezone'
-import fetch from 'node-fetch'
-import { Jimp } from 'jimp'
 import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
 
-const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793848495314_n9kynz.jpeg"
-
-// Link que se muestra bajo el banner (cámbialo por tu web si tienes una)
+// Página con el banner (Baileys arma la vista previa a partir de este link)
 const LINK = 'https://themasterxxx392.github.io/bot/'
 
 // Datos del canal (el menú se envía como reenviado desde aquí)
 const NEWSLETTER_JID = '120363411871314247@newsletter'
 const NEWSLETTER_NAME = 'Rem Bot • Canal'
-
-// Carga Baileys sin importar con qué nombre esté instalado en tu bot
-async function loadBaileys() {
-  for (const pkg of ['baileys', '@whiskeysockets/baileys', '@adiwajshing/baileys']) {
-    try { return await import(pkg) } catch {}
-  }
-  return null
-}
-
-// Miniatura y medidas del banner con Jimp 1.x (respaldo)
-let thumbCache = null
-async function getThumb() {
-  if (thumbCache) return thumbCache
-  try {
-    const res = await fetch(THUMB_URL)
-    if (!res.ok) return null
-    const buffer = Buffer.from(await res.arrayBuffer())
-    const image = await Jimp.read(buffer)
-    const width = image.bitmap.width
-    const height = image.bitmap.height
-    image.resize({ w: 400 })
-    const jpeg = await image.getBuffer('image/jpeg', { quality: 60 })
-    thumbCache = { jpeg, width, height }
-    return thumbCache
-  } catch (e) {
-    console.error('❌ No pude generar la miniatura con Jimp:', e.message)
-    return null
-  }
-}
 
 const tags = {
 main: 'ℹ️ INFOBOT',
@@ -67,13 +34,13 @@ owner: '👑 OWNER'
 const defaultMenu = {
 before: `┌ Rem Bot ┐
 
+*• Web:* ${LINK}
 *• Fecha:* %fecha
 *• Hora:* %hora (🇵🇪) 
 *• Usuario:* %totalreg
 *• Tiempo activos:* %muptime
 *• Tu limite:* %limit
 %botOfc
-*• Canal:* ${LINK}
 `.trimStart(),
   header: '`<[ %category ]>`',
   body: ' %cmd %islimit %isPremium',
@@ -177,55 +144,6 @@ nna2: info.nna
 text = String(text).replace(new RegExp(`%(${Object.keys(replace).join('|')})`, 'g'), (_, key) => replace[key] ?? '');
 
 try {
-  // Tarjeta de enlace con banner (como Yuki/Alya)
-  let linkPreview
-  try {
-    const baileys = await loadBaileys()
-    if (!baileys) throw new Error('No encontré la librería Baileys')
-    if (!conn.waUploadToServer) throw new Error('conn.waUploadToServer no existe')
-
-    const { imageMessage } = await baileys.prepareWAMessageMedia(
-      { image: { url: THUMB_URL } },
-      { upload: conn.waUploadToServer, mediaTypeOverride: 'thumbnail-link' }
-    )
-
-    // Respaldo: si faltan medidas o miniatura, las saco con Jimp
-    const dims = await getThumb()
-    if (imageMessage) {
-      if (!imageMessage.width || !imageMessage.height) {
-        imageMessage.width = dims?.width
-        imageMessage.height = dims?.height
-      }
-    }
-
-    // DIAGNÓSTICO: mira esto en la consola al usar .menu
-    console.log('🖼 Banner del menú →', {
-      directPath: imageMessage?.directPath ? 'ok' : 'FALTA',
-      mediaKey: imageMessage?.mediaKey ? 'ok' : 'FALTA',
-      fileSha256: imageMessage?.fileSha256 ? 'ok' : 'FALTA',
-      fileEncSha256: imageMessage?.fileEncSha256 ? 'ok' : 'FALTA',
-      width: imageMessage?.width,
-      height: imageMessage?.height,
-      jpegThumbnail: imageMessage?.jpegThumbnail ? 'ok' : 'FALTA'
-    })
-
-    const jpegThumbnail = imageMessage?.jpegThumbnail
-      ? Buffer.from(imageMessage.jpegThumbnail)
-      : dims?.jpeg
-
-    linkPreview = {
-      'canonical-url': LINK,
-      'matched-text': LINK,
-      title: '✨ Rem Bot • Menú Principal',
-      description: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ • Platanito 🍌',
-      jpegThumbnail: jpegThumbnail || undefined,
-      highQualityThumbnail: imageMessage || undefined
-    }
-  } catch (e) {
-    console.error('❌ linkPreview del menú:', e.message)
-  }
-
-  try {
   await conn.sendMessage(chatId, {
     text: text,
     contextInfo: {
@@ -241,6 +159,9 @@ try {
 
   m.react('🙌');
 } catch (err) {
+  m.react('❌');
+  console.error(err);
+}}
 
 handler.help = ['menu']
 handler.tags = ['main']
@@ -259,4 +180,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-      }
+  }
