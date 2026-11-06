@@ -1,102 +1,69 @@
-import axios from 'axios'
+const FB_REGEX = /^(https?:\/\/)?(www\.|m\.|web\.|mbasic\.)?(facebook\.com|fb\.watch|fb\.com)\/\S+/i
 
-const MAX_SIZE_BYTES = 1024 * 1024 * 1024 // 1GB límite de seguridad
-const activeDownloads = new Set()
-const LOCK_TTL_MS = 3 * 60 * 1000
-
-function formatMB(bytes) {
-    return (bytes / (1024 * 1024)).toFixed(2)
-}
-
-let handler = async (m, { conn, text, usedPrefix, command }) => {
-    if (!text) {
-        return conn.reply(m.chat, `✿ Ingresa un enlace de Facebook.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.facebook.com/share/v/...\``, m)
+let handler = async (m, { conn, text, args, usedPrefix, command }) => {
+    // La URL base y la key viven en config.js (globalThis.info), no en el código
+    const base = globalThis.info?.evogb
+    const key = globalThis.info?.evogbkey
+    if (!base || !key) {
+        return m.reply('⚠️ Falta configurar *evogb* y *evogbkey* en config.js')
     }
 
-    const input = text.trim()
-    if (!/(facebook\.com|fb\.watch)/i.test(input)) {
-        return conn.reply(m.chat, '⚠️ El enlace ingresado no parece ser un enlace válido de Facebook.', m)
+    // Acepta el link como argumento o respondiendo a un mensaje que lo contenga
+    let url = (args[0] || '').trim()
+    if (!url && m.quoted?.text) {
+        url = (m.quoted.text.match(/https?:\/\/\S+/) || [''])[0]
     }
 
-    const lockKey = `${m.chat}:${input}`
-    if (activeDownloads.has(lockKey)) return
-    activeDownloads.add(lockKey)
-    const lockTimeout = setTimeout(() => activeDownloads.delete(lockKey), LOCK_TTL_MS)
+    if (!url) {
+        return m.reply(`✦ Uso: *${usedPrefix + command} <link de Facebook>*\n\nEjemplo:\n${usedPrefix + command} https://www.facebook.com/share/r/xxxxxxxx/`)
+    }
+    if (!FB_REGEX.test(url)) {
+        return m.reply('❌ Ese link no parece ser de Facebook.')
+    }
 
-    await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+    await m.react('🕒')
 
     try {
-        let resolveRes
-        try {
-            resolveRes = await axios.get(`${global.info.nexus}/download/facebook/v2`, {
-                params: { url: input, key: global.info.apikey },
-                timeout: 30000
-            })
-        } catch (err) {
-            throw new Error(`[paso 1/2: resolver video] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
+        const api = `${base}/dl/facebook?key=${encodeURIComponent(key)}&url=${encodeURIComponent(url)}`
+        const res = await fetch(api)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+
+        if (!json?.status || !Array.isArray(json.resultados)) {
+            throw new Error('Respuesta inválida de la API')
         }
 
-        const payload = resolveRes.data
-        const results = payload?.result
+        // Solo opciones de video con link real (se descarta el audio "320kbps" y urls vacías como "/")
+        const videos = json.resultados
+            .filter(r => /(\d+)p/i.test(r.quality || '') && /^https?:\/\//i.test(r.url || ''))
+            .map(r => ({
+                height: parseInt(r.quality.match(/(\d+)p/i)[1]),
+                quality: r.quality,
+                url: r.url.replace(/&amp;/g, '&')
+            }))
+            .sort((a, b) => b.height - a.height)
 
-        if (!payload?.status || !Array.isArray(results) || results.length === 0) {
-            throw new Error('[paso 1/2] La API no devolvió resultados para este video de Facebook.')
-        }
+        if (!videos.length) throw new Error('No se encontró ningún video')
 
-        // Priorizamos la calidad HD, si no está disponible usamos la primera opción (SD)
-        const selectedVideo = results.find(v => v.quality === 'HD') || results[0]
-        const videoUrl = selectedVideo.url
-
-        let fileResponse
-        try {
-            fileResponse = await axios.get(videoUrl, {
-                responseType: 'arraybuffer',
-                timeout: 300000,
-                maxRedirects: 5,
-                maxContentLength: Infinity,
-                maxBodyLength: Infinity
-            })
-        } catch (err) {
-            throw new Error(`[paso 2/2: descargar stream] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
-        }
-
-        const buffer = Buffer.from(fileResponse.data)
-
-        if (buffer.length < 1000) {
-            await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-            return conn.reply(m.chat, '⚠️ El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de nuevo.', m)
-        }
-
-        if (buffer.length >= MAX_SIZE_BYTES) {
-            await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-            return conn.reply(m.chat, `ꕥ El video supera el límite permitido (${formatMB(buffer.length)}MB / Máx: ${formatMB(MAX_SIZE_BYTES)}MB).`, m)
-        }
-
-        const qualityLabel = selectedVideo.quality || 'SD'
-        let txt = `*[ FACEBOOK DOWNLOADER ]*\n\n` +
-                  `> *Calidad:* ${qualityLabel}\n` +
-                  `> *Peso:* ${formatMB(buffer.length)} MB`
+        // Prefiere hasta 720p (más liviano para WhatsApp); si no hay, usa la menor disponible
+        const elegido = videos.find(v => v.height <= 720) || videos[videos.length - 1]
 
         await conn.sendMessage(m.chat, {
-            video: buffer,
-            caption: txt,
-            mimetype: 'video/mp4'
+            video: { url: elegido.url },
+            mimetype: 'video/mp4',
+            caption: `✅ *Facebook Downloader*\n\n✧ Calidad » *${elegido.quality}*`
         }, { quoted: m })
 
-        await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
-
+        await m.react('✔️')
     } catch (e) {
-        console.error('Error en fbdl:', e.message)
-        await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-        return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar el video de Facebook.\n> *[Detalle: ${e.message}]*`, m)
-    } finally {
-        clearTimeout(lockTimeout)
-        activeDownloads.delete(lockKey)
+        console.error('[FB]', e)
+        await m.react('✖️')
+        return m.reply('❌ No pude descargar el video. Verifica que el link sea público e inténtalo de nuevo.')
     }
 }
 
-handler.help = ['facebook <enlace>']
+handler.help = ['fb <link>', 'facebook <link>']
 handler.tags = ['downloader']
-handler.command = ['fb', 'facebook']
+handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
