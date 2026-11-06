@@ -1,39 +1,25 @@
-import fetch from 'node-fetch';
-
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
     return conn.reply(m.chat, "✿ Ingresa texto para buscar en Youtube.", m);
   }
 
+  // La URL base y la key viven en config.js (global.info), no en el código
+  const base = global.info?.evogb;
+  const key = global.info?.evogbkey;
+  if (!base || !key) {
+    return conn.reply(m.chat, '⚠️ Falta configurar *evogb* y *evogbkey* en config.js', m);
+  }
+
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
   try {
-    // URL y Apikey integradas directamente para evitar errores 404
-    const searchUrl = `https://api.evogb.org/beta/search/yt?key=evogb-TyswGrUB&query=${encodeURIComponent(text)}`;
-    
-    let res = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-      }
-    });
+    const searchUrl = `${base}/search/yt?query=${encodeURIComponent(text.trim())}&key=${encodeURIComponent(key)}`;
 
-    let rawText = await res.text();
+    let res = await fetch(searchUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let json = await res.json();
 
-    if (!res.ok) {
-      console.error(`[Evogb API Error] Status: ${res.status} | Body:`, rawText);
-      throw new Error(`La API respondió con código HTTP ${res.status}`);
-    }
-
-    let json;
-    try {
-      json = JSON.parse(rawText);
-    } catch (err) {
-      console.error("[Evogb API Error] Respuesta no es JSON:", rawText);
-      throw new Error("La API no devolvió un JSON válido.");
-    }
-
-    if (!json.status || !json.result?.length) {
+    if (!json.status || !Array.isArray(json.result) || !json.result.length) {
       throw new Error('No se encontraron resultados en YouTube.');
     }
 
@@ -43,7 +29,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 `*[${i+1}] ${v.title}*
 > Canal: ${v.autor}
 > Duración: ${v.duration}
-> Fecha: ${v.uploaded}
+> Vistas: ${v.views}
+> Subido: ${v.uploaded}
 > Link: ${v.url}`).join("\n\n");
 
     await conn.sendMessage(m.chat, { 
