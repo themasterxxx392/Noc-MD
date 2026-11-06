@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const MAX_SIZE_BYTES = 1024 * 1024 * 1024
+const MAX_SIZE_BYTES = 100 * 1024 * 1024
 const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
