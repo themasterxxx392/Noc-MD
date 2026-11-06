@@ -1,6 +1,3 @@
-// Código adaptado por https://github.com/GataNina-Li
-// Código compatible con canales y comunidades de WhatsApp 
-
 import { getUrlFromDirectPath } from "@whiskeysockets/baileys";
 import _ from "lodash";
 import axios from 'axios';
@@ -143,25 +140,25 @@ newsletterInfo.id ? conn.sendMessage(m.chat, { text: newsletterInfo.id }, { quot
 } catch (e) {
 console.log(e)
 }}}}
-handler.help = ["superinspect", "inspect"]
+handler.help = ["inspect"]
 handler.tags = ['tools'];
-handler.command = /^(superinspect|inspect|revisar|inspeccionar)$/i;
+handler.command = /^(inspect|inspeccionar)$/i;
 
 export default handler;
 
 function formatDate(n, locale = "es", includeTime = true) {
 if (n > 1e12) {
-n = Math.floor(n / 1000)  // Convertir de milisegundos a segundos
+n = Math.floor(n / 1000)
 } else if (n < 1e10) {
-n = Math.floor(n * 1000)  // Convertir de segundos a milisegundos
+n = Math.floor(n * 1000)
 }
 const date = new Date(n)
 if (isNaN(date)) return "Fecha no válida"
-// Formato de fecha: día/mes/año
+
 const optionsDate = { day: '2-digit', month: '2-digit', year: 'numeric' }
 const formattedDate = date.toLocaleDateString(locale, optionsDate)
 if (!includeTime) return formattedDate
-// horas, minutos y segundos
+
 const hours = String(date.getHours()).padStart(2, '0')
 const minutes = String(date.getMinutes()).padStart(2, '0')
 const seconds = String(date.getSeconds()).padStart(2, '0')
