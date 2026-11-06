@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const MAX_SIZE_BYTES = 1024 * 1024 * 1024 // 1GB límite de seguridad
+const MAX_SIZE_BYTES = 1024 * 1024 * 1024
 const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
@@ -9,7 +9,7 @@ function formatMB(bytes) {
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    // La URL base y la key viven en config.js (global.info), no en el código
+    
     const base = global.info?.evogb
     const key = global.info?.evogbkey
     if (!base || !key) {
@@ -50,7 +50,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error('[paso 1/2] La API no devolvió resultados para este video de Facebook.')
         }
 
-        // Solo opciones de video con link real (se descarta el audio "320kbps" y urls vacías como "/")
         const videos = results
             .filter(r => /(\d+)p/i.test(r.quality || '') && /^https?:\/\//i.test(r.url || ''))
             .map(r => ({
@@ -64,7 +63,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error('[paso 1/2] No se encontró ninguna opción de video disponible.')
         }
 
-        // Prefiere hasta 720p (más liviano para WhatsApp); si no hay, usa la menor disponible
         const selectedVideo = videos.find(v => v.height <= 720) || videos[videos.length - 1]
         const videoUrl = selectedVideo.url
 
