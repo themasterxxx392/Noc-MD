@@ -12,10 +12,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     
     const base = global.info?.evogb
     const key = global.info?.evogbkey
-    if (!base || !key) {
-        return conn.reply(m.chat, '⚠️ Falta configurar *evogb* y *evogbkey* en config.js', m)
-    }
-
+    
     if (!text) {
         return conn.reply(m.chat, `✿ Ingresa un enlace de Facebook.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.facebook.com/share/v/...\``, m)
     }
