@@ -8,7 +8,7 @@ import fs from "fs"
 const THUMB_URL = "https://pub-fcd4abeffe684a27a91a47a0802753bc.r2.dev/banner_1793848495314_n9kynz.jpeg"
 
 // Link que se muestra bajo el banner (cámbialo por tu web si tienes una)
-const LINK = 'https://whatsapp.com/channel/0029VbDZX3iCnA82Y5zlWE21'
+const LINK = 'https://themasterxxx392.github.io/bot/'
 
 // Datos del canal (el menú se envía como reenviado desde aquí)
 const NEWSLETTER_JID = '120363411871314247@newsletter'
@@ -225,9 +225,9 @@ try {
     console.error('❌ linkPreview del menú:', e.message)
   }
 
+  try {
   await conn.sendMessage(chatId, {
     text: text,
-    linkPreview,
     contextInfo: {
       mentionedJid: await conn.parseMention(text),
       isForwarded: true,
@@ -241,9 +241,6 @@ try {
 
   m.react('🙌');
 } catch (err) {
-  m.react('❌');
-  console.error(err);
-}}
 
 handler.help = ['menu']
 handler.tags = ['main']
