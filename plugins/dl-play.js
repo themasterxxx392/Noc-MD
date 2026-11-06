@@ -1,68 +1,120 @@
-import fetch from 'node-fetch'
+import axios from 'axios'
 
-const handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!args[0]) {
-    return conn.reply(m.key.remoteJid, `⚠️ Por favor, ingresa el título o el enlace de lo que deseas buscar en YouTube.\n\nEjemplo:\n*${usedPrefix + command} Shape of You*`, m)
+const MAX_SIZE_BYTES = 1024 * 1024 * 1024
+const activeDownloads = new Set()
+const LOCK_TTL_MS = 3 * 60 * 1000
+
+function formatMB(bytes) {
+  return (bytes / (1024 * 1024)).toFixed(2)
+}
+
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  const base = global.info?.evogb
+  const key = global.info?.evogbkey
+  if (!base || !key) {
+    return conn.reply(m.chat, '⚠️ Falta configurar *evogb* y *evogbkey* en config.js', m)
   }
 
-  const query = args.join(' ')
-  await m.reply('⏳ Buscando y procesando tu audio, por favor espera un momento...')
+  if (!text?.trim()) {
+    return conn.reply(m.chat, `✿ Ingresa el nombre de la canción o video.\n\n*Ejemplo:* \`${usedPrefix + command} Shape of You Ed Sheeran\``, m)
+  }
+
+  const isVideo = ['playvid', 'playvideo', 'play2'].includes(command)
+  const query = text.trim()
+
+  const lockKey = `${m.chat}:${command}:${query}`
+  if (activeDownloads.has(lockKey)) return
+  activeDownloads.add(lockKey)
+  const lockTimeout = setTimeout(() => activeDownloads.delete(lockKey), LOCK_TTL_MS)
+
+  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    const apiUrl = `${info.evogb}/dl/youtubeplay?key=${info.evogbkey}&query=${encodeURIComponent(query)}&type=audio&quality=auto`
-    
-    const response = await fetch(apiUrl)
-    if (!response.ok) {
-      throw new Error(`La API no respondió correctamente (Código: ${response.status})`)
+    let resolveRes
+    try {
+      resolveRes = await axios.get(`${base}/dl/youtubeplay`, {
+        params: { key, query, type: isVideo ? 'video' : 'audio', quality: 'auto' },
+        timeout: 60000
+      })
+    } catch (err) {
+      throw new Error(`[paso 1/2: buscar y resolver] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
     }
 
-    const json = await response.json()
+    const payload = resolveRes.data
+    const info = payload?.data
+    const fileUrl = info?.download?.url || info?.dl
 
-    const audioUrl = json.resultado?.download || json.resultado?.url || json.data?.url || json.url || json.resultado
-    const title = json.resultado?.title || json.title || query
-    const duration = json.resultado?.duration || json.duration || ''
-
-    if (!audioUrl) {
-      return m.reply('❌ No se pudo extraer el enlace de descarga de la respuesta de la API.')
+    if (!payload?.status || !info || !fileUrl) {
+      throw new Error('[paso 1/2] La API no devolvió resultados para esta búsqueda.')
     }
 
-    // Descargamos el buffer del audio
-    const audioRes = await fetch(audioUrl)
-    if (!audioRes.ok) throw new Error('No se pudo descargar el archivo desde el enlace provisto.')
-    
-    const buffer = Buffer.from(await audioRes.arrayBuffer())
-
-    // Validamos que el buffer no sea un texto HTML de error
-    if (buffer.length < 10000) {
-      throw.error = true
-      throw new Error('El archivo devuelto por la API está corrupto o es demasiado pequeño.')
+    let fileResponse
+    try {
+      fileResponse = await axios.get(fileUrl, {
+        responseType: 'arraybuffer',
+        timeout: 300000,
+        maxRedirects: 5,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      })
+    } catch (err) {
+      throw new Error(`[paso 2/2: descargar archivo] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
     }
 
-    let txt = `✨ *• YOUTUBE PLAY •*\n\n`
-    txt += `• *Título:* ${title}\n`
-    if (duration) txt += `• *Duración:* ${duration}\n`
-    txt += `\n🎧 Enviando archivo de audio...`
+    const buffer = Buffer.from(fileResponse.data)
 
-    await conn.reply(m.key.remoteJid, txt, m)
+    if (buffer.length < 1000) {
+      await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+      return conn.reply(m.chat, '⚠️ El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de nuevo.', m)
+    }
 
-    // Enviamos el audio configurando correctamente el documento o audio con ptt falso
-    await conn.sendMessage(m.key.remoteJid, {
-      audio: buffer,
-      mimetype: 'audio/mp4',
-      fileName: `${title}.mp3`,
-      ptt: false
-    }, { quoted: m })
+    if (buffer.length >= MAX_SIZE_BYTES) {
+      await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+      return conn.reply(m.chat, `ꕥ El archivo supera el límite permitido (${formatMB(buffer.length)}MB / Máx: ${formatMB(MAX_SIZE_BYTES)}MB).`, m)
+    }
 
-    m.react('✅')
-  } catch (error) {
-    console.error('Error en comando play:', error)
-    m.reply(`❌ Ocurrió un error al procesar tu solicitud:\n\n\`\`\`${error.message}\`\`\``)
-    m.react('❌')
+    const views = Number(info.views)
+    const txt = `*[ YOUTUBE PLAY ]*\n\n` +
+                `> *Título:* ${info.title}\n` +
+                `> *Canal:* ${info.author?.name || 'Desconocido'}\n` +
+                `> *Duración:* ${info.duration?.timestamp || '-'}\n` +
+                `> *Vistas:* ${Number.isFinite(views) ? views.toLocaleString('es-PE') : '-'}\n` +
+                `> *Calidad:* ${info.quality || 'auto'}\n` +
+                `> *Peso:* ${formatMB(buffer.length)} MB\n` +
+                `> *Link:* ${info.url}`
+
+    if (info.thumbnail) {
+      await conn.sendMessage(m.chat, { image: { url: info.thumbnail }, caption: txt }, { quoted: m }).catch(() => {})
+    }
+
+    if (isVideo) {
+      await conn.sendMessage(m.chat, {
+        video: buffer,
+        caption: info.title,
+        mimetype: 'video/mp4'
+      }, { quoted: m })
+    } else {
+      await conn.sendMessage(m.chat, {
+        audio: buffer,
+        mimetype: 'audio/mpeg',
+        fileName: info.download?.filename || `${info.title}.mp3`
+      }, { quoted: m })
+    }
+
+    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
+
+  } catch (e) {
+    console.error('Error en play:', e.message)
+    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar tu solicitud.\n> *[Detalle: ${e.message}]*`, m)
+  } finally {
+    clearTimeout(lockTimeout)
+    activeDownloads.delete(lockKey)
   }
 }
 
-handler.help = ['play <búsqueda>']
+handler.help = ['play <texto>', 'playvid <texto>']
 handler.tags = ['downloader']
-handler.command = /^(play|playaudio|ytplay)$/i
+handler.command = ['play', 'playvid', 'playvideo', 'play2']
 
 export default handler
