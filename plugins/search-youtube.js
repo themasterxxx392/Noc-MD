@@ -2,8 +2,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
     return conn.reply(m.chat, "✿ Ingresa texto para buscar en Youtube.", m);
   }
-
-  // La URL base y la key viven en config.js (global.info), no en el código
+  
   const base = global.info?.evogb;
   const key = global.info?.evogbkey;
   if (!base || !key) {
