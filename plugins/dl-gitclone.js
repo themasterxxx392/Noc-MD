@@ -5,7 +5,7 @@ const userRequests = {};
 
 let handler = async (m, { args, usedPrefix, command, conn }) => {
 if (!args[0]) throw `*⚠️ 𝙄𝙣𝙜𝙧𝙚𝙨𝙚 𝙪𝙣 𝙚𝙣𝙡𝙖𝙘𝙚 𝙙𝙚 𝙂𝙞𝙩𝙝𝙪𝙗*\n• *𝙀𝙟 :* ${usedPrefix + command} https://github.com/elrebelde21/LoliBot-MD`
-if (!regex.test(args[0])) return m.reply(`⚠️ 𝙚𝙨𝙤 𝙣𝙤 𝙚𝙨 𝙪𝙣 𝙚𝙣𝙡𝙖𝙘𝙚 𝙙𝙚 𝙜𝙞𝙩𝙝𝙪𝙗 𝙗𝙤𝙡𝙪𝙙𝙤 🤡`)
+if (!regex.test(args[0])) return m.reply(`⚠️ 𝙚𝙨𝙤 𝙣𝙤 𝙚𝙨 𝙪𝙣 𝙚𝙣𝙡𝙖𝙘𝙚 𝙙𝙚 𝙜𝙞𝙩𝙝𝙪𝙗`)
 if (userRequests[m.sender]) {
 conn.reply(m.chat, `⏳ *Hey @${m.sender.split('@')[0]} Espera...* Ya hay una solicitud en proceso. Por favor, espera a que termine antes de hacer otra...`, userCaptions.get(m.sender) || m)
 return;
@@ -23,7 +23,7 @@ await conn.sendFile(m.chat, url, filename, null, m);
 } catch (e) { 
 m.reply(`\`\`\`⚠️ OCURRIO UN ERROR ⚠️\`\`\`\n\n> *Reporta el siguiente error a mi creador con el comando:* #report\n\n>>> ${e} <<<< `);       
 console.log(e);
-handler.limit = 0; // ❌ No gasta diamante si el comando falla
+handler.limit = 0;
 } finally {
 delete userRequests[m.sender];
 }};
@@ -31,6 +31,5 @@ handler.help = ['gitclone <url>'];
 handler.tags = ['downloader'];
 handler.command = /gitclone|clonarepo|clonarrepo|repoclonar/i;
 handler.limit = 2;
-handler.level = 1
 
 export default handler;
