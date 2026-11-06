@@ -20,6 +20,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 
   const isVideo = command === 'play2'
+  const tipo = isVideo ? 'video' : 'audio'
   const query = text.trim()
 
   const lockKey = `${m.chat}:${command}:${query}`
@@ -30,14 +31,45 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
+    let enviado = false
+    try {
+      const { data: search } = await axios.get(`${base}/search/yt`, {
+        params: { key, query },
+        timeout: 20000
+      })
+      const v = Array.isArray(search?.result) ? search.result[0] : null
+      if (v) {
+        const txt = `*[ YOUTUBE PLAY ]*\n\n` +
+                    `> *Título:* ${v.title}\n` +
+                    `> *Canal:* ${v.autor || 'Desconocido'}\n` +
+                    `> *Duración:* ${v.duration || '-'}\n` +
+                    `> *Vistas:* ${v.views || '-'}\n` +
+                    `> *Subido:* ${v.uploaded || '-'}\n` +
+                    `> *Link:* ${v.url}\n\n` +
+                    `⏳ _Descargando ${tipo}..._`
+        if (v.banner) {
+          await conn.sendMessage(m.chat, { image: { url: v.banner }, caption: txt }, { quoted: m })
+        } else {
+          await conn.reply(m.chat, txt, m)
+        }
+        enviado = true
+      }
+    } catch (err) {
+      console.error('Error en play (búsqueda):', err.message)
+    }
+
+    if (!enviado) {
+      await conn.reply(m.chat, `⏳ _Descargando ${tipo}..._`, m)
+    }
+
     let resolveRes
     try {
       resolveRes = await axios.get(`${base}/dl/youtubeplay`, {
-        params: { key, query, type: isVideo ? 'video' : 'audio', quality: 'auto' },
-        timeout: 60000
+        params: { key, query, type: tipo, quality: 'auto' },
+        timeout: 120000
       })
     } catch (err) {
-      throw new Error(`[paso 1/2: buscar y resolver] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
+      throw new Error(`[paso 1/2: resolver ${tipo}] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
     }
 
     const payload = resolveRes.data
@@ -46,22 +78,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (!payload?.status || !info || !fileUrl) {
       throw new Error('[paso 1/2] La API no devolvió resultados para esta búsqueda.')
-    }
-
-    const views = Number(info.views)
-    const txt = `*[ YOUTUBE PLAY ]*\n\n` +
-                `> *Título:* ${info.title}\n` +
-                `> *Canal:* ${info.author?.name || 'Desconocido'}\n` +
-                `> *Duración:* ${info.duration?.timestamp || '-'}\n` +
-                `> *Vistas:* ${Number.isFinite(views) ? views.toLocaleString('es-PE') : '-'}\n` +
-                `> *Calidad:* ${info.quality || 'auto'}\n` +
-                `> *Link:* ${info.url}\n\n` +
-                `⏳ _Descargando ${isVideo ? 'video' : 'audio'}..._`
-
-    if (info.thumbnail) {
-      await conn.sendMessage(m.chat, { image: { url: info.thumbnail }, caption: txt }, { quoted: m }).catch(() => conn.reply(m.chat, txt, m))
-    } else {
-      await conn.reply(m.chat, txt, m)
     }
 
     let fileResponse
