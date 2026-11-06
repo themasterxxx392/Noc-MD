@@ -19,7 +19,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     return conn.reply(m.chat, `✿ Ingresa el nombre de la canción o video.\n\n*Ejemplo:* \`${usedPrefix + command} Shape of You Ed Sheeran\``, m)
   }
 
-  const isVideo = ['playvid', 'playvideo', 'play2'].includes(command)
+  const isVideo = command === 'play2'
   const query = text.trim()
 
   const lockKey = `${m.chat}:${command}:${query}`
@@ -48,6 +48,22 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error('[paso 1/2] La API no devolvió resultados para esta búsqueda.')
     }
 
+    const views = Number(info.views)
+    const txt = `*[ YOUTUBE PLAY ]*\n\n` +
+                `> *Título:* ${info.title}\n` +
+                `> *Canal:* ${info.author?.name || 'Desconocido'}\n` +
+                `> *Duración:* ${info.duration?.timestamp || '-'}\n` +
+                `> *Vistas:* ${Number.isFinite(views) ? views.toLocaleString('es-PE') : '-'}\n` +
+                `> *Calidad:* ${info.quality || 'auto'}\n` +
+                `> *Link:* ${info.url}\n\n` +
+                `⏳ _Descargando ${isVideo ? 'video' : 'audio'}..._`
+
+    if (info.thumbnail) {
+      await conn.sendMessage(m.chat, { image: { url: info.thumbnail }, caption: txt }, { quoted: m }).catch(() => conn.reply(m.chat, txt, m))
+    } else {
+      await conn.reply(m.chat, txt, m)
+    }
+
     let fileResponse
     try {
       fileResponse = await axios.get(fileUrl, {
@@ -71,20 +87,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     if (buffer.length >= MAX_SIZE_BYTES) {
       await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
       return conn.reply(m.chat, `ꕥ El archivo supera el límite permitido (${formatMB(buffer.length)}MB / Máx: ${formatMB(MAX_SIZE_BYTES)}MB).`, m)
-    }
-
-    const views = Number(info.views)
-    const txt = `*[ YOUTUBE PLAY ]*\n\n` +
-                `> *Título:* ${info.title}\n` +
-                `> *Canal:* ${info.author?.name || 'Desconocido'}\n` +
-                `> *Duración:* ${info.duration?.timestamp || '-'}\n` +
-                `> *Vistas:* ${Number.isFinite(views) ? views.toLocaleString('es-PE') : '-'}\n` +
-                `> *Calidad:* ${info.quality || 'auto'}\n` +
-                `> *Peso:* ${formatMB(buffer.length)} MB\n` +
-                `> *Link:* ${info.url}`
-
-    if (info.thumbnail) {
-      await conn.sendMessage(m.chat, { image: { url: info.thumbnail }, caption: txt }, { quoted: m }).catch(() => {})
     }
 
     if (isVideo) {
@@ -113,8 +115,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['play <texto>', 'playvid <texto>']
+handler.help = ['play <texto>', 'play2 <texto>']
 handler.tags = ['downloader']
-handler.command = ['play', 'playvid', 'playvideo', 'play2']
+handler.command = ['play', 'play2']
 
 export default handler
