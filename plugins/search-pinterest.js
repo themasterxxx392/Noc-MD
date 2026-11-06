@@ -17,9 +17,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
   const base = global.info?.evogb;
   const key = global.info?.evogbkey;
-  if (!base || !key) {
-    return conn.reply(m.chat, '⚠️ Falta configurar *evogb* y *evogbkey* en config.js', m);
-  }
 
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
