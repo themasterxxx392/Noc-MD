@@ -82,8 +82,10 @@ const alias = {
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   try {
-    if (!db.data.chats[m.chat].nsfw && m.isGroup) return m.reply(`ꕥ El contenido *NSFW* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n» *${usedPrefix}nsfw on*`)
-    
+    if (global.db?.data?.chats && m.isGroup && !db.data.chats[m.chat].nsfw) {
+      return m.reply(`ꕥ El contenido *NSFW* está desactivado en este grupo.\n\nUn *administrador* puede activarlo con:\n» *${usedPrefix}nsfw on*`)
+    }
+
     const currentCommand = Object.keys(alias).find(key => alias[key].includes(command)) || command
 
     if (!captions[currentCommand]) {
