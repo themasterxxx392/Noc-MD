@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const CHUNK_SIZE = 3500
+const CHUNK_SIZE = 2000
 
 function dividir(texto) {
   const partes = []
