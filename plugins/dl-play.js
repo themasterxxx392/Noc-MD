@@ -11,9 +11,6 @@ function formatMB(bytes) {
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   const base = global.info?.evogb
   const key = global.info?.evogbkey
-  if (!base || !key) {
-    return conn.reply(m.chat, '⚠️ Falta configurar *evogb* y *evogbkey* en config.js', m)
-  }
 
   if (!text?.trim()) {
     return conn.reply(m.chat, `✿ Ingresa el nombre de la canción o video.\n\n*Ejemplo:* \`${usedPrefix + command} Shape of You Ed Sheeran\``, m)
