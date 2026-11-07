@@ -80,6 +80,17 @@ const alias = {
   squirting: ['squirt','squirting']
 }
 
+async function resolveJid(conn, chat, jid) {
+    if (!jid || !jid.endsWith('@lid')) return jid
+    try {
+        const meta = await conn.groupMetadata(chat)
+        const p = meta.participants.find(p => p.id === jid || p.lid === jid)
+        const real = [p?.phoneNumber, p?.jid, p?.id].find(x => x && x.endsWith('@s.whatsapp.net'))
+        if (real) return real
+    } catch {}
+    return jid
+}
+
 let handler = async (m, { conn, usedPrefix, command }) => {
   try {
     if (global.db?.data?.chats && m.isGroup && !db.data.chats[m.chat].nsfw) {
@@ -92,6 +103,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       await m.react('✖️')
       return
     }
+
+    const chat = m.chat
+    const senderId = await resolveJid(conn, chat, m.sender)
+    let rawTarget = m.mentionedJid?.[0] || m.quoted?.sender
+    const targetId = rawTarget ? await resolveJid(conn, chat, rawTarget) : senderId
 
     const key = global.info?.evogbkey
     const base = global.info?.evogb
@@ -132,14 +148,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       throw new Error('El archivo multimedia descargado está corrupto o muy pequeño.')
     }
 
-    const who = m.mentionedJid?.[0] || m.quoted?.sender || m.sender
-    const fromName = m.pushName || '@' + m.sender.split('@')[0]
-    const toName = m.mentionedJid?.[0]
-      ? '@' + (m.mentionedJid[0].split('@')[0])
-      : m.quoted?.pushName || '@' + who.split('@')[0]
+    const fromName = m.pushName || '@' + senderId.split('@')[0]
+    const toName = '@' + targetId.split('@')[0]
 
-    const captionText = captions[currentCommand](fromName, toName)
-    const caption = who !== m.sender
+    const captionText = captions[currentCommand](senderId, targetId)
+    const caption = targetId !== senderId
       ? `\`${fromName}\` ${captionText} \`${toName}.\` ${getRandomSymbol()}.`
       : `\`${fromName}\` ${captionText} ${getRandomSymbol()}.`
 
@@ -147,7 +160,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       video: mediaBuffer,
       gifPlayback: true,
       caption,
-      mentions: [who, m.sender]
+      mentions: [targetId, senderId]
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
