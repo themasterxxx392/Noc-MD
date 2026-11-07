@@ -39,8 +39,16 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['hentai', 'neko', 'kemonomimi', 'bunny', 'maid', 'boobs', 'bigboobs', 'mediumboobs', 'smallboobs', 'pussy', 'bikini', 'schoolgirl', 'yuri', 'lesbian']
+handler.help = [
+  'hentai', 'neko', 'kemonomimi', 'bunny', 'maid', 'boobs', 'bigboobs', 
+  'mediumboobs', 'smallboobs', 'ass', 'pussy', 'masturbation', 'masturbating', 
+  'threesome', 'kissing', 'bikini', 'schoolgirl', 'wet', 'yuri', 'lesbian', 'trap'
+]
 handler.tags = ['nsfw']
-handler.command = ['hentai', 'neko', 'kemonomimi', 'bunny', 'maid', 'boobs', 'bigboobs', 'mediumboobs', 'smallboobs', 'pussy', 'bikini', 'schoolgirl', 'yuri', 'lesbian']
+handler.command = [
+  'hentai', 'neko', 'kemonomimi', 'bunny', 'maid', 'boobs', 'bigboobs', 
+  'mediumboobs', 'smallboobs', 'ass', 'pussy', 'masturbation', 'masturbating', 
+  'threesome', 'kissing', 'bikini', 'schoolgirl', 'wet', 'yuri', 'lesbian', 'trap'
+]
 
 export default handler
