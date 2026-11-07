@@ -1,59 +1,62 @@
-import fetch from 'node-fetch'
+import axios from 'axios'
 
-const handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (!args[0]) {
-    return conn.reply(m.key.remoteJid, `⚠️ Por favor, ingresa una etiqueta (tag) para buscar.\n\nEjemplo:\n*${usedPrefix + command} ellen_joe*`, m)
+const BLOQUEADOS = ['loli', 'lolicon', 'shota', 'shotacon', 'child', 'children', 'kid', 'kids', 'toddler', 'underage', 'minor', 'preteen', 'infant', 'baby', 'young', 'cub', 'babyfur']
+
+let handler = async (m, { conn, text, usedPrefix, command, chat }) => {
+  const key = global.info?.evogbkey
+  const base = global.info?.evogb
+
+  if (m.isGroup && !chat?.nsfw) {
+    return conn.reply(m.chat, '❖ Los comandos NSFW están desactivados en este grupo. Un administrador debe activarlos.', m)
   }
 
-  const tag = encodeURIComponent(args.join('_'))
-  await m.reply('⏳ Buscando imagen, por favor espera un momento...')
+  if (!text?.trim()) {
+    return conn.reply(m.chat, `❖ Ingresa el tag que quieres buscar.\n\n*Ejemplo:* \`${usedPrefix + command} ellen joe\``, m)
+  }
+
+  const tag = text.trim().toLowerCase().replace(/\s+/g, '_')
+  const partes = tag.split(/[_\-+,.]+/).filter(Boolean)
+
+  if (partes.some(p => BLOQUEADOS.includes(p))) {
+    return conn.reply(m.chat, '⚠️ Esa búsqueda no está permitida.', m)
+  }
+
+  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    const apiUrl = `${info.evogb}/nsfw/rule34?tag=${tag}&type=image&key=${info.evogbkey}`
-    
-    const response = await fetch(apiUrl)
-    if (!response.ok) {
-      throw new Error(`La API no respondió correctamente (Código: ${response.status})`)
+    const res = await axios.get(`${base}/nsfw/rule34`, {
+      params: { key, tag, type: 'image' },
+      responseType: 'arraybuffer',
+      timeout: 60000,
+      validateStatus: () => true
+    })
+
+    const type = String(res.headers['content-type'] || '')
+    const buffer = Buffer.from(res.data)
+
+    if (res.status !== 200 || !type.startsWith('image/') || buffer.length < 1000) {
+      let detalle = res.status === 404 ? 'No se encontraron resultados para ese tag.' : `HTTP ${res.status}`
+      if (type.includes('json')) {
+        try {
+          const json = JSON.parse(buffer.toString())
+          detalle = json.message || json.error || json.msg || detalle
+        } catch {}
+      }
+      throw new Error(detalle)
     }
 
-    // Verificamos si la respuesta realmente es un JSON antes de parsearla
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('La API devolvió un formato inválido o la etiqueta no arrojó resultados.')
-    }
+    await conn.sendMessage(m.chat, { image: buffer }, { quoted: m })
+    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
-    const json = await response.json()
-
-    // Extraemos la URL de la imagen de la respuesta
-    const imageUrl = json.resultado?.url || json.resultado?.image || json.url || json.resultado
-
-    if (!imageUrl) {
-      return m.reply('❌ No se encontró ninguna imagen para esa etiqueta.')
-    }
-
-    let txt = `✨ *• RULE34 •*\n\n`
-    txt += `• *Tag:* ${args.join(' ')}`
-
-    // Descargamos y enviamos la imagen como buffer
-    const imgRes = await fetch(imageUrl)
-    if (!imgRes.ok) throw new Error('No se pudo descargar la imagen obtenida.')
-    const buffer = Buffer.from(await imgRes.arrayBuffer())
-
-    await conn.sendMessage(m.key.remoteJid, {
-      image: buffer,
-      caption: txt
-    }, { quoted: m })
-
-    m.react('✅')
-  } catch (error) {
-    console.error('Error en comando rule34:', error)
-    m.reply(`❌ Ocurrió un error al procesar tu solicitud:\n\n\`\`\`${error.message}\`\`\``)
-    m.react('❌')
+  } catch (e) {
+    console.error('Error en rule34:', e.message)
+    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar la imagen.\n> *[Detalle: ${e.message}]*`, m)
   }
 }
 
-handler.help = ['rule34 <tag>']
+handler.help = ['rule34']
 handler.tags = ['nsfw']
-handler.command = /^(rule34|r34)$/i
+handler.command = ['r34', 'rule34']
 
 export default handler
