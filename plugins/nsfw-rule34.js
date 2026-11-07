@@ -2,11 +2,11 @@ import fetch from 'node-fetch'
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!args[0]) {
-    return conn.reply(m.key.remoteJid, `⚠️ Por favor, ingresa una etiqueta (tag) para buscar en Rule34.\n\nEjemplo:\n*${usedPrefix + command} ellen_joe*`, m)
+    return conn.reply(m.key.remoteJid, `⚠️ Por favor, ingresa una etiqueta (tag) para buscar.\n\nEjemplo:\n*${usedPrefix + command} ellen_joe*`, m)
   }
 
   const tag = encodeURIComponent(args.join('_'))
-  await m.reply('⏳ Buscando imagen en Rule34, por favor espera un momento...')
+  await m.reply('⏳ Buscando imagen, por favor espera un momento...')
 
   try {
     const apiUrl = `${info.evogb}/nsfw/rule34?tag=${tag}&type=image&key=${info.evogbkey}`
@@ -14,6 +14,12 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     const response = await fetch(apiUrl)
     if (!response.ok) {
       throw new Error(`La API no respondió correctamente (Código: ${response.status})`)
+    }
+
+    // Verificamos si la respuesta realmente es un JSON antes de parsearla
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('La API devolvió un formato inválido o la etiqueta no arrojó resultados.')
     }
 
     const json = await response.json()
@@ -28,7 +34,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     let txt = `✨ *• RULE34 •*\n\n`
     txt += `• *Tag:* ${args.join(' ')}`
 
-    // Enviamos la imagen con fetch/buffer para evitar errores de carga en WhatsApp
+    // Descargamos y enviamos la imagen como buffer
     const imgRes = await fetch(imageUrl)
     if (!imgRes.ok) throw new Error('No se pudo descargar la imagen obtenida.')
     const buffer = Buffer.from(await imgRes.arrayBuffer())
@@ -46,8 +52,8 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['nsfw'];
-handler.tags = ['rule34'];
+handler.help = ['rule34 <tag>'];
+handler.tags = ['nsfw'];
 handler.command = ['rule34'];
 
 export default handler
