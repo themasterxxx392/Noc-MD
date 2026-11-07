@@ -438,7 +438,7 @@ export async function handler(conn, m) {
     ? m.key.participantAlt
     : (m.key?.participant || chatId);
 
-    if (m.key?.fromMe) {
+  if (m.key?.fromMe) {
     rawSender = conn.user?.id || rawSender;
   }
 
@@ -746,7 +746,7 @@ export async function handler(conn, m) {
     if (gs.modoadmin && isGroup && !m.isAdmin && !isOwner) return;
 
     if (isGroup && plugin.tags?.includes('nsfw') && !gs.nsfw) {
-      await m.reply(`🔞 Los comandos NSFW están desactivados en este grupo.\nUn admin puede activarlos con *${usedPrefix}nsfw on*`);
+      await m.reply(`🔞 Los comandos NSFW están desactivados en este grupo.\nUn admin puede activarlos con *${usedPrefix}enable nsfw*`);
       continue;
     }
 
@@ -882,4 +882,4 @@ watchFile(file, () => {
   console.log(chalk.redBright('Update \'handler.js\''));
   import(`${file}?update=${Date.now()}`);
 });
-                                  
+          
