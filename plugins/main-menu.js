@@ -119,6 +119,8 @@ text += defaultMenu.body
 }}
 text += defaultMenu.footer;
 }
+
+text = text.replace(/https?:\/\//gi, match => match + '\u200B');
 text += defaultMenu.after;
 
 const replace = {
@@ -177,4 +179,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-                    }
+  }
