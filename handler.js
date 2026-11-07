@@ -303,7 +303,7 @@ export async function groupsUpdate(conn, updates) {
       } else if (update.inviteCode) {
         const link = `https://chat.whatsapp.com/${update.inviteCode}`;
         message = `🔗 *Nuevo enlace del grupo generado*\n\n${link}`;
-      }
+                                   }
 
       if (!message) continue;
       await sendDetect(id, message, author ? [author] : []);
@@ -746,7 +746,7 @@ export async function handler(conn, m) {
     if (gs.modoadmin && isGroup && !m.isAdmin && !isOwner) return;
 
     if (isGroup && plugin.tags?.includes('nsfw') && !gs.nsfw) {
-      await m.reply(`🔞 Los comandos NSFW están desactivados en este grupo.\nUn admin puede activarlos con *${usedPrefix}enable nsfw*`);
+      await m.reply(`🔞 Los comandos NSFW están desactivados en este grupo.\nUn admin puede activarlos con *${usedPrefix}nsfw on*`);
       continue;
     }
 
@@ -772,9 +772,9 @@ export async function handler(conn, m) {
         if ((res.rows[0]?.money ?? 0) < plugin.money) {
           return m.reply("*NO TIENE SUFICIENTES LOLICOINS 🪙*");
         }
-      }
+                                           }
 
-      if (plugin.level) {
+       if (plugin.level) {
         const res = await db.query('SELECT level FROM usuarios WHERE id = $1', [m.sender]);
         const nivel = res.rows[0]?.level ?? 0;
         if (nivel < plugin.level) {
@@ -882,4 +882,4 @@ watchFile(file, () => {
   console.log(chalk.redBright('Update \'handler.js\''));
   import(`${file}?update=${Date.now()}`);
 });
-          
+        
