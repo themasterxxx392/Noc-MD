@@ -9,7 +9,6 @@ function formatMB(bytes) {
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    
     const base = global.info?.evogb
     const key = global.info?.evogbkey
     
