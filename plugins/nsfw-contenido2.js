@@ -28,8 +28,6 @@ const captions = {
   thighjob: (from, to) => from === to ? 'está frotando entre los muslos' : 'le está haciendo una entre piernas a',
   bondage: (from, to) => from === to ? 'está atado y sin escapatoria...' : 'ató bien amarrado a',
   pegging: (from, to) => from === to ? 'está recibiendo lo que no esperaba' : 'le está dando por detrás a',
-  futanari: (from, to) => from === to ? 'tiene lo mejor de los dos mundos' : 'le demostró lo que tiene a',
-  yaoi: (from, to) => from === to ? 'está disfrutando de un momento muy intenso' : 'se lo pasó genial con',
   bukkake: (from, to) => from === to ? 'terminó solo... de una forma muy especial' : 'invitó a sus amigos a acabar encima de',
   orgy: (from, to) => from === to ? 'está en una orgía' : 'organizó una orgía con',
   squirting: (from, to) => from === to ? 'llegó al límite y se vino con todo' : 'la llevó al límite hasta que se vino con todo'
@@ -57,7 +55,7 @@ const alias = {
   sixnine: ['sixnine','69'],
   suckboobs: ['suckboobs'],
   grabboobs: ['grabboobs'],
-  blowjob: ['blowjob','mamada','bj'],
+  blowjob: ['blowjob','mamada'],
   boobjob: ['boobjob'],
   yuri: ['yuri','tijeras'],
   footjob: ['footjob'],
@@ -73,11 +71,9 @@ const alias = {
   thighjob: ['thighjob'],
   bondage: ['bondage'],
   pegging: ['pegging'],
-  futanari: ['futanari','futa'],
-  yaoi: ['yaoi'],
   bukkake: ['bukkake'],
   orgy: ['orgy','orgia'],
-  squirting: ['squirt','squirting']
+  squirting: ['squirting']
 }
 
 async function resolveJid(conn, chat, jid) {
@@ -172,9 +168,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','bj','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','futanari','futa','yaoi','bukkake','orgy','orgia','squirt','squirting']
+handler.help = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','bukkake','orgy','orgia','squirting']
 handler.tags = ['nsfw']
-handler.command = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','bj','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','futanari','futa','yaoi','bukkake','orgy','orgia','squirt','squirting']
+handler.command = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','bukkake','orgy','orgia','squirting']
 handler.group = true
 
 export default handler
