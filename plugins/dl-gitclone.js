@@ -27,9 +27,8 @@ handler.limit = 0;
 } finally {
 delete userRequests[m.sender];
 }};
-handler.help = ['gitclone <url>'];
+handler.help = ['gitclone'];
 handler.tags = ['downloader'];
 handler.command = /gitclone|clonarepo|clonarrepo|repoclonar/i;
-handler.limit = 2;
 
 export default handler;
