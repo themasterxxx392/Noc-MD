@@ -29,7 +29,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
       throw new Error(detalle)
     }
 
-    await conn.sendMessage(m.chat, { image: buffer, caption: `✨ *• Categoria:* ${type}` }, { quoted: m })
+    await conn.sendMessage(m.chat, { image: buffer }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
   } catch (e) {
