@@ -2,13 +2,9 @@ import axios from 'axios'
 
 const BLOQUEADOS = ['loli', 'lolicon', 'shota', 'shotacon', 'child', 'children', 'kid', 'kids', 'toddler', 'underage', 'minor', 'preteen', 'infant', 'baby', 'young', 'cub', 'babyfur']
 
-let handler = async (m, { conn, text, usedPrefix, command, chat }) => {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
   const key = global.info?.evogbkey
   const base = global.info?.evogb
-
-  if (m.isGroup && !chat?.nsfw) {
-    return conn.reply(m.chat, '❖ Los comandos NSFW están desactivados en este grupo. Un administrador debe activarlos.', m)
-  }
 
   if (!text?.trim()) {
     return conn.reply(m.chat, `❖ Ingresa el tag que quieres buscar.\n\n*Ejemplo:* \`${usedPrefix + command} ellen joe\``, m)
