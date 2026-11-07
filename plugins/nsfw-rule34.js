@@ -52,8 +52,8 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['rule34 <tag>'];
-handler.tags = ['nsfw'];
-handler.command = ['rule34'];
+handler.help = ['rule34 <tag>']
+handler.tags = ['nsfw']
+handler.command = /^(rule34|r34)$/i
 
 export default handler
