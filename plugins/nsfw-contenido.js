@@ -8,8 +8,12 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    const res = await axios.get(`${base}/nsfw/rnd`, {
-      params: { key, type },
+    const apiUrl = type === 'loli' 
+      ? `${base}/nsfw/random/loli` 
+      : `${base}/nsfw/rnd`
+
+    const res = await axios.get(apiUrl, {
+      params: type === 'loli' ? { key, type: 'loli' } : { key, type },
       responseType: 'arraybuffer',
       timeout: 60000,
       validateStatus: () => true
@@ -42,13 +46,13 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 handler.help = [
   'hentai', 'neko', 'kemonomimi', 'bunny', 'maid', 'boobs', 'bigboobs', 
   'mediumboobs', 'smallboobs', 'ass', 'pussy', 'masturbation', 'masturbating', 
-  'threesome', 'kissing', 'bikini', 'schoolgirl', 'wet', 'yuri', 'lesbian', 'trap'
+  'threesome', 'kissing', 'bikini', 'schoolgirl', 'wet', 'yuri', 'lesbian', 'trap', 'loli'
 ]
 handler.tags = ['nsfw']
 handler.command = [
   'hentai', 'neko', 'kemonomimi', 'bunny', 'maid', 'boobs', 'bigboobs', 
   'mediumboobs', 'smallboobs', 'ass', 'pussy', 'masturbation', 'masturbating', 
-  'threesome', 'kissing', 'bikini', 'schoolgirl', 'wet', 'yuri', 'lesbian', 'trap'
+  'threesome', 'kissing', 'bikini', 'schoolgirl', 'wet', 'yuri', 'lesbian', 'trap', 'loli'
 ]
 
 export default handler
