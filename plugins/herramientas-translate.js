@@ -1,57 +1,73 @@
-import fetch from 'node-fetch';
+import axios from 'axios'
 
-const handler = async (m, { args, usedPrefix, command }) => {
-const defaultLang = 'es';
-if (!args || !args[0]) return m.reply(`⚠️ *Uso correcto del comando:*  
-» ${usedPrefix + command} (idioma destino) (texto a traducir)
+const LANGS = {
+  es: 'Español', en: 'Inglés', pt: 'Portugués', fr: 'Francés', de: 'Alemán',
+  it: 'Italiano', ja: 'Japonés', ko: 'Coreano', zh: 'Chino', ru: 'Ruso',
+  ar: 'Árabe', hi: 'Hindi', tr: 'Turco', id: 'Indonesio', nl: 'Neerlandés',
+  pl: 'Polaco', sv: 'Sueco', vi: 'Vietnamita', th: 'Tailandés', uk: 'Ucraniano',
+  la: 'Latín', el: 'Griego', he: 'Hebreo', fa: 'Persa'
+}
 
-📌 *Ejemplos:*
-• ${usedPrefix + command} es Hello » Español
-• ${usedPrefix + command} en hola » inglés
-• ${usedPrefix + command} fr buenos días » Francés
-• ${usedPrefix + command} pt tudo bem » Portugués
-• ${usedPrefix + command} de cómo estás » Alemán
-• ${usedPrefix + command} it buongiorno » Italiano`);
+const MAX_CHARS = 2000
 
-  let lang = args[0];
-  let text = args.slice(1).join(' ');
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+  const key = global.info?.evogbkey
+  const base = global.info?.evogb
 
-  if ((lang || '').length !== 2) {
-    text = args.join(' ');
-    lang = defaultLang;
+  let to = 'es'
+  let words = [...args]
+
+  if (words[0] && LANGS[words[0].toLowerCase()]) {
+    to = words.shift().toLowerCase()
   }
 
-  if (!text && m.quoted && m.quoted.text) text = m.quoted.text;
+  let text = words.join(' ').trim()
+  if (!text && m.quoted) {
+    text = (m.quoted.text || m.quoted.caption || m.quoted.msg?.caption || '').trim()
+  }
 
-  if (!text) return m.reply(msg);
+  if (!text) {
+    return conn.reply(m.chat, `✿ Ingresa el texto a traducir o responde a un mensaje.\n\n*Ejemplos:*\n\`${usedPrefix + command} Hello World\`\n\`${usedPrefix + command} en Hola mundo\`\n\n*Idiomas:* ${Object.keys(LANGS).join(', ')}`, m)
+  }
+
+  if (text.length > MAX_CHARS) {
+    return conn.reply(m.chat, `⚠️ El texto es demasiado largo (${text.length}/${MAX_CHARS} caracteres).`, m)
+  }
+
+  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    const res = await fetch("https://tr.skyultraplus.com/translate", {
-      method: "POST",
-      body: JSON.stringify({
-        q: text,
-        source: "auto",
-        target: lang,
-        format: "text",
-        alternatives: 3,
-        api_key: ""
-      }),
-      headers: { "Content-Type": "application/json" }
-    });
+    const { data: res } = await axios.get(`${base}/tools/translate`, {
+      params: { key, text, to },
+      timeout: 30000
+    })
 
-    const json = await res.json();
+    const result = res?.data?.message
+    if (!res?.status || !result) {
+      throw new Error('La API no devolvió ninguna traducción.')
+    }
 
-    if (!json || !json.translatedText) throw '❌ No se pudo traducir.';
+    const from = res.data.detected_lang || '?'
+    const fromName = LANGS[from] || from.toUpperCase()
+    const toName = LANGS[res.data.target_lang] || LANGS[to]
 
-    await m.reply(`*Traducción:*\n${json.translatedText}`);
+    const txt = `*[ TRADUCTOR ]*\n\n` +
+                `> *Detectado:* ${fromName}\n` +
+                `> *Traducido a:* ${toName}\n\n` +
+                `${result}`
+
+    await conn.reply(m.chat, txt, m)
+    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
+
   } catch (e) {
-    console.error(e);
-    await m.reply('*[❗𝐈𝐍𝐅𝐎❗] ERROR, VUELVA A INTENTARLO*');
+    console.error('Error en translate:', e.message)
+    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al traducir el texto.\n> *[Detalle: ${e.message}]*`, m)
   }
-};
+}
 
-handler.help = ['traducir', 'translate'];
-handler.tags = ['tools'];
-handler.command = /^(translate|traducir|trad)$/i;
+handler.help = ['translate <idioma> <texto>']
+handler.tags = ['tools']
+handler.command = ['translate', 'traducir']
 
-export default handler;
+export default handler
