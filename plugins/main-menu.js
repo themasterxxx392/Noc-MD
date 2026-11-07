@@ -3,10 +3,8 @@ import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
 
-// Página con el banner (Baileys arma la vista previa a partir de este link)
 const LINK = 'https://themasterxxx392.github.io/bot/'
 
-// Datos del canal (el menú se envía como reenviado desde aquí)
 const NEWSLETTER_JID = '120363411871314247@newsletter'
 const NEWSLETTER_NAME = 'Rem Bot • Canal'
 
@@ -34,7 +32,6 @@ owner: '👑 OWNER'
 const defaultMenu = {
 before: `┌ Rem Bot ┐
 
-*• Web:* ${LINK}
 *• Fecha:* %fecha
 *• Hora:* %hora (🇵🇪) 
 *• Usuario:* %totalreg
