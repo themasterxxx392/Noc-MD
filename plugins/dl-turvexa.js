@@ -150,8 +150,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     }
 };
 
-handler.help = ['turvexa <url>'];
-handler.command = ['turvexa', 'dltv'];
+handler.help = ['turvexa'];
+handler.command = ['turvexa'];
 handler.tags = ['downloader'];
 
 export default handler;
