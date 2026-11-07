@@ -1,59 +1,46 @@
-import fetch from 'node-fetch';
+import axios from 'axios'
 
-let handler = async (m, { conn, command }) => {
-  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+  const key = global.info?.evogbkey
+  const base = global.info?.evogb
+  const type = command.toLowerCase()
+
+  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    // Extraemos la URL base y la API key desde config.js
-    const baseUrl = global.info?.evogb || 'https://api.evogb.org';
-    const apiKey = global.info?.evogbkey || 'evogb-TyswGrUB';
-    const endpoint = '/sfw/neko';
+    const res = await axios.get(`${base}/nsfw/rnd`, {
+      params: { key, type },
+      responseType: 'arraybuffer',
+      timeout: 60000,
+      validateStatus: () => true
+    })
 
-    const fullUrl = `${baseUrl}${endpoint}?key=${apiKey}`;
-    
-    let res = await fetch(fullUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
+    const contentType = String(res.headers['content-type'] || '')
+    const buffer = Buffer.from(res.data)
+
+    if (res.status !== 200 || !contentType.startsWith('image/') || buffer.length < 1000) {
+      let detalle = res.status === 404 ? 'No se encontraron resultados para esa categoría.' : `HTTP ${res.status}`
+      if (contentType.includes('json')) {
+        try {
+          const json = JSON.parse(buffer.toString())
+          detalle = json.message || json.error || json.msg || detalle
+        } catch {}
       }
-    });
-
-    if (!res.ok) {
-      throw new Error(`Error HTTP ${res.status}: Not Found`);
+      throw new Error(detalle)
     }
 
-    const contentType = res.headers.get('content-type') || '';
-    
-    if (contentType.includes('image')) {
-      let buffer = await res.buffer();
-      await conn.sendMessage(m.chat, { 
-        image: buffer, 
-        caption: '🐱 *Neko*' 
-      }, { quoted: m });
-    } else {
-      let rawText = await res.text();
-      let json = JSON.parse(rawText);
-      let imageUrl = json.data || json.result || json.url || json.image;
-
-      if (!imageUrl) throw new Error('No se encontró una URL de imagen válida.');
-
-      await conn.sendMessage(m.chat, { 
-        image: { url: imageUrl }, 
-        caption: '🐱 *Neko*' 
-      }, { quoted: m });
-    }
-
-    await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+    await conn.sendMessage(m.chat, { image: buffer, caption: `✨ *• Categoria:* ${type}` }, { quoted: m })
+    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
   } catch (e) {
-    console.error(e);
-    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } });
-    m.reply(`> ✿︎ Ocurrió un error al ejecutar el comando *.${command}*.\n> *[Error: ${e.message}]*`);
+    console.error(`Error en ${type}:`, e.message)
+    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar la imagen.\n> *[Detalle: ${e.message}]*`, m)
   }
-};
+}
 
-handler.help = ['neko'];
-handler.tags = ['anime'];
-handler.command = ['neko', 'neko2'];
+handler.help = ['neko3', 'waifu3', 'maid']
+handler.tags = ['nsfw']
+handler.command = ['neko3', 'waifu3', 'maid', 'trap', 'blowjob', 'hentai', 'cum', 'pussy']
 
-export default handler;
+export default handler
