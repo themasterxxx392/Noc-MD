@@ -172,8 +172,8 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
   }
 }
 
-handler.command = ['dl', 'yourupload']
-handler.help = ['yourupload <url>']
+handler.command = ['yourupload']
+handler.help = ['yourupload']
 handler.tags = ['downloader']
 
 export default handler
