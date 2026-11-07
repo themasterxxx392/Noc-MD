@@ -128,7 +128,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['play <texto>', 'play2 <texto>']
+handler.help = ['play', 'play2']
 handler.tags = ['downloader']
 handler.command = ['play', 'play2']
 
