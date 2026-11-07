@@ -3,10 +3,8 @@ import { xpRange } from '../lib/levelling.js'
 import { db } from '../lib/postgres.js'
 import fs from "fs"
 
-// Página con el banner (Baileys arma la vista previa a partir de este link)
 const LINK = 'https://themasterxxx392.github.io/bot/'
 
-// Datos del canal (el menú se envía como reenviado desde aquí)
 const NEWSLETTER_JID = '120363411871314247@newsletter'
 const NEWSLETTER_NAME = 'Rem Bot • Canal'
 
@@ -34,7 +32,6 @@ owner: '👑 OWNER'
 const defaultMenu = {
 before: `┌ Rem Bot ┐
 
-*• Web:* ${LINK}
 *• Fecha:* %fecha
 *• Hora:* %hora (🇵🇪) 
 *• Usuario:* %totalreg
@@ -45,7 +42,7 @@ before: `┌ Rem Bot ┐
   header: '`<[ %category ]>`',
   body: ' %cmd %islimit %isPremium',
   footer: `\n`,
-  after: ''
+  after: `\n${LINK}`
 }
 
 const handler = async (m, { conn, usedPrefix: _p, args }) => {
@@ -180,4 +177,4 @@ const toNum = n => {
   return n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M'
     : n >= 1_000 ? (n / 1_000).toFixed(1) + 'k'
     : n.toString()
-  }
+                    }
