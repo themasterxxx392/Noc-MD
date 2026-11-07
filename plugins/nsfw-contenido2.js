@@ -44,22 +44,22 @@ const endpointMap = {
 }
 
 const alias = {
-  anal: ['anal','violar'],
+  anal: ['anal'],
   cum: ['cum'],
-  undress: ['undress','encuerar'],
-  fuck: ['fuck','coger'],
-  spank: ['spank','nalgada'],
+  undress: ['undress', 'encuerar'],
+  fuck: ['fuck', 'coger'],
+  spank: ['spank', 'nalgada'],
   lickpussy: ['lickpussy'],
-  fap: ['fap','paja'],
+  fap: ['fap', 'paja'],
   grope: ['grope'],
-  sixnine: ['sixnine','69'],
+  sixnine: ['sixnine', '69'],
   suckboobs: ['suckboobs'],
   grabboobs: ['grabboobs'],
-  blowjob: ['blowjob','mamada'],
+  blowjob: ['blowjob', 'mamada'],
   boobjob: ['boobjob'],
-  yuri: ['yuri','tijeras'],
+  yuri: ['yuri', 'tijeras'],
   footjob: ['footjob'],
-  cummouth: ['cummouth','cummoth'],
+  cummouth: ['cummouth', 'cummoth'],
   cumshot: ['cumshot'],
   handjob: ['handjob'],
   lickass: ['lickass'],
@@ -72,7 +72,7 @@ const alias = {
   bondage: ['bondage'],
   pegging: ['pegging'],
   bukkake: ['bukkake'],
-  orgy: ['orgy','orgia'],
+  orgy: ['orgy', 'orgia'],
   squirting: ['squirting']
 }
 
@@ -168,9 +168,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','bukkake','orgy','orgia','squirting']
+handler.help = ['anal', 'cum', 'undress', 'fuck', 'spank', 'lickpussy', 'fap', 'grope', 'sixnine', 'suckboobs', 'grabboobs', 'blowjob', 'boobjob', 'yuri', 'footjob', 'cummouth', 'cumshot', 'handjob', 'lickass', 'lickdick', 'fingering', 'creampie', 'facesitting', 'deepthroat', 'thighjob', 'bondage', 'pegging', 'bukkake', 'orgy', 'squirting']
 handler.tags = ['nsfw']
-handler.command = ['anal','violar','cum','undress','encuerar','fuck','coger','spank','nalgada','lickpussy','fap','paja','grope','sixnine','69','suckboobs','grabboobs','blowjob','mamada','boobjob','yuri','tijeras','footjob','cummouth','cumshot','handjob','lickass','lickdick','fingering','creampie','facesitting','deepthroat','thighjob','bondage','pegging','bukkake','orgy','orgia','squirting']
+handler.command = ['anal', 'cum', 'undress', 'encuerar', 'fuck', 'coger', 'spank', 'nalgada', 'lickpussy', 'fap', 'paja', 'grope', 'sixnine', '69', 'suckboobs', 'grabboobs', 'blowjob', 'mamada', 'boobjob', 'yuri', 'tijeras', 'footjob', 'cummouth', 'cumshot', 'handjob', 'lickass', 'lickdick', 'fingering', 'creampie', 'facesitting', 'deepthroat', 'thighjob', 'bondage', 'pegging', 'bukkake', 'orgy', 'orgia', 'squirting']
 handler.group = true
 
 export default handler
