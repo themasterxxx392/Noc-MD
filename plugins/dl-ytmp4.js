@@ -64,7 +64,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         if (!/\.[a-z0-9]{2,4}$/i.test(cleanFileName)) cleanFileName += '.mp4'
 
-        // Creamos una versión sin la extensión para mostrarla estéticamente en el texto del mensaje
+        
         const displayTitle = cleanFileName.replace(/\.[a-z0-9]{2,4}$/i, '')
 
         let fileResponse
@@ -95,7 +95,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         const mimetype = fileResponse.headers['content-type'] || 'video/mp4'
 
-        // Usamos displayTitle para que el texto salga sin el .mp4
         let txt = `> *Titulo:* ${displayTitle}\n` +
                   `> *Calidad:* 480p\n` +
                   `> *Peso:* ${formatMB(buffer.length)} MB`
@@ -119,7 +118,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     }
 }
 
-handler.help = ['ytmp4 <enlace>']
+handler.help = ['ytmp4']
 handler.tags = ['downloader']
 handler.command = ['ytmp4']
 
