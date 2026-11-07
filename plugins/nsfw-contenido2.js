@@ -19,27 +19,30 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     const contentType = String(res.headers['content-type'] || '')
     const buffer = Buffer.from(res.data)
 
+    // Imprimimos en consola qué carajos devolvió la API con status 200
+    console.log(`[DEBUG INTERACTION ${type}] Content-Type:`, contentType)
+    console.log(`[DEBUG INTERACTION ${type}] Body preview:`, buffer.toString().slice(0, 300))
+
     if (res.status !== 200 || buffer.length < 1000) {
-      let detalle = res.status === 404 ? 'No se encontró animación para esta interacción.' : `HTTP ${res.status}`
-      if (contentType.includes('json')) {
-        try {
-          const json = JSON.parse(buffer.toString())
-          detalle = json.message || json.error || json.msg || detalle
-        } catch {}
-      }
-      throw new Error(detalle)
+      throw new Error(`HTTP ${res.status} o buffer muy pequeño`)
     }
 
     let mediaBuffer = buffer
-    if (contentType.includes('json') || (!contentType.includes('video/') && !contentType.includes('image/'))) {
-      try {
-        const json = JSON.parse(buffer.toString())
+    // Forzamos la lectura si viene en JSON o texto plano
+    try {
+      const jsonStr = buffer.toString()
+      if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+        const json = JSON.parse(jsonStr)
         const mediaUrl = json.resultado?.url || json.resultado?.image || json.url || json.resultado
-        if (!mediaUrl) throw new Error('No se encontró URL en el JSON.')
+        if (!mediaUrl) throw new Error('El JSON no tiene una URL válida.')
+        
         const mediaRes = await axios.get(mediaUrl, { responseType: 'arraybuffer', timeout: 60000 })
         mediaBuffer = Buffer.from(mediaRes.data)
-      } catch (err) {
-        throw new Error('La API devolvió un formato inválido.')
+      }
+    } catch (parseErr) {
+      // Si no era JSON, asumimos que ya era el binario del video/gif
+      if (parseErr.message !== 'El JSON no tiene una URL válida.' && !contentType.includes('video/') && !contentType.includes('image/')) {
+        // Si llegó aquí y no es binario real, lanzamos el error con el texto real
       }
     }
 
