@@ -51,7 +51,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['rule34']
+handler.help = ['r34', 'rule34']
 handler.tags = ['nsfw']
 handler.command = ['r34', 'rule34']
 
