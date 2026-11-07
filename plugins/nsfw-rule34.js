@@ -52,7 +52,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 }
 
 handler.help = ['rule34']
-handler.tags = ['downloader']
+handler.tags = ['nsfw']
 handler.command = ['r34', 'rule34']
 
 export default handler
