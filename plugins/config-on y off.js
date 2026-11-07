@@ -1,16 +1,15 @@
-import { db } from '../lib/postgres.js'
-import { getSubbotConfig } from '../lib/postgres.js'
+import { db, getSubbotConfig } from '../lib/postgres.js'
 
 const handler = async (m, { conn, args, usedPrefix, command, isAdmin, isOwner }) => {
-const isEnable = /true|enable|(turn)?on|1/i.test(command)
+const isEnable = /true|enable|(turn)?on/i.test(command)
 const type = (args[0] || '').toLowerCase()
 const chatId = m.chat
 const botId = conn.user?.id
 const cleanId = botId.replace(/:\d+/, '');
-const isSubbot = botId !== 'main'
 let isAll = false, isUser = false
 let res = await db.query('SELECT * FROM group_settings WHERE group_id = $1', [chatId]);
 let chat = res.rows[0] || {};
+const botConf = await getSubbotConfig(botId);
 const getStatus = (flag) => m.isGroup ? (chat[flag] ? '✅' : '❌') : '⚠️';
 
 let menu = `*『 ⧼⧼⧼ ＣＯＮＦＩＧＵＲＡＣＩＯ́Ｎ ⧽⧽⧽ 』*\n\n`;
@@ -25,14 +24,14 @@ menu += `📣 DETECTAR AVISOS ${getStatus('detect')}\n• Avisar cambios en el g
 menu += `🔗 ANTILINK ${getStatus('antilink')}\n• Detectar enlaces de grupo\n• ${usedPrefix + command} antilink\n\n`;
 menu += `🌐 ANTILINK2 ${getStatus('antilink2')}\n• Detectar cualquier link\n• ${usedPrefix + command} antilink2\n\n`;
 menu += `🕵️ ANTIFAKE ${getStatus('antifake')}\n• Bloquear números de otros países\n• ${usedPrefix + command} antifake\n\n`;
-menu += `🔞 NSFW ${getStatus('modohorny')}\n• Contenido +18 en stickers/gifs\n• ${usedPrefix + command} modohorny\n\n`
+menu += `🔞 NSFW ${getStatus('nsfw')}\n• Comandos +18 en el grupo\n• ${usedPrefix + command} nsfw\n\n`
 menu += `🔒 MODO SOLO ADMIN ${getStatus('modoadmin')}\n• Solo admins pueden usar comandos\n• ${usedPrefix + command} modoadmin\n\n`;
   
 menu += `\n*『 FUNCIONES PARA OWNER 』*\n\n`;
-menu += `🚫 ANTIPRIVADO ${isSubbot ? (getSubbotConfig(botId).antiPrivate ? '✅' : '❌') : '⚠️'}
+menu += `🚫 ANTIPRIVADO ${botConf.anti_private ? '✅' : '❌'}
 • Bloquear uso en privado
 • ${usedPrefix + command} antiprivate\n\n`;
-menu += `📵 ANTILLAMADAS ${isSubbot ? (getSubbotConfig(botId).anticall ? '✅' : '❌') : '⚠️'}
+menu += `📵 ANTILLAMADAS ${botConf.anti_call ? '✅' : '❌'}
 • Bloquear llamadas
 • ${usedPrefix + command} anticall`;
   
@@ -110,9 +109,9 @@ break
 case 'nsfw': case "modohorny": case "modocaliente":
 if (!m.isGroup) throw '⚠️ Este comando solo se puede usar dentro de un grupo.'
 if (!isAdmin) throw "⚠️ Solo los admins puede usar este comando.";
-  await db.query(`INSERT INTO group_settings (group_id) VALUES ($1) ON CONFLICT DO NOTHING`, [chatId])
-  await db.query(`UPDATE group_settings SET modohorny = $1 WHERE group_id = $2`, [isEnable, chatId])
-  break
+await db.query(`INSERT INTO group_settings (group_id) VALUES ($1) ON CONFLICT DO NOTHING`, [chatId])
+await db.query(`UPDATE group_settings SET nsfw = $1 WHERE group_id = $2`, [isEnable, chatId])
+break
       
 case 'modoadmin': case 'onlyadmin':
 if (!m.isGroup) throw '⚠️ Este comando solo se puede usar dentro de un grupo.'
@@ -122,7 +121,7 @@ await db.query(`UPDATE group_settings SET modoadmin = $1 WHERE group_id = $2`, [
 break
 
 case 'antiprivate': case 'antiprivado':
-if (!isSubbot && !isOwner) return m.reply('❌ Solo el owner o subbots pueden cambiar esto.');
+if (!isOwner) return m.reply('❌ Solo el owner del bot puede cambiar esto.');
 await db.query(`INSERT INTO subbots (id, anti_private)
     VALUES ($1, $2)
     ON CONFLICT (id) DO UPDATE SET anti_private = $2`, [cleanId, isEnable]);
@@ -130,7 +129,7 @@ isAll = true;
 break;
 
 case 'anticall': case 'antillamada':
-if (!isSubbot && !isOwner) return m.reply('❌ Solo el owner o subbots pueden cambiar esto.');
+if (!isOwner) return m.reply('❌ Solo el owner del bot puede cambiar esto.');
 await db.query(`INSERT INTO subbots (id, anti_call)
     VALUES ($1, $2)
     ON CONFLICT (id) DO UPDATE SET anti_call = $2`, [cleanId, isEnable]);
@@ -143,7 +142,7 @@ await m.reply(`🗂️ La opción *${type}* para ${isAll ? 'todo el bot' : isUse
 }
 handler.help = ['enable <opción>', 'disable <opción>']
 handler.tags = ['nable']
-handler.command = /^((en|dis)able|(tru|fals)e|(turn)?o(n|ff)|[01])$/i
-//handler.group = true 
-//handler.admin = true
+handler.command = /^((en|dis)able|(tru|fals)e|(turn)?o(n|ff))$/i
+handler.group = true 
+handler.admin = true
 export default handler
