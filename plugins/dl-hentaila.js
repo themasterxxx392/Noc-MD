@@ -642,10 +642,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return m.reply('❌ No se pudieron obtener los capítulos de esta serie.');
         }
 
-        let txt = `*[🔞] ${details.title.toUpperCase()}*\n`;
-        txt += `» *GÉNEROS:* \`${details.genres}\`\n`;
-        txt += `» *NOTA:* \`${details.synopsis}\`\n\n`;
-
+        let txt = `*[🔞] ${details.title.toUpperCase()}*\n\n`;
+txt += `❖ *GÉNEROS:* \`${details.genres}\`\n`;
+txt += `✩ *NOTA:* \`${details.synopsis}\`\n\n`;
+        
         details.episodes.forEach((ep) => {
             txt += `> ❑ *Capitulo ${ep.num} ›*\n${ep.url}\n\n`;
         });
