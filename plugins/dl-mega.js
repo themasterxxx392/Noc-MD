@@ -26,7 +26,6 @@ const data = await file.downloadBuffer()
 const fileExtension = path.extname(file.name).toLowerCase()
 
 const mimeTypes = {
-".mp4": "video/mp4",
 ".pdf": "application/pdf",
 ".zip": "application/zip",
 ".rar": "application/x-rar-compressed",
@@ -36,8 +35,8 @@ const mimeTypes = {
 ".png": "image/png",
 }
 
-// Forzamos estrictamente que si es .mp4 se vaya como documento de tipo video/mp4
-let mimetype = fileExtension === '.mp4' ? 'video/mp4' : (mimeTypes[fileExtension] || "application/octet-stream")
+// Si es .mp4, le damos un mimetype genérico de archivo para que WhatsApp lo obligue a irse como documento puro
+let mimetype = fileExtension === '.mp4' ? 'application/octet-stream' : (mimeTypes[fileExtension] || "application/octet-stream")
 
 await conn.sendFile(m.chat, data, file.name, "", m, null, { mimetype, asDocument: true })
 await m.react('✔️')
