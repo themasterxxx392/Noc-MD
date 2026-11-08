@@ -645,13 +645,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         let txt = `*[🔞] ${details.title.toUpperCase()}*\n`;
-        txt += `» *GÉNEROS:* \`${details.genres}\`\n\n`;
+        txt += `» *GÉNEROS:* \`${details.genres}\`\n`;
+        txt += `» *NOTA:* \`${details.synopsis}\`\n\n`;
 
         details.episodes.forEach((ep) => {
-            txt += `*Capítulo ${ep.num}*\n> ▪ \`${ep.url}\`\n`;
+            txt += `> ❑ *Capitulo ${ep.num} ›*\n${ep.url}\n\n`;
         });
         
-        txt += `\n> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
+        txt += `> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
 
         await m.react('✔️');
         
@@ -677,7 +678,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     let txt = `🔞 *HENTAILA - BÚSQUEDA: ${queryText.toUpperCase()}*\n\n`;
     results.slice(0, 10).forEach((item, index) => {
-        txt += `*${index + 1})* ${item.title}\n> ▪ \`${item.url}\`\n\n`;
+        txt += `*${index + 1})* ${item.title}\n> ❑ \`${item.url}\`\n\n`;
     });
     txt += `> _Usa \`${usedPrefix + command} <link_serie>\` para ver sus capítulos._`;
 
