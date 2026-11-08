@@ -634,7 +634,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         return processDownload(m, conn, input, null);
     }
 
-    // CASO 2: Si es un link de serie (ej: https://hentaila.com/media/overflow)
+    /    // CASO 2: Si es un link de serie (ej: https://hentaila.com/media/overflow)
     if (/hentaila\.com\/media\/[^\/]+$/i.test(input)) {
         await m.react('🕒');
         const details = await getSeriesDetails(input);
@@ -644,11 +644,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return m.reply('❌ No se pudieron obtener los capítulos de esta serie.');
         }
 
-        let txt = `📖 *• CAPÍTULOS DE: ${details.title.toUpperCase()}*\n\n`;
+        let txt = `*[🔞] ${details.title.toUpperCase()}*\n`;
+        txt += `» *GÉNEROS:* \`${details.genres}\`\n\n`;
+        
         details.episodes.forEach((ep) => {
-            txt += `*Capítulo ${ep.num}*\n> 🔗 \`${ep.url}\`\n\n`;
+            txt += `*Capítulo ${ep.num}*\n> ✐ \`${ep.url}\`\n`;
         });
-        txt += `> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
+        
+        txt += `\n> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
 
         await m.react('✔️');
         
@@ -656,8 +659,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return conn.sendMessage(m.chat, { image: { url: details.poster }, caption: txt }, { quoted: m });
         }
         return conn.reply(m.chat, txt, m);
-    }
-
+            }
+            
     // CASO 3: Si es una búsqueda por texto normal (ej: overflow)
     const queryText = input;
     if (queryText.length < 3) {
