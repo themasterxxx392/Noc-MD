@@ -139,7 +139,7 @@ const handler = async (m, { conn, usedPrefix, command, metadata }) => {
   )
 }
 
-handler.help = ['rob', 'robar']
+handler.help = ['rob']
 handler.tags = ['econ']
 handler.command = /^(robar|rob)$/i
 
