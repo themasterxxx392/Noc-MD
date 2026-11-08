@@ -3,6 +3,14 @@ import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 
+const leerImagen = (ruta) => {
+  try {
+    return fs.readFileSync(ruta)
+  } catch {
+    return null
+  }
+}
+
 //owner
 global.owner = [
 ['51972409783'],
@@ -22,7 +30,7 @@ globalThis.info = {
     evogb: "https://api.evogb.org",
     evogbkey: "evogb-TyswGrUB",
     img2: "https://telegra.ph/file/39fb047cdf23c7",
-    img4: fs.readFileSync('./media/Menu2.jpg'),
+    img4: leerImagen('./media/Menu2.jpg'),
     yt: "",
     tiktok: "",
     md: "https://github.com/themasterxxx392/YukiB",
@@ -40,8 +48,9 @@ globalThis.info = {
 //----------------------------------------------------
 
 let file = fileURLToPath(import.meta.url)
-watchFile(file, () => {
+watchFile(file, async () => {
   unwatchFile(file)
   console.log(chalk.redBright("Update 'config.js'"))
   import(`${file}?update=${Date.now()}`)
 })
+    
