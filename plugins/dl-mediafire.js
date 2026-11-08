@@ -140,7 +140,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileName = buildFileName(nombre, directUrl)
     const mimetype = lookup(fileName) || 'application/octet-stream'
 
-    // Diseño solicitado idéntico al que pediste
+    // Mensaje inicial de que se está descargando
     let info = `✰ ᩧ　𓈒　ׄ　𝖬𝖾𝖽𝗂𝖺𝖥𝗂𝗋𝖾　ׅ　✿\n\n`
     info += `ׄ ﹙ׅ✿﹚ּ *Nombre* › ${fileName}\n`
     info += `ׄ ﹙ׅ✿﹚ּ *Tipo* › ${mimetype}\n`
@@ -162,7 +162,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
       if (String(resp.headers['content-type'] || '').includes('text/html')) {
         resp.data.destroy()
-        throw new Error('El servidor devolvió una página en lugar del archivo (el enlace pudo expirar).')
+        throw new Error('El servidor devolvió una página en lieu de archivo (el enlace pudo expirar).')
       }
 
       if (Number(resp.headers['content-length']) > MAX_SIZE) {
@@ -189,19 +189,21 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       return conn.reply(m.chat, '《✧》 El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de nuevo.', m)
     }
 
-    // Reconstruimos el diseño final para enviarlo como caption en el documento descargado
+    // Mensaje final con los datos que se manda por separado ANTES o JUNTO al archivo (sin caption dentro del documento)
     let infoFinal = `✰ ᩧ　𓈒　ׄ　𝖬𝖾𝖽𝗂𝖺𝖥𝗂𝗋𝖾　ׅ　✿\n\n`
     infoFinal += `ׄ ﹙ׅ✿﹚ּ *Nombre* › ${fileName}\n`
     infoFinal += `ׄ ﹙ׅ✿﹚ּ *Tipo* › ${mimetype}\n`
     infoFinal += `ׄ ﹙ׅ✿﹚ּ *Peso* › ${size ? formatBytes(size) : (sizeTexto || 'Desconocido')}\n`
-    if (uploaded) infoFinal += `ׄ ﹙ׅ✿﹚ּ *Subido* › ${uploaded}\n`
+    if (uploaded) infoFinal += `ׄ ﹙ׅ✿﹚ּ *Subido* › ${uploaded}`
 
+    // Enviamos primero el texto informativo como un mensaje independiente
+    await conn.reply(m.chat, infoFinal, m)
+
+    // Luego enviamos el documento completamente limpio de texto (sin caption)
     await conn.sendMessage(m.chat, {
       document: { url: tmpPath },
       fileName,
-      mimetype,
-      caption: infoFinal,
-      mentions: [m.sender]
+      mimetype
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
