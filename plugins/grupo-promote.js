@@ -67,9 +67,9 @@ const handler = async (m, { conn, text, metadata }) => {
   }
 }
 
-handler.help = ['promote @usuario', 'promote responder chat', 'daradmin @usuario']
+handler.help = ['promote']
 handler.tags = ['group']
-handler.command = /^(promote|daradmin|darpoder)$/i
+handler.command = /^(promote|daradmin)$/i
 handler.group = true
 handler.admin = true
 handler.botAdmin = true
