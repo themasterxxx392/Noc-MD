@@ -40,7 +40,7 @@ function buildFileName(nombre, directUrl) {
 }
 
 function formatBytes(bytes) {
-  if (!bytes) return 'Desconocido'
+  if (!bytes) return null
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -69,32 +69,26 @@ async function resolveMediafireDirect(pageUrl) {
   const directUrl = candidatos.find(esHttp)?.replace(/&amp;/g, '&') || null
 
   const nombre = (
+    $('.intro .filename').first().text() ||
     $('.dl-btn-label').first().attr('title') ||
     $('.dl-btn-label').first().text() ||
     $('div.filename').first().text() ||
     $('meta[property="og:title"]').attr('content') ||
+    $('title').text() ||
     ''
   ).trim() || null
 
   const sizeTexto = boton.text().match(/\(([\d.,]+\s*[KMGT]?B)\)/i)?.[1] || null
 
-  // Extracción de la fecha de subida desde los detalles de MediaFire
-  let fechaSubida = null
-  $('.details-info li, .file-info li, ul.details li').each((_, el) => {
-    const texto = $(el).text()
-    if (/uploaded|subido/i.test(texto)) {
-      fechaSubida = texto.replace(/uploaded[:\s]*/i, '').replace(/subido[:\s]*/i, '').trim()
+  let uploaded = null
+  $('ul.details li').each((_, el) => {
+    const text = $(el).text().replace(/\s+/g, ' ').trim()
+    if (!uploaded && /Uploaded:/i.test(text)) {
+      uploaded = $(el).find('span').text().trim() || text.replace(/Uploaded:/i, '').trim() || null
     }
   })
-  
-  // Respaldo alternativo buscando por clases comunes de fecha o texto plano en la página
-  if (!fechaSubida) {
-    const matchFecha = html.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}/i) ||
-                       html.match(/\d{4}-\d{2}-\d{2}/)
-    if (matchFecha) fechaSubida = matchFecha[0]
-  }
 
-  return { directUrl, nombre, sizeTexto, fechaSubida: fechaSubida || 'Desconocida' }
+  return { directUrl, nombre, sizeTexto, uploaded }
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -102,11 +96,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const input = (fuente.match(/https?:\/\/(?:www\.)?mediafire\.com\/\S+/i) || [])[0]?.replace(/[)\]>,.]+$/, '')
 
   if (!input) {
-    return conn.reply(m.chat, `❖ Ingresa un enlace de MediaFire.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.mediafire.com/file/xxxxx/archivo.zip/file\``, m)
+    return conn.reply(m.chat, `《✧》 Por favor, ingresa el enlace de Mediafire.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.mediafire.com/file/xxxxx/archivo.zip/file\``, m)
   }
 
   if (/\/folder\//i.test(input)) {
-    return conn.reply(m.chat, '⚠️ Los enlaces de carpetas no están soportados, usa el enlace de un archivo.', m)
+    return conn.reply(m.chat, '《✧》 Los enlaces de carpetas no están soportados, usa el enlace de un archivo.', m)
   }
 
   const lockKey = `${m.chat}:${input}`
@@ -126,7 +120,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error(`[paso 1/2: leer página] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
     }
 
-    const { directUrl, nombre, sizeTexto, fechaSubida } = page
+    const { directUrl, nombre, sizeTexto, uploaded } = page
 
     if (!directUrl) {
       throw new Error('[paso 1/2] No se pudo obtener el enlace directo. El archivo pudo ser eliminado o el link es inválido.')
@@ -146,14 +140,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileName = buildFileName(nombre, directUrl)
     const mimetype = lookup(fileName) || 'application/octet-stream'
 
-    const txt = `*[ MEDIAFIRE ]*\n\n` +
-                `> *Nombre:* ${fileName}\n` +
-                `> *Peso:* ${size ? formatBytes(size) : (sizeTexto || 'Desconocido')}\n` +
-                `> *Fecha:* ${fechaSubida}\n` +
-                `> *Tipo:* ${mimetype}\n\n` +
-                `⏳ _Descargando archivo..._`
+    // Diseño solicitado idéntico al que pediste
+    let info = `✰ ᩧ　𓈒　ׄ　𝖬𝖾𝖽𝗂𝖺𝖥𝗂𝗋𝖾　ׅ　✿\n\n`
+    info += `ׄ ﹙ׅ✿﹚ּ *Nombre* › ${fileName}\n`
+    info += `ׄ ﹙ׅ✿﹚ּ *Tipo* › ${mimetype}\n`
+    info += `ׄ ﹙ׅ✿﹚ּ *Peso* › ${size ? formatBytes(size) : (sizeTexto || 'Desconocido')}\n`
+    if (uploaded) info += `ׄ ﹙ׅ✿﹚ּ *Subido* › ${uploaded}\n`
+    info += `\n⏳ _Descargando archivo..._`
 
-    await conn.reply(m.chat, txt, m)
+    await conn.reply(m.chat, info, m)
 
     tmpPath = path.join(os.tmpdir(), `mf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${fileName}`)
 
@@ -191,13 +186,22 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (real < 100) {
       await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-      return conn.reply(m.chat, '⚠️ El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de novo.', m)
+      return conn.reply(m.chat, '《✧》 El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de nuevo.', m)
     }
+
+    // Reconstruimos el diseño final para enviarlo como caption en el documento descargado
+    let infoFinal = `✰ ᩧ　𓈒　ׄ　𝖬𝖾𝖽𝗂𝖺𝖥𝗂𝗋𝖾　ׅ　✿\n\n`
+    infoFinal += `ׄ ﹙ׅ✿﹚ּ *Nombre* › ${fileName}\n`
+    infoFinal += `ׄ ﹙ׅ✿﹚ּ *Tipo* › ${mimetype}\n`
+    infoFinal += `ׄ ﹙ׅ✿﹚ּ *Peso* › ${size ? formatBytes(size) : (sizeTexto || 'Desconocido')}\n`
+    if (uploaded) infoFinal += `ׄ ﹙ׅ✿﹚ּ *Subido* › ${uploaded}\n`
 
     await conn.sendMessage(m.chat, {
       document: { url: tmpPath },
       fileName,
-      mimetype
+      mimetype,
+      caption: infoFinal,
+      mentions: [m.sender]
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
@@ -210,9 +214,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       return conn.reply(m.chat, `ꕥ El archivo supera el límite permitido (Máx: ${formatBytes(MAX_SIZE)}).`, m)
     }
     if (e.code === 'ECONNABORTED' || /timeout/i.test(e.message)) {
-      return conn.reply(m.chat, '⚠️ Tiempo de espera agotado al procesar el archivo.', m)
+      return conn.reply(m.chat, '《✧》 Tiempo de espera agotado al procesar el archivo.', m)
     }
-    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar el archivo de MediaFire.\n> *[Detalle: ${e.message}]*`, m)
+    return conn.reply(m.chat, `> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
   } finally {
     clearTimeout(lockTimeout)
     activeDownloads.delete(lockKey)
