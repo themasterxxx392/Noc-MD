@@ -33,9 +33,9 @@ message: {
 conversation: '🎉 Obtiene un regalo 🎁'
 }}});
 };
-handler.help = ['cofre', 'coffer', 'abrircofre'];
+handler.help = ['cofre'];
 handler.tags = ['econ'];
-handler.command = ['coffer', 'cofre', 'abrircofre', 'cofreabrir'];
+handler.command = ['cofre'];
 handler.level = 9;
 
 export default handler;
