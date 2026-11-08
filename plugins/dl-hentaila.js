@@ -634,7 +634,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         return processDownload(m, conn, input, null);
     }
 
-    /    // CASO 2: Si es un link de serie (ej: https://hentaila.com/media/overflow)
+    // CASO 2: Si es un link de serie (ej: https://hentaila.com/media/overflow)
     if (/hentaila\.com\/media\/[^\/]+$/i.test(input)) {
         await m.react('🕒');
         const details = await getSeriesDetails(input);
@@ -659,32 +659,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return conn.sendMessage(m.chat, { image: { url: details.poster }, caption: txt }, { quoted: m });
         }
         return conn.reply(m.chat, txt, m);
-            }
-            
-    // CASO 3: Si es una búsqueda por texto normal (ej: overflow)
-    const queryText = input;
-    if (queryText.length < 3) {
-        return m.reply('⚠️ Por favor, ingresa al menos *3 caracteres* para realizar la búsqueda.');
     }
-
-    await m.react('🕒');
-    const results = await searchHentaiLA(queryText);
-
-    if (!results || results.length === 0) {
-        await m.react('✖️');
-        return m.reply('❌ No se encontraron resultados para tu búsqueda.');
-    }
-
-    let txt = `🔞 *HENTAILA - BÚSQUEDA: ${queryText.toUpperCase()}*\n\n`;
-    results.slice(0, 10).forEach((item, index) => {
-        txt += `*${index + 1})* ${item.title}\n> 🔗 \`${item.url}\`\n\n`;
-    });
-    txt += `> _Usa \`${usedPrefix + command} <link_serie>\` para ver sus capítulos._`;
-
-    await m.react('✔️');
-    return conn.reply(m.chat, txt, m);
-};
-
+        
+    
 handler.command = ['hentaila', 'hla'];
 handler.tags = ['downloader'];
 handler.help = ['hentaila'];
