@@ -36,6 +36,7 @@ const mimeTypes = {
 ".png": "image/png",
 }
 
+// Forzamos estrictamente que si es .mp4 se vaya como documento de tipo video/mp4
 let mimetype = fileExtension === '.mp4' ? 'video/mp4' : (mimeTypes[fileExtension] || "application/octet-stream")
 
 await conn.sendFile(m.chat, data, file.name, "", m, null, { mimetype, asDocument: true })
@@ -59,3 +60,4 @@ const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
 const i = Math.floor(Math.log(bytes) / Math.log(k))
 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
+  
