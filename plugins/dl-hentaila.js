@@ -629,12 +629,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     const input = text.trim();
 
-    // CASO 1: Si es un link de capítulo (ej: https://hentaila.com/media/overflow/1 o contiene /ver/)
+    // CASO 1: Si es un link de capítulo
     if (/hentaila\.com\/(?:media\/[^\/]+\/\d+|ver\/)/i.test(input)) {
         return processDownload(m, conn, input, null);
     }
 
-    // CASO 2: Si es un link de serie (ej: https://hentaila.com/media/overflow)
+    // CASO 2: Si es un link de serie
     if (/hentaila\.com\/media\/[^\/]+$/i.test(input)) {
         await m.react('🕒');
         const details = await getSeriesDetails(input);
@@ -646,9 +646,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         let txt = `*[🔞] ${details.title.toUpperCase()}*\n`;
         txt += `» *GÉNEROS:* \`${details.genres}\`\n\n`;
-        
+
         details.episodes.forEach((ep) => {
-            txt += `*Capítulo ${ep.num}*\n> ✐ \`${ep.url}\`\n`;
+            txt += `*Capítulo ${ep.num}*\n> ▪ \`${ep.url}\`\n`;
         });
         
         txt += `\n> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
@@ -660,8 +660,31 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
         return conn.reply(m.chat, txt, m);
     }
-        
-    
+
+    // CASO 3: Si es una búsqueda por texto normal
+    const queryText = input;
+    if (queryText.length < 3) {
+        return m.reply('⚠️ Por favor, ingresa al menos *3 caracteres* para realizar la búsqueda.');
+    }
+
+    await m.react('🕒');
+    const results = await searchHentaiLA(queryText);
+
+    if (!results || results.length === 0) {
+        await m.react('✖️');
+        return m.reply('❌ No se encontraron resultados para tu búsqueda.');
+    }
+
+    let txt = `🔞 *HENTAILA - BÚSQUEDA: ${queryText.toUpperCase()}*\n\n`;
+    results.slice(0, 10).forEach((item, index) => {
+        txt += `*${index + 1})* ${item.title}\n> ▪ \`${item.url}\`\n\n`;
+    });
+    txt += `> _Usa \`${usedPrefix + command} <link_serie>\` para ver sus capítulos._`;
+
+    await m.react('✔️');
+    return conn.reply(m.chat, txt, m);
+};
+
 handler.command = ['hentaila', 'hla'];
 handler.tags = ['downloader'];
 handler.help = ['hentaila'];
