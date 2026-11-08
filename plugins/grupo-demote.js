@@ -65,9 +65,9 @@ const handler = async (m, { conn, text, metadata }) => {
   }
 }
 
-handler.help = ['demote @usuario', 'demote responder chat', 'quitaradmin @usuario']
+handler.help = ['demote']
 handler.tags = ['group']
-handler.command = /^(demote|quitarpoder|quitaradmin)$/i
+handler.command = /^(demote)$/i
 handler.group = true
 handler.admin = true
 handler.botAdmin = true
