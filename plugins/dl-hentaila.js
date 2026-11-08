@@ -629,12 +629,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     const input = text.trim();
 
-    // CASO 1: Si es un link de capítulo
     if (/hentaila\.com\/(?:media\/[^\/]+\/\d+|ver\/)/i.test(input)) {
         return processDownload(m, conn, input, null);
     }
 
-    // CASO 2: Si es un link de serie
     if (/hentaila\.com\/media\/[^\/]+$/i.test(input)) {
         await m.react('🕒');
         const details = await getSeriesDetails(input);
@@ -662,7 +660,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         return conn.reply(m.chat, txt, m);
     }
 
-    // CASO 3: Si es una búsqueda por texto normal
     const queryText = input;
     if (queryText.length < 3) {
         return m.reply('⚠️ Por favor, ingresa al menos *3 caracteres* para realizar la búsqueda.');
