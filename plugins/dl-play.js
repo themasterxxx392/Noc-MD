@@ -63,7 +63,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     try {
       resolveRes = await axios.get(`${base}/dl/youtubeplay`, {
         params: { key, query, type: tipo, quality: 'auto' },
-        timeout: 120000
+        timeout: 150000
       })
     } catch (err) {
       throw new Error(`[paso 1/2: resolver ${tipo}] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
