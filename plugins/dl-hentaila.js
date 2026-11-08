@@ -652,11 +652,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         
         txt += `> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
         
-        details.episodes.forEach((ep) => {
-            txt += `> ❑ *Capitulo ${ep.num} ›*\n${ep.url}\n\n`;
-        });
-        
-        txt += `> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
 
         await m.react('✔️');
         
