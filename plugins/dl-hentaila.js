@@ -623,10 +623,10 @@ async function processDownload(m, conn, downloadUrlTarget, episodeNum) {
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    if (!text) {
-        return m.reply(`🔥 *Ingresa el nombre o enlace a buscar*\n\n> *Ejemplos:*\n> • \`${usedPrefix + command} overflow\`\n> • \`${usedPrefix + command} https://hentaila.com/media/overflow\`\n> • \`${usedPrefix + command} https://hentaila.com/media/overflow/1\``);
-    }
-
+        if (!text) {
+        return m.reply(`🔥 *Ingresa el nombre a buscar.*`);
+        }
+    
     const input = text.trim();
 
     if (/hentaila\.com\/(?:media\/[^\/]+\/\d+|ver\/)/i.test(input)) {
