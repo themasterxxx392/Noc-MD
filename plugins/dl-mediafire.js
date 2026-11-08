@@ -78,7 +78,23 @@ async function resolveMediafireDirect(pageUrl) {
 
   const sizeTexto = boton.text().match(/\(([\d.,]+\s*[KMGT]?B)\)/i)?.[1] || null
 
-  return { directUrl, nombre, sizeTexto }
+  // Extracción de la fecha de subida desde los detalles de MediaFire
+  let fechaSubida = null
+  $('.details-info li, .file-info li, ul.details li').each((_, el) => {
+    const texto = $(el).text()
+    if (/uploaded|subido/i.test(texto)) {
+      fechaSubida = texto.replace(/uploaded[:\s]*/i, '').replace(/subido[:\s]*/i, '').trim()
+    }
+  })
+  
+  // Respaldo alternativo buscando por clases comunes de fecha o texto plano en la página
+  if (!fechaSubida) {
+    const matchFecha = html.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}/i) ||
+                       html.match(/\d{4}-\d{2}-\d{2}/)
+    if (matchFecha) fechaSubida = matchFecha[0]
+  }
+
+  return { directUrl, nombre, sizeTexto, fechaSubida: fechaSubida || 'Desconocida' }
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -110,7 +126,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error(`[paso 1/2: leer página] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
     }
 
-    const { directUrl, nombre, sizeTexto } = page
+    const { directUrl, nombre, sizeTexto, fechaSubida } = page
 
     if (!directUrl) {
       throw new Error('[paso 1/2] No se pudo obtener el enlace directo. El archivo pudo ser eliminado o el link es inválido.')
@@ -133,6 +149,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const txt = `*[ MEDIAFIRE ]*\n\n` +
                 `> *Nombre:* ${fileName}\n` +
                 `> *Peso:* ${size ? formatBytes(size) : (sizeTexto || 'Desconocido')}\n` +
+                `> *Fecha:* ${fechaSubida}\n` +
                 `> *Tipo:* ${mimetype}\n\n` +
                 `⏳ _Descargando archivo..._`
 
@@ -174,7 +191,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
     if (real < 100) {
       await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-      return conn.reply(m.chat, '⚠️ El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de nuevo.', m)
+      return conn.reply(m.chat, '⚠️ El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de novo.', m)
     }
 
     await conn.sendMessage(m.chat, {
