@@ -12,9 +12,9 @@ await m.db.query(`UPDATE usuarios SET exp = exp + $1, lastwork = $2 WHERE id = $
   `, [xpGanado, now, m.sender]);
 await conn.reply(m.chat, `🛠 ${pickRandom(work)} *${formatNumber(xpGanado)} XP*`, m);
 };
-handler.help = ['work', 'trabajar', 'w'];
+handler.help = ['work'];
 handler.tags = ['econ'];
-handler.command = /^(work|trabajar|chambear|w|chamba)$/i;
+handler.command = /^(work|w)$/i;
 
 export default handler;
 
