@@ -642,9 +642,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return m.reply('❌ No se pudieron obtener los capítulos de esta serie.');
         }
 
-        let txt = `*[🔞] ${details.title.toUpperCase()}*\n\n`;
-txt += `❖ *GÉNEROS:* \`${details.genres}\`\n`;
-txt += `✩ *NOTA:* \`${details.synopsis}\`\n\n`;
+                let txt = `[🔞] Titulo: *${details.title.toUpperCase()}*\n`;
+        txt += `Generos: _${details.genres}_\n`;
+        txt += `Nota: _${details.synopsis}_\n\n`;
+
+        details.episodes.forEach((ep) => {
+            txt += `> ❑ *Capitulo ${ep.num} ›*\n${ep.url}\n\n`;
+        });
+        
+        txt += `> _Usa \`${usedPrefix + command} <link_capitulo>\` para descargar._`;
         
         details.episodes.forEach((ep) => {
             txt += `> ❑ *Capitulo ${ep.num} ›*\n${ep.url}\n\n`;
