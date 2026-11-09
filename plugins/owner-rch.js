@@ -1,13 +1,6 @@
 import axios from 'axios';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    // Verificación de owner (ajusta según la estructura de tu bot)
-    const isOwner = m.sender.split('@')[0] === global.owner || global.s_owner?.includes(m.sender.split('@')[0]);
-    if (!isOwner) {
-        await m.react('✖️');
-        return m.reply('❌ Este comando solo puede ser utilizado por el owner.');
-    }
-
     let args = text ? text.split('|').map(v => v.trim()) : [];
     if (args.length < 2) {
         return conn.reply(m.chat, `❖ Uso incorrecto del comando.\n\n*Ejemplo:* \`${usedPrefix + command} https://whatsapp.com/channel/... | 🤫,🤗\``, m);
