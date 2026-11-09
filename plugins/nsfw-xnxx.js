@@ -172,7 +172,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['xnxx <búsqueda>', 'xnxx <link>']
+handler.help = ['xnxx']
 handler.tags = ['nsfw']
 handler.command = ['xnxx']
 
