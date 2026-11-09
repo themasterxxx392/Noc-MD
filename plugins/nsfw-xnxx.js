@@ -54,13 +54,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         throw new Error('No se encontraron resultados.')
       }
 
-      let txt = `> ❖ Búsqueda › ${recortar(input, 40)}\n\n`
+      let txt = ''
       lista.forEach((v, i) => {
-        txt += `➭ *${i + 1}.* ${recortar(v.title)}\n`
-        txt += `  · Duración: ${v.duration || '-'} · Vistas: ${v.views || '0'}\n`
-        txt += `  · \`${v.url}\`\n\n`
+        txt += `*[${i + 1}] ${recortar(v.title)}*\n`
+        txt += `> ${v.duration || '-'} | ${v.views || '0'} vistas\n`
+        txt += `> \`${v.url}\`\n\n`
       })
-      txt += `> ✩ _Usa \`${usedPrefix + command} <link>\` para descargar._`
+      txt += `> _Usa \`${usedPrefix + command} <link>\` para descargar._`
 
       await conn.reply(m.chat, txt, m)
       await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
