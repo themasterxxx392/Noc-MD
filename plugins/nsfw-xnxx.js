@@ -54,7 +54,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         throw new Error('No se encontraron resultados.')
       }
 
-      let txt = `*[🔞] XNXX*\n> ❖ Búsqueda › ${recortar(input, 40)}\n\n`
+      let txt = `> ❖ Búsqueda › ${recortar(input, 40)}\n\n`
       lista.forEach((v, i) => {
         txt += `*[${i + 1}] ${recortar(v.title)}*\n`
         txt += `> ❒ ${v.duration || '-'} | ${v.views || '0'} vistas | ${v.resolution || '-'}\n`
@@ -108,20 +108,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error('Este contenido no está permitido.')
     }
 
-    const duracion = String(info.duration || '').split('\n').pop().trim() || '-'
-
-    const txt = `*[🔞] XNXX*\n\n` +
-                `> ❒ *Título:* ${recortar(info.title, 100)}\n` +
-                `> ❒ *Duración:* ${duracion}\n` +
-                `> ❒ *Calidad:* ${info.quality || '-'}\n\n` +
-                `⏳ _Descargando video..._`
-
-    const portada = info.gallery?.default || info.gallery?.thumb
-    if (portada) {
-      await conn.sendMessage(m.chat, { image: { url: portada }, caption: txt }, { quoted: m }).catch(() => conn.reply(m.chat, txt, m))
-    } else {
-      await conn.reply(m.chat, txt, m)
-    }
+    const nombreArchivo = (String(info.title || 'video').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'video') + '.mp4'
 
     tmpPath = path.join(os.tmpdir(), `xnxx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.mp4`)
 
@@ -160,8 +147,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     }
 
     await conn.sendMessage(m.chat, {
-      video: { url: tmpPath },
-      mimetype: 'video/mp4'
+      document: { url: tmpPath },
+      mimetype: 'video/mp4',
+      fileName: nombreArchivo
     }, { quoted: m })
 
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
