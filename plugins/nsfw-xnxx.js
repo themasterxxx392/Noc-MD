@@ -57,7 +57,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       let txt = ''
       lista.forEach((v, i) => {
         txt += `*[${i + 1}] ${recortar(v.title)}*\n`
-        txt += `> ${v.ⴵduration || '-'} | ${v.views || '0'} vistas\n`
+        txt += `> ⴵ ${v.duration || '-'} | ${v.views || '0'} vistas\n`
         txt += `> \`${v.url}\`\n\n`
       })
       txt += `> _Usa \`${usedPrefix + command} <link>\` para descargar._`
