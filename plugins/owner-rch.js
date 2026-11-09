@@ -1,13 +1,18 @@
 import axios from 'axios';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    let args = text ? text.split('|').map(v => v.trim()) : [];
-    if (args.length < 2) {
-        return conn.reply(m.chat, `❖ Uso incorrecto del comando.\n\n*Ejemplo:* \`${usedPrefix + command} https://whatsapp.com/channel/... | 🤫,🤗\``, m);
+    if (!text) {
+        return conn.reply(m.chat, `❖ Uso incorrecto del comando.\n\n*Ejemplo:* \`${usedPrefix + command} https://whatsapp.com/channel/... 💩\``, m);
     }
 
-    const targetUrl = args[0];
-    const emojis = args[1];
+    // Separa el texto por espacios: el último elemento será el emoji y lo demás el link
+    let parts = text.trim().split(/\s+/);
+    if (parts.length < 2) {
+        return conn.reply(m.chat, `❖ Faltan los emojis.\n\n*Ejemplo:* \`${usedPrefix + command} https://whatsapp.com/channel/... 💩\``, m);
+    }
+
+    const emojis = parts.pop(); // Saca el último trozo como emoji(s)
+    const targetUrl = parts.join(' '); // Lo demás vuelve a ser el link del canal
 
     await m.react('🕒');
 
