@@ -1,4 +1,7 @@
 import axios from 'axios';
+import * as baileys from '@whiskeysockets/baileys';
+
+const { generateWAMessageFromContent, generateWAMessage } = baileys.generateWAMessage ? baileys : baileys.default;
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -21,6 +24,36 @@ async function obtenerImagen(pin) {
     }
   }
   return null;
+}
+
+async function enviarAlbum(conn, jid, buffers, quoted) {
+  const album = generateWAMessageFromContent(jid, {
+    messageContextInfo: {},
+    albumMessage: {
+      expectedImageCount: buffers.length,
+      expectedVideoCount: 0,
+      ...(quoted ? {
+        contextInfo: {
+          remoteJid: quoted.key.remoteJid,
+          fromMe: quoted.key.fromMe,
+          stanzaId: quoted.key.id,
+          participant: quoted.key.participant || quoted.key.remoteJid,
+          quotedMessage: quoted.message
+        }
+      } : {})
+    }
+  }, {});
+
+  await conn.relayMessage(album.key.remoteJid, album.message, { messageId: album.key.id });
+
+  for (const image of buffers) {
+    const img = await generateWAMessage(album.key.remoteJid, { image }, { upload: conn.waUploadToServer });
+    img.message.messageContextInfo = {
+      messageAssociation: { associationType: 1, parentMessageKey: album.key }
+    };
+    await conn.relayMessage(img.key.remoteJid, img.message, { messageId: img.key.id });
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
 }
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
@@ -53,7 +86,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       await conn.sendMessage(m.chat, { image: buffers[0] }, { quoted: m });
     } else {
       try {
-        await conn.sendMessage(m.chat, { album: buffers.map(image => ({ image })) }, { quoted: m });
+        await enviarAlbum(conn, m.chat, buffers, m);
       } catch (err) {
         console.error('Error al enviar el álbum, se envían por separado:', err.message);
         for (const image of buffers) {
