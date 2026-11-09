@@ -10,6 +10,19 @@ async function descargar(url) {
   return Buffer.from(r.data);
 }
 
+async function obtenerImagen(pin) {
+  for (const imgUrl of [pin?.hd, pin?.mini]) {
+    if (!imgUrl) continue;
+    try {
+      const buffer = await descargar(imgUrl);
+      if (buffer.length > 1000) return buffer;
+    } catch (err) {
+      console.error(`Error al descargar imagen (${imgUrl}):`, err.message);
+    }
+  }
+  return null;
+}
+
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
     return conn.reply(m.chat, `✿ Ingresa qué quieres buscar en Pinterest.\n\n*Ejemplo:* \`${usedPrefix + command} rem re zero\``, m);
@@ -30,44 +43,24 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       throw new Error('No se encontraron imágenes en Pinterest.');
     }
 
-    let selectedPins = pins.slice(0, 10);
-    let sentCount = 0;
+    const buffers = (await Promise.all(pins.slice(0, 10).map(obtenerImagen))).filter(Boolean);
 
-    for (let i = 0; i < selectedPins.length; i++) {
-      let pin = selectedPins[i];
-      let buffer = null;
-
-      for (let imgUrl of [pin?.hd, pin?.mini]) {
-        if (!imgUrl) continue;
-        try {
-          buffer = await descargar(imgUrl);
-          if (buffer.length > 1000) break;
-          buffer = null;
-        } catch (err) {
-          console.error(`Error al descargar imagen ${i} (${imgUrl}):`, err.message);
-        }
-      }
-
-      if (!buffer) continue;
-
-      try {
-        await conn.sendMessage(m.chat, {
-          image: buffer,
-          caption: ''
-        }, { quoted: m });
-
-        sentCount++;
-
-        if (i < selectedPins.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      } catch (err) {
-        console.error(`Error al enviar imagen ${i}:`, err.message);
-      }
+    if (!buffers.length) {
+      throw new Error('No se pudo procesar ninguna imagen.');
     }
 
-    if (sentCount === 0) {
-      throw new Error('No se pudo procesar ninguna imagen.');
+    if (buffers.length === 1) {
+      await conn.sendMessage(m.chat, { image: buffers[0] }, { quoted: m });
+    } else {
+      try {
+        await conn.sendMessage(m.chat, { album: buffers.map(image => ({ image })) }, { quoted: m });
+      } catch (err) {
+        console.error('Error al enviar el álbum, se envían por separado:', err.message);
+        for (const image of buffers) {
+          await conn.sendMessage(m.chat, { image }, { quoted: m });
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
     }
 
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } });
@@ -79,7 +72,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 };
 
-handler.help = ['pin <texto>'];
+handler.help = ['pin'];
 handler.tags = ['buscadores'];
 handler.command = ['pin', 'pinterest'];
 
