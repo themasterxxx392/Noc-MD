@@ -51,6 +51,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 handler.help = ['rch'];
 handler.tags = ['owner'];
 handler.command = ['rch'];
-handler.rowner = true;
+handler.owner = true;
 
 export default handler;
