@@ -51,7 +51,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const input = text?.trim()
 
   if (!input) {
-    return conn.reply(m.chat, `Ingresa lo que deseas buscar en XVideos.`, m)
+    return conn.reply(m.chat, `✿ Ingresa lo que deseas buscar en XVideos.`, m)
   }
 
   const primero = input.split(/\s+/)[0]
