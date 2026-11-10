@@ -72,8 +72,8 @@ return m.reply(link);
 console.error(e);
 throw '❌ Error al subir el archivo. Intenta con otra opción:\n' + Object.keys(services).concat(["skyultra"]).map(v => `➔ ${usedPrefix}${command} ${v}`).join('\n');
 }};
-handler.help = ['tourl <opcional servicio>'];
-handler.tags = ['convertidor'];
+handler.help = ['tourl'];
+handler.tags = ['tools"];
 handler.command = /^(upload|tourl)$/i;
 
 export default handler;
