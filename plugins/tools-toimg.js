@@ -10,8 +10,8 @@ const media = await q.download();
 const out = await webp2png(media).catch(() => null) || Buffer.alloc(0);
 await conn.sendFile(m.chat, out, 'sticker.png', null, m);
 };
-handler.help = ['toimg (reply)'];
-handler.tags = ['convertidor'];
-handler.command = ['toimg', 'jpg', 'img'];
+handler.help = ['toimg'];
+handler.tags = ['tools'];
+handler.command = ['toimg'];
 
 export default handler;
