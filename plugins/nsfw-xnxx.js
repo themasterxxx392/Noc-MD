@@ -24,7 +24,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const input = text?.trim()
 
   if (!input) {
-    return conn.reply(m.chat, `❖ Ingresa una búsqueda o un enlace.\n\n*Ejemplos:*\n\`${usedPrefix + command} anime\`\n\`${usedPrefix + command} https://www.xnxx.com/video-xxxxx/titulo\``, m)
+    return conn.reply(m.chat, `❖ Ingresa lo que deseas buscar en XNXX.`, m)
   }
 
   const primero = input.split(/\s+/)[0]
@@ -48,7 +48,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
       let txt = ''
       lista.forEach((v, i) => {
-        // Separar la duración (ej. "11min" -> "11 min")
         let duracion = v.duration ? String(v.duration).replace(/min/gi, ' min').replace(/\s+/g, ' ').trim() : '-'
 
         txt += `*[${i + 1}] ${recortar(v.title)}*\n`
