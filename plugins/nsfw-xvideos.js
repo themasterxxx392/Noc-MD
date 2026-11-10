@@ -9,10 +9,6 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
-const BLOQUEADOS = ['loli', 'lolicon', 'shota', 'shotacon', 'child', 'children', 'kid', 'kids', 'toddler', 'underage', 'preteen', 'minor', 'jailbait', 'niña', 'niñas', 'niño', 'niños', 'infantil', 'menor de edad']
-const REGEX_BLOQUEO = BLOQUEADOS.map(w => new RegExp(`(^|[^a-záéíóúñ0-9])${w}([^a-záéíóúñ0-9]|$)`, 'i'))
-const bloqueado = (txt = '') => REGEX_BLOQUEO.some(r => r.test(String(txt)))
-
 const ES_LINK = /^https?:\/\/(www\.)?xvideos\d*\.(com|es)\/video/i
 
 const recortar = (txt = '', max = 70) => {
@@ -61,10 +57,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const primero = input.split(/\s+/)[0]
 
   if (!ES_LINK.test(primero)) {
-    if (bloqueado(input)) {
-      return conn.reply(m.chat, '⚠️ Esa búsqueda no está permitida.', m)
-    }
-
     await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
     try {
@@ -74,7 +66,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       })
 
       const lista = (Array.isArray(res?.resultados) ? res.resultados : [])
-        .filter(v => v?.url && !bloqueado(v.title))
+        .filter(v => v?.url)
         .slice(0, 10)
 
       if (!res?.status || !lista.length) {
@@ -83,8 +75,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
       let txt = ''
       lista.forEach((v, i) => {
+        // Separar la duración (ej. "11min" -> "11 min")
+        let duracion = v.duration ? String(v.duration).replace(/min/gi, ' min').replace(/\s+/g, ' ').trim() : '-'
+
         txt += `*[${i + 1}] ${recortar(v.title)}*\n`
-        txt += `> ⴵ ${v.duration || '-'} | ${v.artist || 'Desconocido'}\n`
+        txt += `> ${duracion} | ${v.artist || 'Desconocido'}\n`
         txt += `> \`${v.url}\`\n\n`
       })
       txt += `> _Usa \`${usedPrefix + command} <link>\` para descargar._`
@@ -97,10 +92,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       return conn.reply(m.chat, `> ✿︎ Ocurrió un error al buscar.\n> *[Detalle: ${e.message}]*`, m)
     }
     return
-  }
-
-  if (bloqueado(primero)) {
-    return conn.reply(m.chat, '⚠️ Este contenido no está permitido.', m)
   }
 
   const lockKey = `${m.chat}:${primero}`
@@ -130,10 +121,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     if (!fileUrl) {
       console.error('[xvideos] respuesta inesperada de la API:', JSON.stringify(res).slice(0, 800))
       throw new Error('[paso 1/2] La API no devolvió el video.')
-    }
-
-    if (bloqueado(titulo)) {
-      throw new Error('Este contenido no está permitido.')
     }
 
     const nombreArchivo = (String(titulo || 'video').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'video') + '.mp4'
