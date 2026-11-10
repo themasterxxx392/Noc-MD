@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import { pipeline } from 'stream/promises'
 
-const MAX_SIZE = 1024 * 1024 * 1024
+const MAX_SIZE = 1024 * 1024 * 300
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
