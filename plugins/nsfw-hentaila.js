@@ -685,7 +685,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 };
 
 handler.command = ['hentaila', 'hla'];
-handler.tags = ['downloader'];
+handler.tags = ['nsfw'];
 handler.help = ['hentaila'];
 
 export default handler;
