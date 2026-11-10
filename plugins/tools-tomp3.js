@@ -11,6 +11,6 @@ if (!audio.data) throw '*⚠️ 𝐓𝐑𝐄𝐌𝐄𝐍𝐃𝐎 ¿𝐍𝐨 𝐬
 conn.sendMessage(m.chat, { audio: audio.data, mimetype: 'audio/mpeg' }, { quoted: m });
 };
 handler.help = ['tomp3'];
-handler.tags = ['convertidor']
+handler.tags = ['tools']
 handler.command = /^to(mp3|audio)$/i;
 export default handler;
