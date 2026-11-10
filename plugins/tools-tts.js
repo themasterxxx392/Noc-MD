@@ -37,8 +37,8 @@ fs.unlinkSync(wav); fs.unlinkSync(ogg)
 } catch (e) {
 m.reply("❌ Error: " + e.message)
 }}
-handler.help = ["tts <voz|idioma> <texto>"]
-handler.tags = ["convertidor"]
+handler.help = ["tts"]
+handler.tags = ["tools"]
 handler.command = /^g?tts$/i
 
 export default handler
