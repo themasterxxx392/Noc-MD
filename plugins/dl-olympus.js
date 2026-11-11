@@ -16,18 +16,6 @@ async function loadPdfLib() {
     }
 }
 
-async function loadSharp() {
-    try {
-        const sharpModule = await import('sharp');
-        return sharpModule.default;
-    } catch {
-        console.log('⚙️ Instalando sharp...');
-        execSync('npm install sharp', { stdio: 'inherit' });
-        const sharpModule = await import('sharp');
-        return sharpModule.default;
-    }
-}
-
 const HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Referer': 'https://olympusxyz.com/'
@@ -36,7 +24,6 @@ const HEADERS = {
 async function getChapterData(url, chapterNumber) {
     let targetUrl = url;
 
-    // Si pasaron la URL de la serie, buscamos el enlace real del capítulo desde la web
     if (targetUrl.includes('/series/') && !targetUrl.includes('/capitulo/')) {
         targetUrl = targetUrl.replace(/\/+$/, '');
         const { data: html } = await axios.get(targetUrl, { headers: HEADERS, timeout: 30000 });
@@ -44,12 +31,10 @@ async function getChapterData(url, chapterNumber) {
 
         let foundChapterUrl = null;
         
-        // Buscamos en todos los enlaces de la página de la serie el que coincida con el capítulo buscado
         $('a').each((_, el) => {
             const href = $(el).attr('href') || '';
             const text = $(el).text().trim();
             
-            // Comprobamos si el enlace pertenece a un capítulo y coincide con el número exacto
             if (href.includes('/capitulo/')) {
                 const matchNum = text.match(new RegExp(`^${chapterNumber}$`, 'i')) || href.match(new RegExp(`[/-]${chapterNumber}$`));
                 if (matchNum || text.includes(`Capítulo ${chapterNumber}`) || text.includes(`Cap ${chapterNumber}`)) {
@@ -58,7 +43,6 @@ async function getChapterData(url, chapterNumber) {
             }
         });
 
-        // Si no lo hallamos por texto exacto, buscamos cualquier enlace que termine con /capitulo/[numero]
         if (!foundChapterUrl) {
             $('a').each((_, el) => {
                 const href = $(el).attr('href') || '';
@@ -68,7 +52,6 @@ async function getChapterData(url, chapterNumber) {
             });
         }
 
-        // Respaldo por defecto: construcción directa si la estructura se mantiene limpia
         if (!foundChapterUrl) {
             foundChapterUrl = `${targetUrl}/capitulo/${chapterNumber}`;
         }
@@ -90,7 +73,6 @@ async function getChapterData(url, chapterNumber) {
 
     let imageUrls = [];
     
-    // Método 1: Leer desde el JSON de Inertia (#app data-page)
     const dataPageAttr = $('#app').attr('data-page');
     if (dataPageAttr) {
         try {
@@ -108,7 +90,6 @@ async function getChapterData(url, chapterNumber) {
         }
     }
 
-    // Método 2: Respaldo buscando etiquetas <img> directamente en el DOM
     if (imageUrls.length === 0) {
         $('img').each((_, el) => {
             const src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-lazy-src');
@@ -130,38 +111,14 @@ async function getChapterData(url, chapterNumber) {
 
 async function fetchImageBuffer(url) {
     const res = await axios.get(url, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
-    return Buffer.from(res.data);
-}
-
-function getAdaptiveSettings(totalMb) {
-    if (totalMb <= 12) {
-        return { scale: 1.25, quality: 95 };
-    } else if (totalMb <= 25) {
-        return { scale: 1.22, quality: 94 };
-    } else if (totalMb <= 45) {
-        return { scale: 1.18, quality: 92 };
-    } else {
-        return { scale: 1.15, quality: 90 };
+    const buffer = Buffer.from(res.data);
+    
+    // Detectamos si es formato PNG o JPG basándonos en sus magic bytes
+    let isJpg = true;
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+        isJpg = false;
     }
-}
-
-async function processImage(buffer, settings, sharp) {
-    const img = sharp(buffer);
-    const meta = await img.metadata();
-
-    const targetWidth = meta.width ? Math.round(meta.width * settings.scale) : null;
-
-    let pipeline = img;
-    if (targetWidth) {
-        pipeline = pipeline.resize({ width: targetWidth, kernel: 'lanczos3' });
-    }
-
-    const enhancedBuffer = await pipeline
-        .sharpen({ sigma: 0.8, m1: 0.5, m2: 1.2 })
-        .jpeg({ quality: settings.quality })
-        .toBuffer();
-
-    return { buffer: enhancedBuffer, isJpg: true };
+    return { buffer, isJpg };
 }
 
 async function mapWithConcurrency(items, limit, mapper) {
@@ -187,7 +144,7 @@ async function mapWithConcurrency(items, limit, mapper) {
 
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de la serie o del capítulo en Olympus.*\n\n📌 Ejemplo: .${command} https://olympusxyz.com/series/nombre-serie 1\n📌 O enlace directo: .${command} https://olympusxyz.com/series/nombre-serie/capitulo/1`);
+        return m.reply(`❌ *Ingresa un enlace de la serie o del capítulo en Olympus.*\n\n📌 Ejemplo: .${command} https://olympusxyz.com/series/nombre-serie 1`);
     }
 
     const url = args[0];
@@ -212,7 +169,7 @@ let handler = async (m, { conn, args, command }) => {
     }
 
     try {
-        const [PDFDocument, sharp] = await Promise.all([loadPdfLib(), loadSharp()]);
+        const PDFDocument = await loadPdfLib();
         
         await m.reply(`🔍 Buscando capítulo *${targetChapterNumber}*... Esto puede tomar unos segundos.`);
         
@@ -222,24 +179,32 @@ let handler = async (m, { conn, args, command }) => {
             return m.reply('❌ No se encontraron imágenes en el capítulo. Verifica que el número de capítulo exista.');
         }
 
-        await m.reply(`📸 *${title}*\nDescargando *${images.length}* imágenes...`);
+        await m.reply(`📸 *${title}*\nDescargando *${images.length}* imágenes originales...`);
 
-        const rawBuffers = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl));
-        const validBuffers = rawBuffers.filter(Boolean);
+        const rawResults = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl));
+        const validResults = rawResults.filter(Boolean);
 
-        const totalBytes = validBuffers.reduce((acc, buf) => acc + buf.length, 0);
+        const totalBytes = validResults.reduce((acc, res) => acc + res.buffer.length, 0);
         const totalMb = totalBytes / (1024 * 1024);
-
-        const settings = getAdaptiveSettings(totalMb);
-        const processed = await mapWithConcurrency(validBuffers, CONCURRENCY, (buf) => processImage(buf, settings, sharp));
 
         const pdfDoc = await PDFDocument.create();
         let successCount = 0;
 
-        for (const result of processed) {
+        for (const result of validResults) {
             if (!result) continue;
             const { buffer, isJpg } = result;
-            const image = isJpg ? await pdfDoc.embedJpg(buffer) : await pdfDoc.embedPng(buffer);
+            
+            let image;
+            try {
+                image = isJpg ? await pdfDoc.embedJpg(buffer) : await pdfDoc.embedPng(buffer);
+            } catch {
+                // Si falla el formato detectado, intentamos forzar embedJpg como fallback por seguridad
+                try {
+                    image = await pdfDoc.embedJpg(buffer);
+                } catch {
+                    continue;
+                }
+            }
 
             const page = pdfDoc.addPage([image.width, image.height]);
             page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
@@ -257,7 +222,7 @@ let handler = async (m, { conn, args, command }) => {
             document: Buffer.from(pdfBytes),
             mimetype: 'application/pdf',
             fileName: `${safeFileName}.pdf`,
-            caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n📊 *Peso inicial:* ${totalMb.toFixed(1)} MB\n🌐 *Fuente:* Olympus`
+            caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n📊 *Peso:* ${totalMb.toFixed(1)} MB\n🌐 *Fuente:* Olympus`
         }, { quoted: m });
 
     } catch (error) {
