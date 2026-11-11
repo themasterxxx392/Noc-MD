@@ -3,7 +3,6 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 const CONCURRENCY = 6;
-const MAX_WALK_STEPS = 600;
 
 async function loadPdfLib() {
     try {
@@ -34,36 +33,47 @@ const HEADERS = {
     'Referer': 'https://olympusxyz.com/'
 };
 
-async function fetchChapterNav(url) {
-    const { data: html } = await axios.get(url, { headers: HEADERS, timeout: 30000 });
-    const $ = cheerio.load(html);
-
-    const titleTag = $('title').first().text() || '';
-    const numMatch = titleTag.match(/Cap[ií]tulo\s+(\d+(?:\.\d+)?)/i);
-    const number = numMatch ? parseFloat(numMatch[1]) : null;
-
-    const slugMatch = url.match(/\/capitulo\/(\d+)/);
-    const currentSlug = slugMatch ? slugMatch[1] : null;
-
-    const toAbs = (href) => href ? (href.startsWith('http') ? href : `https://olympusxyz.com${href}`) : null;
-
-    return {
-        url,
-        number,
-        slug: currentSlug,
-        nextUrl: toAbs($('a[title="capitulo siguiente"], a:has(span:contains("Siguiente")), a.next').attr('href')),
-        prevUrl: toAbs($('a[title="capitulo anterior"], a:has(span:contains("Anterior")), a.prev').attr('href'))
-    };
-}
-
 async function getChapterData(url, chapterNumber) {
     let targetUrl = url;
 
-    // Si es un enlace de serie, armamos la URL directa del capítulo inteligentemente
-    if (targetUrl.includes('/series/')) {
-        // Limpiamos barras finales si las tuviera
+    // Si pasaron la URL de la serie, buscamos el enlace real del capítulo desde la web
+    if (targetUrl.includes('/series/') && !targetUrl.includes('/capitulo/')) {
         targetUrl = targetUrl.replace(/\/+$/, '');
-        targetUrl = `${targetUrl}/capitulo/${chapterNumber}`;
+        const { data: html } = await axios.get(targetUrl, { headers: HEADERS, timeout: 30000 });
+        const $ = cheerio.load(html);
+
+        let foundChapterUrl = null;
+        
+        // Buscamos en todos los enlaces de la página de la serie el que coincida con el capítulo buscado
+        $('a').each((_, el) => {
+            const href = $(el).attr('href') || '';
+            const text = $(el).text().trim();
+            
+            // Comprobamos si el enlace pertenece a un capítulo y coincide con el número exacto
+            if (href.includes('/capitulo/')) {
+                const matchNum = text.match(new RegExp(`^${chapterNumber}$`, 'i')) || href.match(new RegExp(`[/-]${chapterNumber}$`));
+                if (matchNum || text.includes(`Capítulo ${chapterNumber}`) || text.includes(`Cap ${chapterNumber}`)) {
+                    foundChapterUrl = href;
+                }
+            }
+        });
+
+        // Si no lo hallamos por texto exacto, buscamos cualquier enlace que termine con /capitulo/[numero]
+        if (!foundChapterUrl) {
+            $('a').each((_, el) => {
+                const href = $(el).attr('href') || '';
+                if (href.match(new RegExp(`/capitulo/${chapterNumber}(?:/|$)`))) {
+                    foundChapterUrl = href;
+                }
+            });
+        }
+
+        // Respaldo por defecto: construcción directa si la estructura se mantiene limpia
+        if (!foundChapterUrl) {
+            foundChapterUrl = `${targetUrl}/capitulo/${chapterNumber}`;
+        }
+
+        targetUrl = foundChapterUrl.startsWith('http') ? foundChapterUrl : `https://olympusxyz.com${foundChapterUrl}`;
     }
 
     const { data: html } = await axios.get(targetUrl, { headers: HEADERS, timeout: 30000 });
@@ -177,7 +187,7 @@ async function mapWithConcurrency(items, limit, mapper) {
 
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de la serie o del capítulo en Olympus.*\n\n📌 Ejemplo con serie: .${command} https://olympusxyz.com/series/nombre-serie 1\n📌 Ejemplo con enlace directo: .${command} https://olympusxyz.com/series/nombre-serie/capitulo/1`);
+        return m.reply(`❌ *Ingresa un enlace de la serie o del capítulo en Olympus.*\n\n📌 Ejemplo: .${command} https://olympusxyz.com/series/nombre-serie 1\n📌 O enlace directo: .${command} https://olympusxyz.com/series/nombre-serie/capitulo/1`);
     }
 
     const url = args[0];
@@ -187,15 +197,10 @@ let handler = async (m, { conn, args, command }) => {
 
     const chapterArg = args[1] ? args[1].trim() : undefined;
 
-    // Si pasaron la URL de la serie pero olvidaron poner el número del capítulo
     if (url.includes('/series/') && !url.includes('/capitulo/') && !chapterArg) {
-        return m.reply(`⚠️ *Falta el número del capítulo.*
-
-📌 *Ejemplo:*
-.${command} ${url} 1`);
+        return m.reply(`⚠️ *Falta el número del capítulo.*\n\n📌 *Ejemplo:* .${command} ${url} 1`);
     }
 
-    // Determinamos el número de capítulo final a descargar
     let targetChapterNumber = chapterArg;
     if (url.includes('/capitulo/')) {
         const matchCap = url.match(/\/capitulo\/(\d+(?:\.\d+)?)/);
