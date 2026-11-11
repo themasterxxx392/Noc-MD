@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 const CONCURRENCY = 6;
+const MAX_WALK_STEPS = 600;
 
 async function loadPdfLib() {
     try {
@@ -33,42 +34,35 @@ const HEADERS = {
     'Referer': 'https://olympusxyz.com/'
 };
 
+async function fetchChapterNav(url) {
+    const { data: html } = await axios.get(url, { headers: HEADERS, timeout: 30000 });
+    const $ = cheerio.load(html);
+
+    const titleTag = $('title').first().text() || '';
+    const numMatch = titleTag.match(/Cap[ií]tulo\s+(\d+(?:\.\d+)?)/i);
+    const number = numMatch ? parseFloat(numMatch[1]) : null;
+
+    const slugMatch = url.match(/\/capitulo\/([^/?]+)/);
+    const currentSlug = slugMatch ? slugMatch[1] : null;
+
+    const toAbs = (href) => href ? (href.startsWith('http') ? href : `https://olympusxyz.com${href}`) : null;
+
+    return {
+        url,
+        number,
+        slug: currentSlug,
+        nextUrl: toAbs($('a[title="capitulo siguiente"], a:has(span:contains("Siguiente")), a.next').attr('href')),
+        prevUrl: toAbs($('a[title="capitulo anterior"], a:has(span:contains("Anterior")), a.prev').attr('href'))
+    };
+}
+
 async function getChapterData(url, chapterNumber) {
     let targetUrl = url;
 
+    // Si es la URL de la serie, construimos la ruta directa del capítulo limpiamente
     if (targetUrl.includes('/series/') && !targetUrl.includes('/capitulo/')) {
         targetUrl = targetUrl.replace(/\/+$/, '');
-        const { data: html } = await axios.get(targetUrl, { headers: HEADERS, timeout: 30000 });
-        const $ = cheerio.load(html);
-
-        let foundChapterUrl = null;
-        
-        $('a').each((_, el) => {
-            const href = $(el).attr('href') || '';
-            const text = $(el).text().trim();
-            
-            if (href.includes('/capitulo/')) {
-                const matchNum = text.match(new RegExp(`^${chapterNumber}$`, 'i')) || href.match(new RegExp(`[/-]${chapterNumber}$`));
-                if (matchNum || text.includes(`Capítulo ${chapterNumber}`) || text.includes(`Cap ${chapterNumber}`)) {
-                    foundChapterUrl = href;
-                }
-            }
-        });
-
-        if (!foundChapterUrl) {
-            $('a').each((_, el) => {
-                const href = $(el).attr('href') || '';
-                if (href.match(new RegExp(`/capitulo/${chapterNumber}(?:/|$)`))) {
-                    foundChapterUrl = href;
-                }
-            });
-        }
-
-        if (!foundChapterUrl) {
-            foundChapterUrl = `${targetUrl}/capitulo/${chapterNumber}`;
-        }
-
-        targetUrl = foundChapterUrl.startsWith('http') ? foundChapterUrl : `https://olympusxyz.com${foundChapterUrl}`;
+        targetUrl = `${targetUrl}/capitulo/${chapterNumber}`;
     }
 
     const { data: html } = await axios.get(targetUrl, { headers: HEADERS, timeout: 30000 });
@@ -84,8 +78,8 @@ async function getChapterData(url, chapterNumber) {
     }
 
     let imageUrls = [];
-    
     const dataPageAttr = $('#app').attr('data-page');
+
     if (dataPageAttr) {
         try {
             const parsed = JSON.parse(dataPageAttr);
@@ -121,16 +115,32 @@ async function getChapterData(url, chapterNumber) {
     return { title, images: cleanUrls };
 }
 
-async function fetchImageBuffer(url, sharp) {
-    const res = await axios.get(url, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
-    const rawBuffer = Buffer.from(res.data);
-    
-    // Convertimos cualquier formato (WebP, PNG, etc.) a JPG puro sin alterar escala ni nitidez
-    const jpgBuffer = await sharp(rawBuffer)
-        .jpeg({ quality: 90 })
+// CORTA LOS BORDES DEFECTUOSOS QUE VIENEN EN LA IMAGEN ORIGINAL
+async function processImage(imageUrl, sharp) {
+    const res = await axios.get(imageUrl, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
+    const buffer = Buffer.from(res.data);
+
+    const img = sharp(buffer);
+    const meta = await img.metadata();
+
+    // Recortamos 8 píxeles arriba y 8 abajo para erradicar la línea incrustada de la web
+    const CROP = 8; 
+    let pipeline = img;
+
+    if (meta.width && meta.height && meta.height > (CROP * 2)) {
+        pipeline = pipeline.extract({
+            left: 0,
+            top: CROP,
+            width: meta.width,
+            height: meta.height - (CROP * 2)
+        });
+    }
+
+    const cleanBuffer = await pipeline
+        .jpeg({ quality: 92, force: true })
         .toBuffer();
-        
-    return jpgBuffer;
+
+    return { buffer: cleanBuffer };
 }
 
 async function mapWithConcurrency(items, limit, mapper) {
@@ -154,9 +164,24 @@ async function mapWithConcurrency(items, limit, mapper) {
     return results;
 }
 
+async function listAllChapterNumbers(firstUrl, cap) {
+    const numbers = [];
+    let info = await fetchChapterNav(firstUrl).catch(() => null);
+    let steps = 0;
+
+    while (info && info.number !== null && steps < cap) {
+        numbers.push(info.number);
+        if (!info.nextUrl) break;
+        info = await fetchChapterNav(info.nextUrl).catch(() => null);
+        steps++;
+    }
+
+    return numbers;
+}
+
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de la serie o del capítulo en Olympus.*\n\n📌 Ejemplo: .${command} https://olympusxyz.com/series/nombre-serie 1`);
+        return m.reply(`❌ *Ingresa un enlace de Olympus.*\n\n📌 Ejemplo serie + N° de capítulo: .${command} https://olympusxyz.com/series/... 13\n📌 Ver cuántos capítulos tiene: .${command} https://olympusxyz.com/series/... info`);
     }
 
     const url = args[0];
@@ -167,7 +192,54 @@ let handler = async (m, { conn, args, command }) => {
     const chapterArg = args[1] ? args[1].trim() : undefined;
 
     if (url.includes('/series/') && !url.includes('/capitulo/') && !chapterArg) {
-        return m.reply(`⚠️ *Falta el número del capítulo.*\n\n📌 *Ejemplo:* .${command} ${url} 1`);
+        return m.reply(`⚠️ *Falta el número del capítulo.*
+
+📌 *Ejemplo para descargar:*
+.${command} ${url} 1
+
+📌 *O si quieres ver la lista/total de capítulos:*
+.${command} ${url} info`);
+    }
+
+    if (chapterArg && chapterArg.toLowerCase() === 'info') {
+        try {
+            const { data: html } = await axios.get(url, { headers: HEADERS, timeout: 30000 });
+            const $ = cheerio.load(html);
+            const pageTitle = $('title').first().text() || '';
+            const nameMatch = pageTitle.match(/^(.+?)\s*\|\s*Olympus/i);
+            const seriesName = nameMatch ? nameMatch[1].trim() : 'Esta serie';
+            const totalMatch = html.match(/(\d+)\s*cap[ií]tulos?\s*en\s*total/i);
+
+            if (!totalMatch) {
+                return m.reply(`❌ No se pudo determinar el total de capítulos de ${seriesName}.`);
+            }
+            const total = parseInt(totalMatch[1], 10);
+
+            let firstChapterLink = null;
+            $('a').each((_, el) => {
+                const href = $(el).attr('href') || '';
+                if (!firstChapterLink && href.includes('/capitulo/')) {
+                    firstChapterLink = href;
+                }
+            });
+
+            let listText = '';
+            if (firstChapterLink) {
+                if (total > 30) {
+                    await m.reply('⏳ Son varios capítulos, esto puede tardar un poco...');
+                }
+                const firstChapterUrl = firstChapterLink.startsWith('http') ? firstChapterLink : `https://olympusxyz.com${firstChapterLink}`;
+                const numbers = await listAllChapterNumbers(firstChapterUrl, total + 10);
+                if (numbers.length > 0) {
+                    listText = `\n\n${numbers.join(', ')}`;
+                }
+            }
+
+            return m.reply(`📚 *${seriesName}* tiene *${total}* capítulos en total.${listText}`);
+        } catch (error) {
+            console.error(error);
+            return m.reply(`❌ Ocurrió un error: ${error.message || error}`);
+        }
     }
 
     let targetChapterNumber = chapterArg;
@@ -177,7 +249,7 @@ let handler = async (m, { conn, args, command }) => {
     }
 
     if (!targetChapterNumber || !/^\d+(\.\d+)?$/.test(targetChapterNumber)) {
-        return m.reply('❌ Debes especificar un número de capítulo válido (ej: 1 o 13).');
+        return m.reply('❌ El número de capítulo debe ser un número válido (ej: 13 o 61.05).');
     }
 
     try {
@@ -188,31 +260,28 @@ let handler = async (m, { conn, args, command }) => {
         const { title, images } = await getChapterData(url, targetChapterNumber);
 
         if (!images || images.length === 0) {
-            return m.reply('❌ No se encontraron imágenes en el capítulo. Verifica que el número de capítulo exista.');
+            return m.reply('❌ No se encontraron imágenes en el capítulo.');
         }
 
-        await m.reply(`📸 *${title}*\nDescargando y convirtiendo *${images.length}* imágenes...`);
+        await m.reply(`📸 *${title}*\nProcesando *${images.length}* páginas...`);
 
-        const rawBuffers = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl, sharp));
-        const validBuffers = rawBuffers.filter(Boolean);
-
-        const totalBytes = validBuffers.reduce((acc, buf) => acc + buf.length, 0);
-        const totalMb = totalBytes / (1024 * 1024);
+        const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
 
         const pdfDoc = await PDFDocument.create();
         let successCount = 0;
 
-        for (const buffer of validBuffers) {
-            if (!buffer) continue;
-            
-            try {
-                const image = await pdfDoc.embedJpg(buffer);
-                const page = pdfDoc.addPage([image.width, image.height]);
-                page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
-                successCount++;
-            } catch (e) {
-                console.error('Error insertando imagen en PDF:', e.message);
-            }
+        for (const result of processed) {
+            if (!result) continue;
+            const img = await pdfDoc.embedJpg(result.buffer);
+
+            const page = pdfDoc.addPage([img.width, img.height]);
+            page.drawImage(img, {
+                x: 0,
+                y: 0,
+                width: img.width,
+                height: img.height
+            });
+            successCount++;
         }
 
         if (successCount === 0) {
@@ -226,7 +295,7 @@ let handler = async (m, { conn, args, command }) => {
             document: Buffer.from(pdfBytes),
             mimetype: 'application/pdf',
             fileName: `${safeFileName}.pdf`,
-            caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n📊 *Peso:* ${totalMb.toFixed(1)} MB\n🌐 *Fuente:* Olympus`
+            caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n🌐 *Fuente:* Olympus`
         }, { quoted: m });
 
     } catch (error) {
