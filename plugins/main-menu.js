@@ -19,13 +19,8 @@ group: '⚙️ GRUPO',
 nable: '🕹 ENABLE/DISABLE',
 nsfw: '🥵 COMANDO +18',
 buscadores: '🔍 BUSCADORES',
-sticker: '🧧 STICKER',
 econ: '🛠 RPG',
-convertidor: '🎈 CONVERTIDORES',
-logo: '🎀 LOGOS',
-tools: '🔧 HERRAMIENTA',
-randow: '🪄 RANDOW',
-efec: '🎙 EFECTO NOTA DE VOZ',
+tools: '🔧 HERRAMIENTAS',
 owner: '👑 OWNER'
 }
 
