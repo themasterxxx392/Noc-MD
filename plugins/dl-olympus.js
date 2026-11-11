@@ -59,7 +59,6 @@ async function fetchChapterNav(url) {
 async function getChapterData(url, chapterNumber) {
     let targetUrl = url;
 
-    // Si es la URL de la serie, construimos la ruta directa del capítulo limpiamente
     if (targetUrl.includes('/series/') && !targetUrl.includes('/capitulo/')) {
         targetUrl = targetUrl.replace(/\/+$/, '');
         targetUrl = `${targetUrl}/capitulo/${chapterNumber}`;
@@ -115,32 +114,41 @@ async function getChapterData(url, chapterNumber) {
     return { title, images: cleanUrls };
 }
 
-// CORTA LOS BORDES DEFECTUOSOS QUE VIENEN EN LA IMAGEN ORIGINAL
+// PROCESAMIENTO SEGURO CON RESPALDO
 async function processImage(imageUrl, sharp) {
-    const res = await axios.get(imageUrl, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
-    const buffer = Buffer.from(res.data);
+    try {
+        const res = await axios.get(imageUrl, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
+        const buffer = Buffer.from(res.data);
 
-    const img = sharp(buffer);
-    const meta = await img.metadata();
+        try {
+            const img = sharp(buffer);
+            const meta = await img.metadata();
 
-    // Recortamos 8 píxeles arriba y 8 abajo para erradicar la línea incrustada de la web
-    const CROP = 8; 
-    let pipeline = img;
+            const CROP = 8; 
+            let pipeline = img;
 
-    if (meta.width && meta.height && meta.height > (CROP * 2)) {
-        pipeline = pipeline.extract({
-            left: 0,
-            top: CROP,
-            width: meta.width,
-            height: meta.height - (CROP * 2)
-        });
+            if (meta.width && meta.height && meta.height > (CROP * 2)) {
+                pipeline = pipeline.extract({
+                    left: 0,
+                    top: CROP,
+                    width: meta.width,
+                    height: meta.height - (CROP * 2)
+                });
+            }
+
+            const cleanBuffer = await pipeline
+                .jpeg({ quality: 92, force: true })
+                .toBuffer();
+
+            return { buffer: cleanBuffer };
+        } catch (sharpError) {
+            // Si sharp falla con el formato, devolvemos el buffer descargado originalmente sin recortar
+            return { buffer };
+        }
+    } catch (err) {
+        console.error(`Error descargando imagen ${imageUrl}:`, err.message);
+        return null;
     }
-
-    const cleanBuffer = await pipeline
-        .jpeg({ quality: 92, force: true })
-        .toBuffer();
-
-    return { buffer: cleanBuffer };
 }
 
 async function mapWithConcurrency(items, limit, mapper) {
@@ -271,8 +279,18 @@ let handler = async (m, { conn, args, command }) => {
         let successCount = 0;
 
         for (const result of processed) {
-            if (!result) continue;
-            const img = await pdfDoc.embedJpg(result.buffer);
+            if (!result || !result.buffer) continue;
+            
+            let img;
+            try {
+                img = await pdfDoc.embedJpg(result.buffer);
+            } catch {
+                try {
+                    img = await pdfDoc.embedPng(result.buffer);
+                } catch {
+                    continue;
+                }
+            }
 
             const page = pdfDoc.addPage([img.width, img.height]);
             page.drawImage(img, {
