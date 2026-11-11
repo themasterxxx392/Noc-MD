@@ -111,14 +111,7 @@ async function getChapterData(url, chapterNumber) {
 
 async function fetchImageBuffer(url) {
     const res = await axios.get(url, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
-    const buffer = Buffer.from(res.data);
-    
-    // Detectamos si es formato PNG o JPG basándonos en sus magic bytes
-    let isJpg = true;
-    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-        isJpg = false;
-    }
-    return { buffer, isJpg };
+    return Buffer.from(res.data);
 }
 
 async function mapWithConcurrency(items, limit, mapper) {
@@ -181,27 +174,28 @@ let handler = async (m, { conn, args, command }) => {
 
         await m.reply(`📸 *${title}*\nDescargando *${images.length}* imágenes originales...`);
 
-        const rawResults = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl));
-        const validResults = rawResults.filter(Boolean);
+        const rawBuffers = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl));
+        const validBuffers = rawBuffers.filter(Boolean);
 
-        const totalBytes = validResults.reduce((acc, res) => acc + res.buffer.length, 0);
+        const totalBytes = validBuffers.reduce((acc, buf) => acc + buf.length, 0);
         const totalMb = totalBytes / (1024 * 1024);
 
         const pdfDoc = await PDFDocument.create();
         let successCount = 0;
 
-        for (const result of validResults) {
-            if (!result) continue;
-            const { buffer, isJpg } = result;
+        for (const buffer of validBuffers) {
+            if (!buffer) continue;
             
             let image;
             try {
-                image = isJpg ? await pdfDoc.embedJpg(buffer) : await pdfDoc.embedPng(buffer);
+                // Intentamos embeber como JPG
+                image = await pdfDoc.embedJpg(buffer);
             } catch {
-                // Si falla el formato detectado, intentamos forzar embedJpg como fallback por seguridad
                 try {
-                    image = await pdfDoc.embedJpg(buffer);
+                    // Si falla, intentamos como PNG
+                    image = await pdfDoc.embedPng(buffer);
                 } catch {
+                    // Si ambos fallan, se omite para no romper el flujo
                     continue;
                 }
             }
