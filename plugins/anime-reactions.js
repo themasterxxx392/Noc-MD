@@ -257,9 +257,20 @@ let handler = async (m, { conn, command, usedPrefix, participants }) => {
   }
 }
 
-handler.help = ['reacciones']
+// Convertimos cada clave de REACCIONES y ALIAS en su propio help individual
+handler.help = [
+  ...Object.keys(REACCIONES),
+  ...Object.keys(ALIAS),
+  'reacciones',
+  'interacciones'
+]
 handler.tags = ['anime']
-handler.command = [...Object.keys(REACCIONES), ...Object.keys(ALIAS), 'reacciones', 'interacciones']
+handler.command = [
+  ...Object.keys(REACCIONES),
+  ...Object.keys(ALIAS),
+  'reacciones',
+  'interacciones'
+]
 handler.group = true
 
 export default handler
