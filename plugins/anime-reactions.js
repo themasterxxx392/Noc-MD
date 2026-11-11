@@ -4,7 +4,6 @@ import os from 'os'
 import path from 'path'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { db } from '../lib/postgres.js'
 
 const run = promisify(execFile)
 
@@ -129,8 +128,6 @@ const ALIAS = {
   enojado: 'angry'
 }
 
-const NSFW = ['impregnate', 'lewd']
-
 const detectar = (b) => {
   if (!b || b.length < 12) return null
   if (b.subarray(0, 3).toString() === 'GIF') return 'gif'
@@ -208,11 +205,17 @@ async function aMp4(buffer, formato) {
 
 const tag = (jid) => `@${jid.split('@')[0]}`
 
-let handler = async (m, { conn, command, usedPrefix }) => {
+const resolver = (jid, participants = []) => {
+  if (!jid || !jid.endsWith('@lid')) return jid
+  const p = participants.find(x => x.id === jid || x.lid === jid)
+  return [p?.phoneNumber, p?.jid].find(x => x && x.endsWith('@s.whatsapp.net')) || jid
+}
+
+let handler = async (m, { conn, command, usedPrefix, participants }) => {
   const cmd = command.toLowerCase()
 
   if (cmd === 'reacciones' || cmd === 'interacciones') {
-    const lista = Object.keys(REACCIONES).filter(k => !NSFW.includes(k)).map(k => `${usedPrefix}${k}`).join(', ')
+    const lista = Object.keys(REACCIONES).map(k => `${usedPrefix}${k}`).join(', ')
     return conn.reply(m.chat, `❖ *REACCIONES ANIME*\n\n${lista}\n\n> _Usa el comando respondiendo o mencionando a alguien._`, m)
   }
 
@@ -220,22 +223,12 @@ let handler = async (m, { conn, command, usedPrefix }) => {
   const frases = REACCIONES[tipo]
   if (!frases) return
 
-  if (NSFW.includes(tipo) && m.isGroup) {
-    let activo = false
-    try {
-      const res = await db.query('SELECT nsfw FROM group_settings WHERE group_id = $1', [m.chat])
-      activo = !!res.rows[0]?.nsfw
-    } catch {}
-    if (!activo) {
-      return m.reply(`🔞 Los comandos NSFW están desactivados en este grupo.\nUn admin puede activarlos con *${usedPrefix}nsfw on*`)
-    }
-  }
-
   const base = global.info?.evogb
   const key = global.info?.evogbkey
 
-  const a = m.sender
-  const b = m.mentionedJid?.[0] || m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || m.quoted?.sender || null
+  const a = resolver(m.sender, participants)
+  const objetivo = m.mentionedJid?.[0] || m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || m.quoted?.sender || null
+  const b = resolver(objetivo, participants)
   const conObjetivo = b && b !== a
 
   const texto = (conObjetivo ? frases[0] : frases[1])
