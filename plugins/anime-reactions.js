@@ -73,12 +73,9 @@ const REACCIONES = {
   lewd: ['{a} tiene una actitud lasciva con {b}', '{a} tiene una actitud lasciva'],
   kisshead: ['{a} besa en la cabeza a {b}', '{a} besa en la cabeza a todos'],
   kicked: ['{a} fue pateado por {b}', '{a} fue pateado'],
-  facepalm: ['{a} hace facepalm por {b}', '{a} hace facepalm'],
   tease: ['{a} molesta juguetonamente a {b}', '{a} molesta juguetonamente'],
   jealous: ['{a} está celoso de {b}', '{a} está celoso'],
-  spin: ['{a} da una vuelta de emoción con {b}', '{a} da una vuelta de emoción'],
-  pose: ['{a} hace una pose para {b}', '{a} hace una pose'],
-  apologize: ['{a} le pide perdón a {b}', '{a} pide perdón']
+  spin: ['{a} da una vuelta de emoción con {b}', '{a} da una vuelta de emoción']
 }
 
 const ALIAS = {}
