@@ -76,12 +76,9 @@ const REACCIONES = {
   kisshead: ['{a} besa en la cabeza a {b}', '{a} besa en la cabeza a todos'],
   kicked: ['{a} fue pateado por {b}', '{a} fue pateado'],
   facepalm: ['{a} hace facepalm por {b}', '{a} hace facepalm'],
-  protect: ['{a} protege a {b}', '{a} protege a todos'],
   scold: ['{a} regaña a {b}', '{a} regaña a todos'],
   tease: ['{a} molesta juguetonamente a {b}', '{a} molesta juguetonamente'],
   jealous: ['{a} está celoso de {b}', '{a} está celoso'],
-  celebrate: ['{a} celebra con {b}', '{a} celebra'],
-  salute: ['{a} le hace un saludo militar a {b}', '{a} hace un saludo militar'],
   spin: ['{a} da una vuelta de emoción con {b}', '{a} da una vuelta de emoción'],
   pose: ['{a} hace una pose para {b}', '{a} hace una pose'],
   apologize: ['{a} le pide perdón a {b}', '{a} pide perdón']
