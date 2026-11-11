@@ -42,9 +42,11 @@ const REACCIONES = {
   pout: ['{a} hace pucheros frente a {b}', '{a} hace pucheros'],
   punch: ['{a} le da un puñetazo a {b}', '{a} da un puñetazo al aire'],
   run: ['{a} corre con {b}', '{a} corre'],
+  sad: ['{a} está triste por {b}', '{a} está triste'],
   scared: ['{a} está asustado de {b}', '{a} está asustado'],
   seduce: ['{a} intenta seducir a {b}', '{a} intenta seducir a todos'],
   shy: ['{a} se pone tímido ante {b}', '{a} se siente tímido'],
+  sleep: ['{a} duerme con {b}', '{a} duerme'],
   smoke: ['{a} fuma con {b}', '{a} fuma'],
   spit: ['{a} le escupe a {b}', '{a} escupe'],
   step: ['{a} pisa a {b}', '{a} pisa con fuerza'],
@@ -52,8 +54,10 @@ const REACCIONES = {
   walk: ['{a} camina con {b}', '{a} camina'],
   hug: ['{a} abraza a {b}', '{a} abraza a todos'],
   kill: ['{a} mató a {b}', '{a} no tiene a quién matar'],
+  eat: ['{a} come con {b}', '{a} come'],
   kiss: ['{a} besa a {b}', '{a} besa a todos'],
   wink: ['{a} le guiña el ojo a {b}', '{a} guiña el ojo'],
+  pat: ['{a} acaricia la cabeza de {b}', '{a} se acaricia la cabeza'],
   happy: ['{a} está feliz con {b}', '{a} está feliz'],
   bully: ['{a} molesta a {b}', '{a} molesta a todos'],
   bite: ['{a} muerde a {b}', '{a} se muerde'],
@@ -105,16 +109,8 @@ const REACCIONES = {
   picnic: ['{a} hace un picnic con {b}', '{a} hace un picnic']
 }
 
-const ALIAS = {
-  abrazar: 'hug',
-  besar: 'kiss',
-  reir: 'laugh',
-  feliz: 'happy',
-  triste: 'sad',
-  enojado: 'angry',
-  saludar: 'wave',
-  sonreir: 'smile'
-}
+// Sin alias en español
+const ALIAS = {}
 
 const detectar = (b) => {
   if (!b || b.length < 12) return null
@@ -240,15 +236,9 @@ let handler = async (m, { conn, command, usedPrefix, participants }) => {
   }
 }
 
-handler.help = [
-  ...Object.keys(REACCIONES),
-  ...Object.keys(ALIAS)
-]
+handler.help = Object.keys(REACCIONES)
 handler.tags = ['anime']
-handler.command = [
-  ...Object.keys(REACCIONES),
-  ...Object.keys(ALIAS)
-]
+handler.command = Object.keys(REACCIONES)
 handler.group = true
 
 export default handler
