@@ -112,7 +112,6 @@ const REACCIONES = {
 const ALIAS = {
   abrazar: 'hug',
   besar: 'kiss',
-  cachetada: 'slap',
   bofetada: 'slap',
   bailar: 'dance',
   llorar: 'cry',
@@ -214,11 +213,6 @@ const resolver = (jid, participants = []) => {
 let handler = async (m, { conn, command, usedPrefix, participants }) => {
   const cmd = command.toLowerCase()
 
-  if (cmd === 'reacciones' || cmd === 'interacciones') {
-    const lista = Object.keys(REACCIONES).map(k => `${usedPrefix}${k}`).join(', ')
-    return conn.reply(m.chat, `❖ *REACCIONES ANIME*\n\n${lista}\n\n> _Usa el comando respondiendo o mencionando a alguien._`, m)
-  }
-
   const tipo = ALIAS[cmd] || cmd
   const frases = REACCIONES[tipo]
   if (!frases) return
@@ -257,19 +251,14 @@ let handler = async (m, { conn, command, usedPrefix, participants }) => {
   }
 }
 
-// Convertimos cada clave de REACCIONES y ALIAS en su propio help individual
 handler.help = [
   ...Object.keys(REACCIONES),
-  ...Object.keys(ALIAS),
-  'reacciones',
-  'interacciones'
+  ...Object.keys(ALIAS)
 ]
 handler.tags = ['anime']
 handler.command = [
   ...Object.keys(REACCIONES),
-  ...Object.keys(ALIAS),
-  'reacciones',
-  'interacciones'
+  ...Object.keys(ALIAS)
 ]
 handler.group = true
 
