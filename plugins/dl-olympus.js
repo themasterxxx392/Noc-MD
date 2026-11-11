@@ -16,6 +16,18 @@ async function loadPdfLib() {
     }
 }
 
+async function loadSharp() {
+    try {
+        const sharpModule = await import('sharp');
+        return sharpModule.default;
+    } catch {
+        console.log('⚙️ Instalando sharp...');
+        execSync('npm install sharp', { stdio: 'inherit' });
+        const sharpModule = await import('sharp');
+        return sharpModule.default;
+    }
+}
+
 const HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Referer': 'https://olympusxyz.com/'
@@ -109,9 +121,16 @@ async function getChapterData(url, chapterNumber) {
     return { title, images: cleanUrls };
 }
 
-async function fetchImageBuffer(url) {
+async function fetchImageBuffer(url, sharp) {
     const res = await axios.get(url, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
-    return Buffer.from(res.data);
+    const rawBuffer = Buffer.from(res.data);
+    
+    // Convertimos cualquier formato (WebP, PNG, etc.) a JPG puro sin alterar escala ni nitidez
+    const jpgBuffer = await sharp(rawBuffer)
+        .jpeg({ quality: 90 })
+        .toBuffer();
+        
+    return jpgBuffer;
 }
 
 async function mapWithConcurrency(items, limit, mapper) {
@@ -162,7 +181,7 @@ let handler = async (m, { conn, args, command }) => {
     }
 
     try {
-        const PDFDocument = await loadPdfLib();
+        const [PDFDocument, sharp] = await Promise.all([loadPdfLib(), loadSharp()]);
         
         await m.reply(`🔍 Buscando capítulo *${targetChapterNumber}*... Esto puede tomar unos segundos.`);
         
@@ -172,9 +191,9 @@ let handler = async (m, { conn, args, command }) => {
             return m.reply('❌ No se encontraron imágenes en el capítulo. Verifica que el número de capítulo exista.');
         }
 
-        await m.reply(`📸 *${title}*\nDescargando *${images.length}* imágenes originales...`);
+        await m.reply(`📸 *${title}*\nDescargando y convirtiendo *${images.length}* imágenes...`);
 
-        const rawBuffers = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl));
+        const rawBuffers = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl, sharp));
         const validBuffers = rawBuffers.filter(Boolean);
 
         const totalBytes = validBuffers.reduce((acc, buf) => acc + buf.length, 0);
@@ -186,23 +205,14 @@ let handler = async (m, { conn, args, command }) => {
         for (const buffer of validBuffers) {
             if (!buffer) continue;
             
-            let image;
             try {
-                // Intentamos embeber como JPG
-                image = await pdfDoc.embedJpg(buffer);
-            } catch {
-                try {
-                    // Si falla, intentamos como PNG
-                    image = await pdfDoc.embedPng(buffer);
-                } catch {
-                    // Si ambos fallan, se omite para no romper el flujo
-                    continue;
-                }
+                const image = await pdfDoc.embedJpg(buffer);
+                const page = pdfDoc.addPage([image.width, image.height]);
+                page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+                successCount++;
+            } catch (e) {
+                console.error('Error insertando imagen en PDF:', e.message);
             }
-
-            const page = pdfDoc.addPage([image.width, image.height]);
-            page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
-            successCount++;
         }
 
         if (successCount === 0) {
