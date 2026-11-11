@@ -42,8 +42,8 @@ async function fetchChapterNav(url) {
     const numMatch = titleTag.match(/Cap[ií]tulo\s+(\d+(?:\.\d+)?)/i);
     const number = numMatch ? parseFloat(numMatch[1]) : null;
 
-    const slugMatch = url.match(/\/capitulo\/\d+\/([^/?]+)/);
-    const currentSlug = slugMatch ? slugMatch[1] : null;
+    const slugMatch = url.match(/\/capitulo\/[^/]+\/([^/?]+)/) || url.match(/\/capitulo\/(\d+)\/([^/?]+)/);
+    const currentSlug = slugMatch ? (slugMatch[2] || slugMatch[1]) : null;
 
     const toAbs = (href) => href ? (href.startsWith('http') ? href : `https://olympusxyz.com${href}`) : null;
 
@@ -51,8 +51,8 @@ async function fetchChapterNav(url) {
         url,
         number,
         slug: currentSlug,
-        nextUrl: toAbs($('a[title="capitulo siguiente"]').attr('href')),
-        prevUrl: toAbs($('a[title="capitulo anterior"]').attr('href'))
+        nextUrl: toAbs($('a[title="capitulo siguiente"], a:has(span:contains("Siguiente")), a.next').attr('href')),
+        prevUrl: toAbs($('a[title="capitulo anterior"], a:has(span:contains("Anterior")), a.prev').attr('href'))
     };
 }
 
@@ -80,14 +80,9 @@ async function findChapterUrl(firstChapterId, targetSlug, firstNumber, firstUrl,
         }
     };
 
-    let guessId = firstChapterId + Math.round((wanted - firstNumber) * stepGuess);
-    console.log(`Olympus: probando capítulo ${wanted} en id ${guessId}`);
+    let guessId = typeof firstChapterId === 'number' ? firstChapterId + Math.round((wanted - firstNumber) * stepGuess) : firstChapterId;
+    console.log(`Olympus: probando capítulo ${wanted} en id/slug ${guessId}`);
     let info = await tryId(guessId);
-
-    if (info && !isTargetChapter(info, targetSlug, wanted)) {
-        console.log(`Olympus: el id ${guessId} devolvió la serie '${info.slug}' cap ${info.number}, cancelando saltos ciegos.`);
-        info = null;
-    }
 
     if (!info) {
         console.log('Olympus: caminando secuencialmente desde el primer capítulo...');
@@ -124,19 +119,27 @@ async function getChapterData(url, chapterNumber) {
 
         let firstChapterLink = null;
         $('a').each((_, el) => {
-            if (!firstChapterLink && /primer\s*cap[ií]tulo/i.test($(el).text())) {
-                firstChapterLink = $(el).attr('href');
+            const href = $(el).attr('href') || '';
+            const text = $(el).text();
+            if (!firstChapterLink && (/primer\s*cap[ií]tulo/i.test(text) || href.includes('/capitulo/'))) {
+                firstChapterLink = href;
             }
         });
-        if (!firstChapterLink) firstChapterLink = $('a[href*="/capitulo/"]').first().attr('href');
 
-        if (!firstChapterLink) throw new Error('No se encontró ningún capítulo en esta serie.');
+        if (!firstChapterLink) {
+            const anchors = $('a[href*="/capitulo/"]');
+            if (anchors.length > 0) {
+                firstChapterLink = anchors.last().attr('href'); // Usualmente el primer capítulo está al final de la lista de la serie
+            }
+        }
+
+        if (!firstChapterLink) throw new Error('No se encontró ningún capítulo en esta serie. Verifica que el enlace sea correcto.');
 
         const firstChapterUrl = firstChapterLink.startsWith('http') ? firstChapterLink : `https://olympusxyz.com${firstChapterLink}`;
-        const idMatch = firstChapterUrl.match(/\/capitulo\/(\d+)\/([^/?]+)/);
+        const idMatch = firstChapterUrl.match(/\/capitulo\/([^/]+)\/([^/?]+)/) || firstChapterUrl.match(/\/capitulo\/(\d+)\/([^/?]+)/);
         if (!idMatch) throw new Error('No se pudo interpretar el link del primer capítulo.');
 
-        const firstChapterId = parseInt(idMatch[1], 10);
+        const firstChapterId = isNaN(idMatch[1]) ? idMatch[1] : parseInt(idMatch[1], 10);
         const slug = idMatch[2];
 
         const firstInfo = await fetchChapterNav(firstChapterUrl);
@@ -158,9 +161,9 @@ async function getChapterData(url, chapterNumber) {
 
     let title = 'Olympus Manga';
     const pageTitleTag = $('title').first().text() || '';
-    const titleMatch = pageTitleTag.match(/Cap[ií]tulo\s+(\d+(?:\.\d+)?)\s+de\s+(.+?)\s*\|\s*Olympus/i);
+    const titleMatch = pageTitleTag.match(/Cap[ií]tulo\s+(\d+(?:\.\d+)?)\s+de\s+(.+?)\s*\|\s*Olympus/i) || pageTitleTag.match(/(.+?)\s*-\s*Capitulo/i);
     if (titleMatch) {
-        title = `${titleMatch[2].trim()} - Capítulo ${titleMatch[1]}`;
+        title = `${titleMatch[2] ? titleMatch[2].trim() : titleMatch[1].trim()} - Capítulo ${chapterNumber}`;
     }
 
     let imageUrls = [];
@@ -184,8 +187,8 @@ async function getChapterData(url, chapterNumber) {
 
     if (imageUrls.length === 0) {
         $('img').each((_, el) => {
-            const src = $(el).attr('src') || $(el).attr('data-src');
-            if (src && !src.includes('logo') && !src.includes('avatar') && !src.includes('cover')) {
+            const src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-lazy-src');
+            if (src && !src.includes('logo') && !src.includes('avatar') && !src.includes('cover') && !src.includes('icon')) {
                 imageUrls.push(src);
             }
         });
@@ -201,22 +204,20 @@ async function getChapterData(url, chapterNumber) {
     return { title, images: cleanUrls };
 }
 
-// Descarga inicial y cálculo del peso total original en MB
 async function fetchImageBuffer(url) {
     const res = await axios.get(url, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
     return Buffer.from(res.data);
 }
 
-// Determina la escala y calidad según las reglas de peso
 function getAdaptiveSettings(totalMb) {
     if (totalMb <= 12) {
-        return { scale: 1.25, quality: 95 }; // 10MB -> apunta a ~20MB
+        return { scale: 1.25, quality: 95 };
     } else if (totalMb <= 25) {
-        return { scale: 1.22, quality: 94 }; // 20MB -> apunta a ~35MB
+        return { scale: 1.22, quality: 94 };
     } else if (totalMb <= 45) {
-        return { scale: 1.18, quality: 92 }; // 40MB -> apunta a ~55MB
+        return { scale: 1.18, quality: 92 };
     } else {
-        return { scale: 1.15, quality: 90 }; // 60MB -> apunta a ~80MB
+        return { scale: 1.15, quality: 90 };
     }
 }
 
@@ -277,7 +278,7 @@ async function listAllChapterNumbers(firstUrl, cap) {
 
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de Olympus.*\n\n📌 Ejemplo serie + N° de capítulo: .${command} https://olympusxyz.com/series/... 13\n📌 Ver cuántos capítulos tiene: .${command} https://olympusxyz.com/series/... info`);
+        return m.reply(`❌ *Ingresa un enlace de la serie en Olympus.*\n\n📌 Ejemplo: .${command} https://olympusxyz.com/series/nombre-de-la-serie 13`);
     }
 
     const url = args[0];
@@ -306,40 +307,28 @@ let handler = async (m, { conn, args, command }) => {
             const seriesName = nameMatch ? nameMatch[1].trim() : 'Esta serie';
             const totalMatch = html.match(/(\d+)\s*cap[ií]tulos?\s*en\s*total/i);
 
-            if (!totalMatch) {
-                return m.reply(`❌ No se pudo determinar el total de capítulos de ${seriesName}.`);
-            }
-            const total = parseInt(totalMatch[1], 10);
-
             let firstChapterLink = null;
             $('a').each((_, el) => {
-                if (!firstChapterLink && /primer\s*cap[ií]tulo/i.test($(el).text())) {
-                    firstChapterLink = $(el).attr('href');
+                const href = $(el).attr('href') || '';
+                if (!firstChapterLink && href.includes('/capitulo/')) {
+                    firstChapterLink = href;
                 }
             });
-            if (!firstChapterLink) firstChapterLink = $('a[href*="/capitulo/"]').first().attr('href');
 
             let listText = '';
             if (firstChapterLink) {
-                if (total > 30) {
-                    await m.reply('⏳ Son varios capítulos, esto puede tardar un poco...');
-                }
                 const firstChapterUrl = firstChapterLink.startsWith('http') ? firstChapterLink : `https://olympusxyz.com${firstChapterLink}`;
-                const numbers = await listAllChapterNumbers(firstChapterUrl, total + 10);
+                const numbers = await listAllChapterNumbers(firstChapterUrl, 100);
                 if (numbers.length > 0) {
                     listText = `\n\n${numbers.join(', ')}`;
                 }
             }
 
-            return m.reply(`📚 *${seriesName}* tiene *${total}* capítulos en total.${listText}`);
+            return m.reply(`📚 *${seriesName}*${listText}`);
         } catch (error) {
             console.error(error);
             return m.reply(`❌ Ocurrió un error: ${error.message || error}`);
         }
-    }
-
-    if (chapterArg !== undefined && !/^\d+(\.\d+)?$/.test(chapterArg)) {
-        return m.reply('❌ El número de capítulo debe ser un número válido (ej: 13 o 61.05).');
     }
 
     try {
@@ -355,18 +344,13 @@ let handler = async (m, { conn, args, command }) => {
 
         await m.reply(`📸 *${title}*\nDescargando *${images.length}* imágenes para evaluar calidad...`);
 
-        // 1. Descargar buffers iniciales
         const rawBuffers = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => fetchImageBuffer(imgUrl));
         const validBuffers = rawBuffers.filter(Boolean);
 
-        // 2. Calcular peso acumulado inicial
         const totalBytes = validBuffers.reduce((acc, buf) => acc + buf.length, 0);
         const totalMb = totalBytes / (1024 * 1024);
 
-        // 3. Determinar perfil de mejora según los MB detectados
         const settings = getAdaptiveSettings(totalMb);
-
-        // 4. Procesar y reescalar según el perfil dinámico
         const processed = await mapWithConcurrency(validBuffers, CONCURRENCY, (buf) => processImage(buf, settings, sharp));
 
         const pdfDoc = await PDFDocument.create();
