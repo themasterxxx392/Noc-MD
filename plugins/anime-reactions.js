@@ -90,7 +90,6 @@ const REACCIONES = {
   cook: ['{a} cocina para {b}', '{a} cocina'],
   boop: ['{a} le toca la nariz a {b}', '{a} se toca la nariz'],
   fistbump: ['{a} choca puños con {b}', '{a} choca puños al aire'],
-  piggyback: ['{a} lleva a cuestas a {b}', '{a} quiere ir a cuestas'],
   sharefood: ['{a} comparte su comida con {b}', '{a} comparte su comida con todos'],
   protect: ['{a} protege a {b}', '{a} protege a todos'],
   scold: ['{a} regaña a {b}', '{a} regaña a todos'],
@@ -98,18 +97,11 @@ const REACCIONES = {
   jealous: ['{a} está celoso de {b}', '{a} está celoso'],
   celebrate: ['{a} celebra con {b}', '{a} celebra'],
   salute: ['{a} le hace un saludo militar a {b}', '{a} hace un saludo militar'],
-  bow: ['{a} le hace una reverencia a {b}', '{a} hace una reverencia'],
   spin: ['{a} da una vuelta de emoción con {b}', '{a} da una vuelta de emoción'],
   pose: ['{a} hace una pose para {b}', '{a} hace una pose'],
-  flex: ['{a} presume sus músculos ante {b}', '{a} presume sus músculos'],
-  apologize: ['{a} le pide perdón a {b}', '{a} pide perdón'],
-  pillowfight: ['{a} empieza una guerra de almohadas con {b}', '{a} empieza una guerra de almohadas'],
-  whip: ['{a} le da un latigazo a {b}', '{a} da un latigazo al aire'],
-  tiptoe: ['{a} camina de puntillas hacia {b}', '{a} camina de puntillas'],
-  picnic: ['{a} hace un picnic con {b}', '{a} hace un picnic']
+  apologize: ['{a} le pide perdón a {b}', '{a} pide perdón']
 }
 
-// Sin alias en español
 const ALIAS = {}
 
 const detectar = (b) => {
