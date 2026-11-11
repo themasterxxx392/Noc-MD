@@ -65,6 +65,6 @@ let handler = async (m, { conn, args, isOwner, command }) => {
 handler.help = ['db info', 'db optimizar', 'db borrar', 'db crear'];
 handler.tags = ['owner'];
 handler.command = /^(db)$/i;
-handler.rowner = true;
+handler.owner = true;
 
 export default handler;
