@@ -11,6 +11,7 @@ const NEWSLETTER_NAME = 'Rem Bot • Canal'
 const tags = {
 main: 'ℹ️ INFOBOT',
 jadibot: '✨ SER SUB BOT',
+anime: '⛩️ ANIME',
 downloader: '🚀 DESCARGAS',
 game: '👾 JUEGOS',
 gacha: '✨️ NEW - RPG GACHA',
