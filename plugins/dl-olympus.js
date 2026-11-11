@@ -114,7 +114,7 @@ async function getChapterData(url, chapterNumber) {
     return { title, images: cleanUrls };
 }
 
-// PROCESAMIENTO SEGURO CON RESPALDO
+// PROCESAMIENTO SEGURO CON CALIDAD REDUCIDA PARA MENOR PESO EN MB
 async function processImage(imageUrl, sharp) {
     try {
         const res = await axios.get(imageUrl, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
@@ -137,12 +137,11 @@ async function processImage(imageUrl, sharp) {
             }
 
             const cleanBuffer = await pipeline
-                .jpeg({ quality: 92, force: true })
+                .jpeg({ quality: 75, force: true }) // Calidad optimizada para menor peso de archivo
                 .toBuffer();
 
             return { buffer: cleanBuffer };
         } catch (sharpError) {
-            // Si sharp falla con el formato, devolvemos el buffer descargado originalmente sin recortar
             return { buffer };
         }
     } catch (err) {
