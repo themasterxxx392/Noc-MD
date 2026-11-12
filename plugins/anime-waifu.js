@@ -19,11 +19,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       timeout: 30000
     })
 
-    // Extraemos la URL de la imagen de la estructura de respuesta (ajustado al nuevo endpoint v2)
-    const imageUrl = res?.url || res?.data?.result || res?.data?.url || res?.result || (typeof res === 'string' ? res : null)
+    // Buscamos la URL en todas las rutas posibles del objeto de respuesta v2
+    const imageUrl = res?.data?.url || res?.data?.result || res?.url || res?.result || (typeof res === 'string' ? res : null)
 
-    if (!imageUrl) {
-      throw new Error('La respuesta de la API no contiene una URL de imagen válida.')
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      throw new Error(`La API no devolvió una URL válida. Respuesta: ${JSON.stringify(res)}`)
     }
 
     const { data: imageBuffer } = await axios.get(imageUrl, {
