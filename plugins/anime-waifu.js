@@ -1,51 +1,49 @@
 import axios from 'axios'
 
 let handler = async (m, { conn, usedPrefix, command }) => {
+  console.log('>>> EL COMANDO WAIFU HA SIDO EJECUTADO <<<')
+  
   const base = global.info?.evogb || 'https://api.evogb.org'
   const key = global.info?.evogbkey || 'evogb-TyswGrUB'
 
-  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
-
   try {
-    // Realizamos la petición con los headers y query parameters correctos
+    console.log('Haciendo petición a la API...')
     const { data: res } = await axios.get(`${base}/sfw/rnd/v2`, {
       headers: {
         'x-api-key': key,
         'Accept': 'application/json'
       },
       params: {
-        key: key, // Por si el endpoint también lo pide en query
         type: 'waifu'
       },
       responseType: 'json',
       timeout: 30000
     })
 
-    // Imprimimos la respuesta completa en tu consola negra para auditarla si vuelve a fallar
-    console.log('RESPUESTA API WAIFU:', JSON.stringify(res))
+    console.log('Respuesta recibida de la API:', JSON.stringify(res))
 
     const imageUrl = res?.data?.url || res?.data?.result || res?.url || res?.result || (typeof res === 'string' ? res : null)
 
-    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-      throw new Error(`La API no devolvió una URL válida. JSON recibido: ${JSON.stringify(res)}`)
+    if (!imageUrl) {
+      throw new Error('No se encontró la URL de la imagen en la respuesta.')
     }
 
+    console.log('Descargando imagen desde:', imageUrl)
     const { data: imageBuffer } = await axios.get(imageUrl, {
       responseType: 'arraybuffer',
       timeout: 30000
     })
 
-    // Envío completamente limpio de la imagen sin caption
+    console.log('Enviando imagen al chat...')
     await conn.sendMessage(m.chat, { image: Buffer.from(imageBuffer) }, { quoted: m })
-    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
+    console.log('¡Imagen enviada con éxito!')
 
   } catch (e) {
-    console.error('Error detallado en waifu:', e.response?.data || e.message)
-    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-    
-    // Ahora te mandará el error exacto al chat para que lo veamos sin adivinar
-    const errorMsg = e.response?.data ? JSON.stringify(e.response.data) : e.message
-    return conn.reply(m.chat, `> ✿︎ Error en waifu:\n> \`${errorMsg}\``, m)
+    console.error('ERROR ATRAPADO EN WAIFU:', e.message)
+    if (e.response) {
+      console.error('Datos del error HTTP:', e.response.status, e.response.data)
+    }
+    await conn.reply(m.chat, `> ✿ Error: ${e.message}`, m)
   }
 }
 
