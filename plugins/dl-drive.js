@@ -57,7 +57,7 @@ console.log(e);
 delete userRequests[m.sender];
 }
 };
-handler.help = ['drive'].map(v => v + ' <url>');
+handler.help = ['drive']
 handler.tags = ['downloader'];
 handler.command = /^(drive|drivedl|dldrive|gdrive)$/i;
 
