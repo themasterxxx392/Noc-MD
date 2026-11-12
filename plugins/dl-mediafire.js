@@ -96,7 +96,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const input = (fuente.match(/https?:\/\/(?:www\.)?mediafire\.com\/\S+/i) || [])[0]?.replace(/[)\]>,.]+$/, '')
 
   if (!input) {
-    return conn.reply(m.chat, `《✧》 Por favor, ingresa el enlace de Mediafire.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.mediafire.com/file/xxxxx/archivo.zip/file\``, m)
+    return conn.reply(m.chat, `_✿ Ingresa un enlace de MediaFire._ `, m)
   }
 
   if (/\/folder\//i.test(input)) {
@@ -140,7 +140,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const fileName = buildFileName(nombre, directUrl)
     const mimetype = lookup(fileName) || 'application/octet-stream'
 
-    // Mensaje único con toda la información y estado de descarga
     let info = `✰ ᩧ　𓈒　ׄ　𝖬𝖾𝖽𝗂𝖺𝖥𝗂𝗋𝖾　ׅ　✿\n\n`
     info += `ׄ ﹙ׅ✿﹚ּ *Nombre* › ${fileName}\n`
     info += `ׄ ﹙ׅ✿﹚ּ *Tipo* › ${mimetype}\n`
@@ -189,7 +188,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       return conn.reply(m.chat, '《✧》 El servidor devolvió una respuesta inválida (puede que el link ya haya expirado). Inténtalo de nuevo.', m)
     }
 
-    // Enviamos directamente el documento limpio sin volver a enviar texto duplicado abajo
     await conn.sendMessage(m.chat, {
       document: { url: tmpPath },
       fileName,
@@ -216,7 +214,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['mediafire <enlace>']
+handler.help = ['mediafire']
 handler.tags = ['downloader']
 handler.command = ['mf', 'mediafire']
 
