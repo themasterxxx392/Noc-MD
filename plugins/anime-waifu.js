@@ -13,22 +13,22 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       timeout: 30000
     })
 
-    
-    let items = res?.data || res?.result || res
+    // Inspeccionamos todas las posibles estructuras que pueda retornar la API
     let imageUrl = null
+    const lista = Array.isArray(res) ? res : (res?.data || res?.result || res?.items)
 
-    if (Array.isArray(items) && items.length > 0) {
-      
-      const randomItem = items[Math.floor(Math.random() * items.length)]
-      imageUrl = typeof randomItem === 'string' ? randomItem : (randomItem?.url || randomItem?.path)
-    } else if (typeof items === 'string') {
-      imageUrl = items
+    if (Array.isArray(lista) && lista.length > 0) {
+      // Elegimos un elemento al azar de la lista
+      const item = lista[Math.floor(Math.random() * lista.length)]
+      imageUrl = typeof item === 'string' ? item : (item?.url || item?.path || item?.image || item?.hd || item?.mini)
+    } else if (typeof res === 'string') {
+      imageUrl = res
     } else if (res?.url) {
       imageUrl = res.url
     }
 
     if (!imageUrl) {
-      throw new Error('La API no devolvió ninguna imagen válida.')
+      throw new Error('La respuesta de la API no contiene una URL de imagen válida.')
     }
 
     const { data: imageBuffer } = await axios.get(imageUrl, {
@@ -36,6 +36,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       timeout: 30000
     })
 
+    // Envío limpio de la imagen sin caption
     await conn.sendMessage(m.chat, { image: Buffer.from(imageBuffer) }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
