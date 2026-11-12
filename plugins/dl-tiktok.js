@@ -73,7 +73,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const input = (fuente.match(/https?:\/\/\S+/) || [])[0]
 
   if (!input || !ES_LINK.test(input)) {
-    return conn.reply(m.chat, `❖ Ingresa un enlace de TikTok.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.tiktok.com/@usuario/video/123456789\``, m)
+    return conn.reply(m.chat, `✿ Ingresa un enlace de TikTok.`, m)
   }
 
   const lockKey = `${m.chat}:${input}`
