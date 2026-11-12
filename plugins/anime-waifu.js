@@ -22,9 +22,9 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const { data: imageBuffer } = await axios.get(imageUrl, {
       responseType: 'arraybuffer',
       timeout: 30000
-    }}
+    })
 
-
+    
     await conn.sendMessage(m.chat, { image: Buffer.from(imageBuffer) }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
