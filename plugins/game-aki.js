@@ -22,7 +22,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
         try {
-            const { data: res } = await axios.get(API_BASE, {
+            const res = await axios.get(API_BASE, {
                 params: {
                     action: 'start',
                     lang: 'es',
@@ -30,14 +30,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                     useProxy: 'true'
                 },
                 headers: { 'Accept': 'application/json' },
-                timeout: 30000
+                timeout: 30000,
+                validateStatus: () => true
             })
 
-            if (!res?.success || !res?.data) {
-                throw new Error('La API no pudo iniciar el juego.')
+            if (res.status !== 200 || !res.data?.success || !res.data?.data) {
+                throw new Error(`Error HTTP ${res.status}: La API no pudo iniciar el juego.`)
             }
 
-            const gameData = res.data
+            const gameData = res.data.data
 
             const timeoutObj = setTimeout(() => {
                 activeSessions.delete(userKey)
@@ -50,7 +51,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             })
 
             let choicesText = Array.isArray(gameData.choices) ? gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n') : ''
-            let txt = `✰ ᩧ　𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
+            let txt = `✰ ᩧ𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
                       `> *Pregunta #${gameData.questionNumber || 1}* (${gameData.progression || 0}%)\n\n` +
                       `💬 *${gameData.question}*\n\n` +
                       `${choicesText}\n\n` +
@@ -80,7 +81,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
         try {
-            const { data: res } = await axios.get(API_BASE, {
+            const res = await axios.get(API_BASE, {
                 params: {
                     action: 'answer',
                     gameId: session.gameId,
@@ -91,21 +92,21 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                     useProxy: 'true'
                 },
                 headers: { 'Accept': 'application/json' },
-                timeout: 30000
+                timeout: 30000,
+                validateStatus: () => true
             })
 
-            if (!res?.success || !res?.data) {
-                throw new Error('Error al procesar la respuesta en la API.')
+            if (res.status !== 200 || !res.data?.success || !res.data?.data) {
+                throw new Error(`Error HTTP ${res.status}: El servidor de la API falló al procesar la respuesta.`)
             }
 
-            const gameData = res.data
+            const gameData = res.data.data
 
-            // Verificamos si ya adivino el personaje o si la API manda la lista de resultados/answers
             if (gameData.completion === true || (Array.isArray(gameData.answers) && gameData.answers.length > 0)) {
                 activeSessions.delete(userKey)
 
                 let char = gameData.answers && gameData.answers.length > 0 ? gameData.answers[0] : null
-                let txt = `✰ ᩧ　𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
+                let txt = `✰ ᩧ𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
                           `🎉 ¡Creo que ya sé quién es!\n\n` +
                           (char ? `> *Personaje:* ${char.name || char.absolute_name}\n> *Descripción:* ${char.description || char.comment}\n\n` : '') +
                           `_¡Partida finalizada con éxito!_`
@@ -128,7 +129,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             activeSessions.set(userKey, session)
 
             let choicesText = Array.isArray(gameData.choices) ? gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n') : ''
-            let txt = `✰ ᩧ　𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
+            let txt = `✰ ᩧ𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
                       `> *Pregunta #${gameData.questionNumber}* (${gameData.progression}%)\n\n` +
                       `💬 *${gameData.question}*\n\n` +
                       `${choicesText}`
