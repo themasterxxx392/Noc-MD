@@ -5,11 +5,11 @@ const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    const base = global.info?.evogb
-    const key = global.info?.evogbkey
+    const base = global.info?.evogb || 'https://api.evogb.org'
+    const key = global.info?.evogbkey || 'evogb-TyswGrUB'
 
     if (!text) {
-        return conn.reply(m.chat, `_✿ Ingresa un enlace de Google Drive._`, m)
+        return conn.reply(m.chat, `✿ Ingresa un enlace de Google Drive.`, m)
     }
 
     const input = text.trim()
@@ -56,7 +56,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         let rawFileName = info?.filename || info?.title || info?.name || 'archivo.bin'
-        let cleanFileName = String(rawFileName).trim()
+        let cleanFileName = String(rawFileName)
+            .replace(/[√✔]/g, 'v') // Reemplaza símbolos raros de raíz/checks por 'v' limpia
+            .replace(/[^\w\s.-]/g, '_') // Reemplaza caracteres especiales problemáticos por guion bajo
+            .trim()
 
         let fileResponse
         try {
@@ -71,7 +74,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error(`[paso 2/2: descargar stream] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
         }
 
-        // Intentar extraer el nombre real del archivo desde el header 'content-disposition' si la API mandó un genérico
         const contentDisposition = fileResponse.headers['content-disposition']
         if (contentDisposition && /filename\*?=/.test(contentDisposition)) {
             const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
@@ -79,6 +81,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                 const extractedName = match[1].replace(/['"]/g, '').replace(/utf-8''/i, '')
                 try {
                     cleanFileName = decodeURIComponent(extractedName)
+                        .replace(/[√✔]/g, 'v')
+                        .replace(/[^\w\s.-]/g, '_')
+                        .trim()
                 } catch {
                     cleanFileName = extractedName
                 }
