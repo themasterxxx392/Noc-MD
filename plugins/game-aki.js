@@ -49,9 +49,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                 timeout: timeoutObj
             })
 
-            let choicesText = gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n')
+            let choicesText = Array.isArray(gameData.choices) ? gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n') : ''
             let txt = `✰ ᩧ　𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
-                      `> *Pregunta #${gameData.questionNumber}* (${gameData.progression}%)\n\n` +
+                      `> *Pregunta #${gameData.questionNumber || 1}* (${gameData.progression || 0}%)\n\n` +
                       `💬 *${gameData.question}*\n\n` +
                       `${choicesText}\n\n` +
                       `_Responde con el número de tu opción (Ej: ${usedPrefix + command} 0) o escribe ${usedPrefix + command} stop para salir._`
@@ -100,17 +100,19 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
             const gameData = res.data
 
-            if (gameData.completion === true || (gameData.answers && gameData.answers.length > 0)) {
+            // Verificamos si ya adivino el personaje o si la API manda la lista de resultados/answers
+            if (gameData.completion === true || (Array.isArray(gameData.answers) && gameData.answers.length > 0)) {
                 activeSessions.delete(userKey)
 
-                let char = gameData.answers ? gameData.answers[0] : null
+                let char = gameData.answers && gameData.answers.length > 0 ? gameData.answers[0] : null
                 let txt = `✰ ᩧ　𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
                           `🎉 ¡Creo que ya sé quién es!\n\n` +
-                          (char ? `> *Personaje:* ${char.name}\n> *Descripción:* ${char.description}\n\n` : '') +
+                          (char ? `> *Personaje:* ${char.name || char.absolute_name}\n> *Descripción:* ${char.description || char.comment}\n\n` : '') +
                           `_¡Partida finalizada con éxito!_`
 
-                if (char && char.absolute_picture_path) {
-                    await conn.sendMessage(m.chat, { image: { url: char.absolute_picture_path }, caption: txt }, { quoted: m })
+                let imageUrl = char?.absolute_picture_path || char?.picture_path
+                if (imageUrl) {
+                    await conn.sendMessage(m.chat, { image: { url: imageUrl }, caption: txt }, { quoted: m })
                 } else {
                     await conn.reply(m.chat, txt, m)
                 }
@@ -125,7 +127,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             }, SESSION_TTL_MS)
             activeSessions.set(userKey, session)
 
-            let choicesText = gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n')
+            let choicesText = Array.isArray(gameData.choices) ? gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n') : ''
             let txt = `✰ ᩧ　𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
                       `> *Pregunta #${gameData.questionNumber}* (${gameData.progression}%)\n\n` +
                       `💬 *${gameData.question}*\n\n` +
