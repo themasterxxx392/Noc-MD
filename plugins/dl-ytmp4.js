@@ -1,7 +1,5 @@
 import axios from 'axios'
 
-const API_BASE = 'https://hikariapi.skyultraweb.com'
-const API_KEY = 'hk_live_iIxT8_V9a6AMxTG5EDEoOxOFPOr-AOV5ZHoMwhZtlXU'
 const MAX_SIZE_BYTES = 1024 * 1024 * 1024
 
 const activeDownloads = new Set()
@@ -29,13 +27,15 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
     try {
+        const base = global.info?.evogb || 'https://api.evogb.org'
+        const key = global.info?.evogbkey || 'evogb-TyswGrUB'
+
         let resolveRes
         try {
-            resolveRes = await axios.get(`${API_BASE}/api/scrapers/youtube/video`, {
-                params: { url: input, quality: '480p' },
+            resolveRes = await axios.get(`${base}/dl/ytmp4`, {
+                params: { key, url: input, quality: '480p' },
                 headers: {
-                    'x-api-key': API_KEY,
-                    'Authorization': `Bearer ${API_KEY}`,
+                    'x-api-key': key,
                     'Accept': 'application/json'
                 },
                 timeout: 30000
@@ -45,14 +45,16 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         const payload = resolveRes.data
-        const info = payload?.data
+        const info = payload?.data || payload
 
-        if (!payload?.success || !info?.url) {
+        const downloadUrl = info?.url || info?.download || (typeof payload === 'string' ? payload : null)
+
+        if (!payload?.status && !downloadUrl) {
             throw new Error('[paso 1/2] La API no devolvió un link de descarga.')
         }
 
-        let rawFileName = info.filename || 'video.mp4'
-        let cleanFileName = rawFileName
+        let rawFileName = info?.filename || info?.title || 'video.mp4'
+        let cleanFileName = String(rawFileName)
             .replace(/\s*\([^)]*\)/g, '')
             .replace(/\s*-\s*[^.-]+(?=\.[^.]+دى*$)/i, '')
             .replace(/\s*-\s*[^.-]+(?=\.mp4$)/i, '')
@@ -64,14 +66,13 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         if (!/\.[a-z0-9]{2,4}$/i.test(cleanFileName)) cleanFileName += '.mp4'
 
-        
         const displayTitle = cleanFileName.replace(/\.[a-z0-9]{2,4}$/i, '')
 
         let fileResponse
         try {
-            fileResponse = await axios.get(info.url, {
+            fileResponse = await axios.get(downloadUrl, {
                 responseType: 'arraybuffer',
-                headers: { 'x-api-key': API_KEY },
+                headers: { 'x-api-key': key },
                 timeout: 300000,
                 maxRedirects: 5,
                 maxContentLength: Infinity,
@@ -101,7 +102,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         await conn.sendMessage(m.chat, {
             document: buffer,
-            fileName: cleanFileName, // El archivo mantiene el .mp4 para que WhatsApp lo lea bien
+            fileName: cleanFileName,
             caption: txt,
             mimetype
         }, { quoted: m })
@@ -109,7 +110,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
     } catch (e) {
-        console.error('Error en ytmp4v2:', e.message)
+        console.error('Error en ytmp4:', e.message)
         await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
         return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar la descarga.\n> *[Detalle: ${e.message}]*`, m)
     } finally {
