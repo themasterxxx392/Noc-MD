@@ -7,17 +7,23 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    // Probamos la petición estándar a la ruta de waifu directamente o con query params limpios
-    const { data: res } = await axios.get(`${base}/sfw/waifu`, {
-      params: { key },
+    const { data: res } = await axios.get(`${base}/sfw/rnd/v2`, {
+      headers: {
+        'x-api-key': key,
+        'Accept': 'application/json'
+      },
+      params: {
+        type: 'waifu'
+      },
       responseType: 'json',
       timeout: 30000
     })
 
-    const imageUrl = res?.url || res?.data?.url || (typeof res === 'string' ? res : null)
+    // Extraemos la URL de la imagen de la estructura de respuesta (ajustado al nuevo endpoint v2)
+    const imageUrl = res?.url || res?.data?.result || res?.data?.url || res?.result || (typeof res === 'string' ? res : null)
 
     if (!imageUrl) {
-      throw new Error('La API no devolvió una URL de imagen válida.')
+      throw new Error('La respuesta de la API no contiene una URL de imagen válida.')
     }
 
     const { data: imageBuffer } = await axios.get(imageUrl, {
@@ -25,7 +31,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       timeout: 30000
     })
 
-    // Envío completamente limpio de la imagen sin caption
+    // Envío limpio de la imagen sin texto ni caption
     await conn.sendMessage(m.chat, { image: Buffer.from(imageBuffer) }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
