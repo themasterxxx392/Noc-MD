@@ -41,9 +41,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         const payload = resolveRes.data
-        const info = payload?.data || payload
+        const info = payload?.data || payload?.resultado || payload
 
-        const downloadUrl = info?.url || info?.download || (typeof payload === 'string' ? payload : null)
+        const downloadUrl = info?.url || info?.download || info?.link || (typeof payload === 'string' ? payload : null)
 
         if ((resolveRes.status !== 200 && resolveRes.status !== 201) || (!payload?.status && !downloadUrl)) {
             let detalle = `HTTP ${resolveRes.status}`
