@@ -8,15 +8,27 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
   try {
     const { data: res } = await axios.get(`${base}/sfw/rnd`, {
-      params: { key, type: 'waifu' },
+      params: { key, type: 'list' },
       responseType: 'json',
       timeout: 30000
     })
 
-    const imageUrl = res?.url || res?.data?.url || (typeof res === 'string' ? res : null)
+    
+    let items = res?.data || res?.result || res
+    let imageUrl = null
+
+    if (Array.isArray(items) && items.length > 0) {
+      
+      const randomItem = items[Math.floor(Math.random() * items.length)]
+      imageUrl = typeof randomItem === 'string' ? randomItem : (randomItem?.url || randomItem?.path)
+    } else if (typeof items === 'string') {
+      imageUrl = items
+    } else if (res?.url) {
+      imageUrl = res.url
+    }
 
     if (!imageUrl) {
-      throw new Error('La API no devolvió una URL de imagen válida.')
+      throw new Error('La API no devolvió ninguna imagen válida.')
     }
 
     const { data: imageBuffer } = await axios.get(imageUrl, {
@@ -24,7 +36,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       timeout: 30000
     })
 
-    
     await conn.sendMessage(m.chat, { image: Buffer.from(imageBuffer) }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
