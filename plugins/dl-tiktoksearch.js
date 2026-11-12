@@ -62,7 +62,7 @@ async function enviarAlbum(conn, jid, videos, quoted) {
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
-    return conn.reply(m.chat, `❖ Ingresa qué quieres buscar en TikTok.\n\n*Ejemplo:* \`${usedPrefix + command} waifu anime\``, m);
+    return conn.reply(m.chat, `❖ Ingresa qué quieres buscar en TikTok.`, m);
   }
 
   const base = global.info?.evogb;
@@ -113,6 +113,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.help = ['tiktoksearch'];
 handler.tags = ['buscadores'];
-handler.command = ['tiktoksearch', 'ttsearch'];
+handler.command = ['tts', 'tiktoksearch'];
 
 export default handler;
