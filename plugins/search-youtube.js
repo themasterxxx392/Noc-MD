@@ -1,6 +1,6 @@
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
-    return conn.reply(m.chat, "✿ Ingresa texto para buscar en Youtube.", m);
+    return conn.reply(m.chat, "_✿ Ingresa qué quieres buscar en YouTube._", m);
   }
   
   const base = global.info?.evogb;
