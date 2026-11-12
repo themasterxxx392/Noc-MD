@@ -41,11 +41,20 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         const payload = resolveRes.data
+        console.log('GDRIVE PAYLOAD DEBUG:', JSON.stringify(payload, null, 2))
+
         const info = payload?.data || payload?.resultado || payload
 
-        const downloadUrl = info?.url || info?.download || info?.link || (typeof payload === 'string' ? payload : null)
+        // Intentamos extraer cualquier propiedad que pueda contener el link o buscamos con regex en el JSON completo
+        let downloadUrl = info?.url || info?.download || info?.link || info?.dl || null
 
-        if ((resolveRes.status !== 200 && resolveRes.status !== 201) || (!payload?.status && !downloadUrl)) {
+        if (!downloadUrl && typeof payload === 'object') {
+            const rawJson = JSON.stringify(payload)
+            const match = rawJson.match(/https?:\/\/[^\s"'<>]+/)
+            if (match) downloadUrl = match[0]
+        }
+
+        if ((resolveRes.status !== 200 && resolveRes.status !== 201) || !downloadUrl) {
             let detalle = `HTTP ${resolveRes.status}`
             if (payload && typeof payload === 'object') {
                 detalle = payload.message || payload.error || payload.msg || detalle
