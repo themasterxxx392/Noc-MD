@@ -13,7 +13,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const key = global.info?.evogbkey
     
     if (!text) {
-        return conn.reply(m.chat, `✿ Ingresa un enlace de Facebook.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.facebook.com/share/v/...\``, m)
+        return conn.reply(m.chat, `_✿ Ingresa un enlace de Facebook._`, m)
     }
 
     const input = text.trim()
