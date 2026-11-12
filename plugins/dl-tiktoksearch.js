@@ -62,7 +62,7 @@ async function enviarAlbum(conn, jid, videos, quoted) {
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text?.trim()) {
-    return conn.reply(m.chat, `❖ Ingresa qué quieres buscar en TikTok.`, m);
+    return conn.reply(m.chat, `✿ Ingresa qué quieres buscar en TikTok.`, m);
   }
 
   const base = global.info?.evogb;
