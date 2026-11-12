@@ -102,7 +102,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
             const gameData = res.data.data
 
-            if (gameData.completion === true || (Array.isArray(gameData.answers) && gameData.answers.length > 0)) {
+            // Si la API marca completion, o ya no hay pregunta, o hay lista de personajes (answers)
+            if (gameData.completion === true || !gameData.question || (Array.isArray(gameData.answers) && gameData.answers.length > 0)) {
                 activeSessions.delete(userKey)
 
                 let char = gameData.answers && gameData.answers.length > 0 ? gameData.answers[0] : null
@@ -130,7 +131,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
             let choicesText = Array.isArray(gameData.choices) ? gameData.choices.map(c => `> *${c.id}* › ${c.label}`).join('\n') : ''
             let txt = `✰ ᩧ𓈒　ׄ　𝖀𝕶 𝖄 𝕬𝖐𝖎𝖓𝖆𝖙𝖔𝖗　ׅ　✿\n\n` +
-                      `> *Pregunta #${gameData.questionNumber}* (${gameData.progression}%)\n\n` +
+                      `> *Pregunta #${gameData.questionNumber || session.step}* (${gameData.progression || 99}%)\n\n` +
                       `💬 *${gameData.question}*\n\n` +
                       `${choicesText}`
 
