@@ -205,18 +205,21 @@ const tmp = './tmp';
 try {
 if (!fs.existsSync(tmp)) return;
 const files = fs.readdirSync(tmp);
+const now = Date.now();
 files.forEach(file => {
 if (file.endsWith('.file')) return;
 const filePath = path.join(tmp, file);
+try {
 const stats = fs.statSync(filePath);
-const now = Date.now();
-const modifiedTime = new Date(stats.mtime).getTime();
-const age = now - modifiedTime;
+if (!stats.isFile()) return;
+const age = now - new Date(stats.mtime).getTime();
 if (age > 3 * 60 * 1000) {
 fs.unlinkSync(filePath);
 }
+} catch (err) {
+console.error(`Error cleaning ${filePath}:`, err.message);
+}
 })
-//console.log(chalk.gray(`┏━━━━━━⪻♻️ AUTO-CLEAR 🗑️⪼━━━━━━•\n┃→ ARCHIVOS DE LA CARPETA TMP ELIMINADOS\n┗━━━━━━━━━━━━━━━━━━━━━━━━━━━•`));
 } catch (err) {
 console.error('Error cleaning temporary files:', err);
 }}, 30 * 1000);
