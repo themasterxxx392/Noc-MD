@@ -7,39 +7,41 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
   try {
-    const { data: res } = await axios.get(`${base}/sfw/rnd/v2`, {
+    const res = await axios.get(`${base}/sfw/rnd/v2`, {
       headers: {
         'x-api-key': key,
-        'Accept': 'application/json'
+        'Accept': 'application/json, image/*'
       },
       params: {
         type: 'waifu'
       },
-      responseType: 'json',
-      timeout: 30000
+      responseType: 'arraybuffer',
+      timeout: 60000,
+      validateStatus: () => true
     })
 
-    // Inspeccionamos de forma estricta todas las rutas posibles del JSON
-    const imageUrl = res?.data?.result || res?.data?.url || res?.result || res?.url || (typeof res === 'string' ? res : null)
+    const contentType = String(res.headers['content-type'] || '')
+    const buffer = Buffer.from(res.data)
 
-    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-      throw new Error(`Estructura inválida de la API: ${JSON.stringify(res)}`)
+    // Si la API devuelve un JSON de error en lugar de imagen, lo atrapamos
+    if (res.status !== 200 || !contentType.startsWith('image/') || buffer.length < 1000) {
+      let detalle = res.status === 404 ? 'No se encontró la imagen.' : `HTTP ${res.status}`
+      if (contentType.includes('json') || !contentType.startsWith('image/')) {
+        try {
+          const json = JSON.parse(buffer.toString())
+          detalle = json.message || json.error || json.msg || JSON.stringify(json)
+        } catch {}
+      }
+      throw new Error(detalle)
     }
 
-    const { data: imageBuffer } = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      timeout: 30000
-    })
-
-    // Envío de la imagen limpia sin caption
-    await conn.sendMessage(m.chat, { image: Buffer.from(imageBuffer) }, { quoted: m })
+    // Envío limpio de la imagen directamente desde el buffer
+    await conn.sendMessage(m.chat, { image: buffer }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
   } catch (e) {
-    console.error('Error detallado en waifu:', e.message)
+    console.error('Error en waifu:', e.message)
     await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-    
-    // Envío de respaldo forzado mediante sendMessage para asegurarnos de que el error salga al chat sí o sí
     await conn.sendMessage(m.chat, { text: `> ✿ Error en waifu:\n> \`${e.message}\`` }, { quoted: m })
   }
 }
