@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 let handler = async (m, { conn, usedPrefix, command }) => {
-  const base = global.info?.evogb || 'https://api.evogb.org'
-  const key = global.info?.evogbkey || 'evogb-TyswGrUB'
+  const base = global.info?.evogb
+  const key = global.info?.evogbkey
 
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
@@ -23,7 +23,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const contentType = String(res.headers['content-type'] || '')
     const buffer = Buffer.from(res.data)
 
-    // Si la API devuelve un JSON de error en lugar de imagen, lo atrapamos
     if (res.status !== 200 || !contentType.startsWith('image/') || buffer.length < 1000) {
       let detalle = res.status === 404 ? 'No se encontró la imagen.' : `HTTP ${res.status}`
       if (contentType.includes('json') || !contentType.startsWith('image/')) {
@@ -35,7 +34,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
       throw new Error(detalle)
     }
 
-    // Envío limpio de la imagen directamente desde el buffer
     await conn.sendMessage(m.chat, { image: buffer }, { quoted: m })
     await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
 
