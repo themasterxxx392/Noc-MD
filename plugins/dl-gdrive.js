@@ -5,11 +5,11 @@ const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    const base = global.info?.evogb || 'https://api.evogb.org'
-    const key = global.info?.evogbkey || 'evogb-TyswGrUB'
+    const base = global.info?.evogb
+    const key = global.info?.evogbkey
 
     if (!text) {
-        return conn.reply(m.chat, `✿ Ingresa un enlace de Google Drive.`, m)
+        return conn.reply(m.chat, `_✿ Ingresa un enlace de Google Drive._`, m)
     }
 
     const input = text.trim()
@@ -57,7 +57,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         let rawFileName = info?.filename || info?.title || info?.name || 'archivo.bin'
 
-        // Limpiamos la codificación rota de WhatsApp (reemplaza los caracteres corruptos de la raíz por el símbolo correcto '√')
+        
         let cleanFileName = String(rawFileName)
             .replace(/â[^\w\s]*/g, '√')
             .replace(/[\/\\:*?"<>|]/g, '_')
@@ -126,6 +126,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.help = ['gdrive']
 handler.tags = ['downloader']
-handler.command = ['gdrive', 'googledrive', 'drive']
+handler.command = ['gdrive']
 
 export default handler
