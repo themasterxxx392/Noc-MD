@@ -58,7 +58,7 @@ async function enviarAlbum(conn, jid, buffers, quoted) {
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
   if (!text) {
-    return conn.reply(m.chat, `✿ Ingresa qué quieres buscar en Pinterest.\n\n*Ejemplo:* \`${usedPrefix + command} rem re zero\``, m);
+    return conn.reply(m.chat, `_✿ Ingresa qué quieres buscar en Pinterest._`, m);
   }
 
   const base = global.info?.evogb;
