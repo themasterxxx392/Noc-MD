@@ -1,91 +1,185 @@
-import fg from 'api-dylux';
-import axios from 'axios';
-import fetch from 'node-fetch';
-import cheerio from 'cheerio';
-const userRequests = {};
+import axios from 'axios'
+import * as baileys from '@whiskeysockets/baileys'
 
-const handler = async (m, { conn, text, args, usedPrefix, command }) => {
-if (!text) return m.reply( `⚠️ *Que tiktok buscar? 🤔*\n\n⚡ *Ingrese un enlace de tiktok para descarga el video*\n*Ej:* ${usedPrefix + command} https://vm.tiktok.com/ZM6T4X1RY/`)
-if (!/(?:https:?\/{2})?(?:w{3}|vm|vt|t)?\.?tiktok.com\/([^\s&]+)/gi.test(text)) return m.reply(`❌ Error`)
-if (userRequests[m.sender]) return await conn.reply(m.chat, `Oye @${m.sender.split('@')[0]}, calma bro, ya estás descargando algo 😒\n> Espera a que termine tu solicitud actual antes de hacer otra...`, m)
-userRequests[m.sender] = true;
-const { key } = await conn.sendMessage(m.chat, { text: `⌛ 𝙀𝙨𝙥𝙚𝙧𝙚 ✋\n▰▰▰▱▱▱▱▱▱\n𝙔𝙖 𝙚𝙨𝙩𝙤𝙮 𝙙𝙚𝙨𝙘𝙖𝙧𝙜𝙖𝙙𝙤... 𝙨𝙪𝙨 𝙫𝙞𝙙𝙚𝙤 𝙙𝙚𝙡 𝙏𝙞𝙠𝙏𝙤𝙠 🔰` }, { quoted: m });
-await delay(1000);
-await conn.sendMessage(m.chat, { text: `⌛ 𝙀𝙨𝙥𝙚𝙧𝙚 ✋ \n▰▰▰▰▰▱▱▱▱\n𝙔𝙖 𝙚𝙨𝙩𝙤𝙮 𝙙𝙚𝙨𝙘𝙖𝙧𝙜𝙖𝙙𝙤... 𝙨𝙪𝙨 𝙫𝙞𝙙𝙚𝙤 𝙙𝙚𝙡 𝙏𝙞𝙠𝙏𝙤𝙠 🔰`, edit: key });
-await delay(1000);
-await conn.sendMessage(m.chat, { text: `⌛ 𝙔𝙖 𝙘𝙖𝙨𝙞 🏃‍♂️💨\n▰▰▰▰▰▰▰▱▱`, edit: key });
-try {
-const downloadAttempts = [async () => {
-const tTiktok = await tiktokdlF(args[0]);
-return tTiktok.video;
-},
-async () => {
-  const { data } = await axios.get(`https://api.delirius.store/download/tiktok?url=${args[0]}`);
-  const video = data?.data?.meta?.media?.find(m => m.type === 'video');
-  return video?.org || video?.hd || video?.wm;
-},
-async () => {
-const response = await axios.get(`https://api.dorratz.com/v2/tiktok-dl?url=${args[0]}`);
-return response.data.data.media.org;
-},
-async () => {
-const p = await fg.tiktok(args[0]);
-return p.nowm;
-}];
+const { generateWAMessageFromContent, generateWAMessage } = baileys.generateWAMessage ? baileys : baileys.default
 
-let videoUrl = null;
-for (const attempt of downloadAttempts) {
-try {
-videoUrl = await attempt();
-if (videoUrl) break; 
-} catch (err) {
-console.error(`Error in attempt: ${err.message}`);
-continue; // Si falla, intentar con la siguiente API
-}}
+const MAX_SIZE = 100 * 1024 * 1024
+const activeDownloads = new Set()
+const LOCK_TTL_MS = 3 * 60 * 1000
 
-if (!videoUrl) throw new Error('No se pudo descargar el video desde ninguna API');
-await conn.sendFile(m.chat, videoUrl, 'tt.mp4', '*🔰 Aqui esta tu video de tiktok*', m);
-//conn.sendMessage(m.chat, {video: { url: videoUrl }, caption: `*🔰 Aqui esta tu video de tiktok*` }, { quoted: m });
-await conn.sendMessage(m.chat, { text: `✅ 𝘾𝙤𝙢𝙥𝙡𝙚𝙩𝙖𝙙𝙤\n▰▰▰▰▰▰▰▰▰`, edit: key });
-} catch (e) {
-console.log(e);
-m.react(`❌`);
-handler.limit = false;
-} finally {
-delete userRequests[m.sender];
-}};
-handler.help = ['tiktok'];
-handler.tags = ['downloader'];
-handler.command = /^(tt|tiktok)(dl|nowm)?$/i;
-handler.limit = 1;
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  'Referer': 'https://www.tiktok.com/'
+}
 
-export default handler;
+const ES_LINK = /^https?:\/\/(www\.|vm\.|vt\.|m\.)?tiktok\.com\/\S+/i
 
-const delay = time => new Promise(res => setTimeout(res, time));
+const formatMB = (bytes) => (bytes / (1024 * 1024)).toFixed(2)
+const num = (n) => Number.isFinite(Number(n)) ? Number(n).toLocaleString('es-PE') : '-'
+const recortar = (txt = '', max = 150) => {
+  const t = String(txt).replace(/\s+/g, ' ').trim()
+  return t.length > max ? t.slice(0, max - 1) + '…' : t
+}
+const aUrl = (x) => typeof x === 'string' ? x : x?.url
 
-async function tiktokdlF(url) {
-  if (!/tiktok/.test(url)) throw new Error(`*• Ejemplo:* _${usedPrefix + command} https://vm.tiktok.com/ZM686Q4ER/_`);
-  const gettoken = await axios.get('https://tikdown.org/id');
-  const $ = cheerio.load(gettoken.data);
-  const token = $('#download-form > input[type=hidden]:nth-child(2)').attr('value');
-  const param = { url: url, _token: token };
-  const { data } = await axios.request('https://tikdown.org/getAjax?', {
-    method: 'post',
-    data: new URLSearchParams(Object.entries(param)),
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'user-agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36'
+async function descargar(url) {
+  const r = await axios.get(url, {
+    responseType: 'arraybuffer',
+    headers: HEADERS,
+    timeout: 120000,
+    maxRedirects: 5,
+    maxContentLength: MAX_SIZE,
+    maxBodyLength: MAX_SIZE
+  })
+  return Buffer.from(r.data)
+}
+
+async function enviarAlbum(conn, jid, imagenes, quoted, caption) {
+  const album = generateWAMessageFromContent(jid, {
+    messageContextInfo: {},
+    albumMessage: {
+      expectedImageCount: imagenes.length,
+      expectedVideoCount: 0,
+      ...(quoted ? {
+        contextInfo: {
+          remoteJid: quoted.key.remoteJid,
+          fromMe: quoted.key.fromMe,
+          stanzaId: quoted.key.id,
+          participant: quoted.key.participant || quoted.key.remoteJid,
+          quotedMessage: quoted.message
+        }
+      } : {})
     }
-  });
-  const getdata = cheerio.load(data.html);
-  if (data.status) {
-    return {
-      status: true,
-      thumbnail: getdata('img').attr('src'),
-      video: getdata('div.download-links > div:nth-child(1) > a').attr('href'),
-      audio: getdata('div.download-links > div:nth-child(2) > a').attr('href')
-    };
-  } else {
-    return { status: false };
+  }, {})
+
+  await conn.relayMessage(album.key.remoteJid, album.message, { messageId: album.key.id })
+
+  for (let i = 0; i < imagenes.length; i++) {
+    const content = i === 0 && caption ? { image: imagenes[i], caption } : { image: imagenes[i] }
+    const img = await generateWAMessage(album.key.remoteJid, content, { upload: conn.waUploadToServer })
+    img.message.messageContextInfo = {
+      messageAssociation: { associationType: 1, parentMessageKey: album.key }
+    }
+    await conn.relayMessage(img.key.remoteJid, img.message, { messageId: img.key.id })
+    await new Promise(resolve => setTimeout(resolve, 300))
   }
 }
+
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  const base = global.info?.evogb
+  const key = global.info?.evogbkey
+
+  const fuente = text?.trim() || m.quoted?.text || ''
+  const input = (fuente.match(/https?:\/\/\S+/) || [])[0]
+
+  if (!input || !ES_LINK.test(input)) {
+    return conn.reply(m.chat, `❖ Ingresa un enlace de TikTok.\n\n*Ejemplo:* \`${usedPrefix + command} https://www.tiktok.com/@usuario/video/123456789\``, m)
+  }
+
+  const lockKey = `${m.chat}:${input}`
+  if (activeDownloads.has(lockKey)) return
+  activeDownloads.add(lockKey)
+  const lockTimeout = setTimeout(() => activeDownloads.delete(lockKey), LOCK_TTL_MS)
+
+  await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+
+  try {
+    let res
+    try {
+      const r = await axios.get(`${base}/dl/tiktok`, {
+        params: { key, url: input },
+        timeout: 60000
+      })
+      res = r.data
+    } catch (err) {
+      throw new Error(`[paso 1/2: resolver video] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
+    }
+
+    const d = res?.data
+    if (!res?.status || !d) {
+      throw new Error('[paso 1/2] La API no devolvió resultados para este enlace.')
+    }
+
+    const autor = d.author?.nickname ? `${d.author.nickname}${d.author.unique_id ? ` (@${d.author.unique_id})` : ''}` : '-'
+
+    const caption = `*[ TIKTOK DOWNLOADER ]*\n\n` +
+                    `> ❒ *Autor:* ${autor}\n` +
+                    `> ❒ *Título:* ${recortar(d.title) || '-'}\n` +
+                    `> ❒ *Duración:* ${d.duration || '-'}\n` +
+                    `> ❒ *Vistas:* ${num(d.stats?.plays)} | *Likes:* ${num(d.stats?.likes)}`
+
+    const lista = Array.isArray(d.dl) ? d.dl : Array.isArray(d.images) ? d.images : null
+
+    if (lista) {
+      const urls = lista.map(aUrl).filter(Boolean).slice(0, 10)
+      if (!urls.length) throw new Error('[paso 1/2] La API no devolvió las imágenes.')
+
+      let imagenes
+      try {
+        imagenes = (await Promise.all(urls.map(u => descargar(u).catch(() => null)))).filter(b => b && b.length > 1000)
+      } catch (err) {
+        throw new Error(`[paso 2/2: descargar imágenes] ${err.message}`)
+      }
+      if (!imagenes.length) throw new Error('[paso 2/2] No se pudo descargar ninguna imagen.')
+
+      if (imagenes.length === 1) {
+        await conn.sendMessage(m.chat, { image: imagenes[0], caption }, { quoted: m })
+      } else {
+        try {
+          await enviarAlbum(conn, m.chat, imagenes, m, caption)
+        } catch (err) {
+          console.error('Error al enviar el álbum, se envían por separado:', err.message)
+          for (let i = 0; i < imagenes.length; i++) {
+            await conn.sendMessage(m.chat, i === 0 ? { image: imagenes[i], caption } : { image: imagenes[i] }, { quoted: m })
+            await new Promise(resolve => setTimeout(resolve, 300))
+          }
+        }
+      }
+    } else {
+      if (!d.dl || typeof d.dl !== 'string') {
+        throw new Error('[paso 1/2] La API no devolvió el video.')
+      }
+
+      let buffer
+      try {
+        buffer = await descargar(d.dl)
+      } catch (err) {
+        if (/maxContentLength|maxBodyLength/i.test(err.message)) throw new Error('MAX_SIZE')
+        throw new Error(`[paso 2/2: descargar video] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
+      }
+
+      if (buffer.length < 1000) {
+        throw new Error('El servidor devolvió una respuesta inválida (el enlace pudo expirar). Inténtalo de nuevo.')
+      }
+
+      await conn.sendMessage(m.chat, {
+        video: buffer,
+        mimetype: 'video/mp4',
+        caption
+      }, { quoted: m })
+    }
+
+    await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
+
+  } catch (e) {
+    console.error('Error en tiktok:', e.message)
+    await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+
+    if (e.message === 'MAX_SIZE') {
+      return conn.reply(m.chat, `ꕥ El video supera el límite permitido (Máx: ${formatMB(MAX_SIZE)} MB).`, m)
+    }
+    if (e.code === 'ECONNABORTED' || /timeout/i.test(e.message)) {
+      return conn.reply(m.chat, '⚠️ Tiempo de espera agotado al procesar el video.', m)
+    }
+    return conn.reply(m.chat, `> ✿︎ Ocurrió un error al procesar el video de TikTok.\n> *[Detalle: ${e.message}]*`, m)
+  } finally {
+    clearTimeout(lockTimeout)
+    activeDownloads.delete(lockKey)
+  }
+}
+
+handler.help = ['tiktok']
+handler.tags = ['downloader']
+handler.command = ['tt', 'tiktok']
+
+export default handler
