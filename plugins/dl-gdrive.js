@@ -56,9 +56,9 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         let rawFileName = info?.filename || info?.title || info?.name || 'archivo.bin'
+        // Solo eliminamos caracteres prohibidos para sistemas de archivos (/ \ : * ? " < > |)
         let cleanFileName = String(rawFileName)
-            .replace(/[√✔]/g, 'v') // Reemplaza símbolos raros de raíz/checks por 'v' limpia
-            .replace(/[^\w\s.-]/g, '_') // Reemplaza caracteres especiales problemáticos por guion bajo
+            .replace(/[\/\\:*?"<>|]/g, '_')
             .trim()
 
         let fileResponse
@@ -81,8 +81,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                 const extractedName = match[1].replace(/['"]/g, '').replace(/utf-8''/i, '')
                 try {
                     cleanFileName = decodeURIComponent(extractedName)
-                        .replace(/[√✔]/g, 'v')
-                        .replace(/[^\w\s.-]/g, '_')
+                        .replace(/[\/\\:*?"<>|]/g, '_')
                         .trim()
                 } catch {
                     cleanFileName = extractedName
