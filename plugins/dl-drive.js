@@ -60,7 +60,6 @@ delete userRequests[m.sender];
 handler.help = ['drive'].map(v => v + ' <url>');
 handler.tags = ['downloader'];
 handler.command = /^(drive|drivedl|dldrive|gdrive)$/i;
-handler.limit = 3;
 
 export default handler;
 
