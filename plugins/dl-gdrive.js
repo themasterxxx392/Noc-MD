@@ -56,8 +56,10 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         let rawFileName = info?.filename || info?.title || info?.name || 'archivo.bin'
-        // Solo eliminamos caracteres prohibidos para sistemas de archivos (/ \ : * ? " < > |)
+
+        // Limpiamos la codificación rota de WhatsApp (reemplaza los caracteres corruptos de la raíz por el símbolo correcto '√')
         let cleanFileName = String(rawFileName)
+            .replace(/â[^\w\s]*/g, '√')
             .replace(/[\/\\:*?"<>|]/g, '_')
             .trim()
 
@@ -81,10 +83,11 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                 const extractedName = match[1].replace(/['"]/g, '').replace(/utf-8''/i, '')
                 try {
                     cleanFileName = decodeURIComponent(extractedName)
+                        .replace(/â[^\w\s]*/g, '√')
                         .replace(/[\/\\:*?"<>|]/g, '_')
                         .trim()
                 } catch {
-                    cleanFileName = extractedName
+                    cleanFileName = extractedName.replace(/â[^\w\s]*/g, '√')
                 }
             }
         }
@@ -123,6 +126,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
 handler.help = ['gdrive']
 handler.tags = ['downloader']
-handler.command = ['gdrive']
+handler.command = ['gdrive', 'googledrive', 'drive']
 
 export default handler
