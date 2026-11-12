@@ -1,12 +1,14 @@
 import util from 'util'
 import path from 'path' 
 import fetch from 'node-fetch';
+
 let toM = a => '@' + a.split('@')[0] 
+
 let handler = async (m, { conn, metadata, command, text, participants, usedPrefix}) => {
 let fkontak = { "key": { "participants":"0@s.whatsapp.net", "remoteJid": "status@broadcast", "fromMe": false, "id": "Halo" }, "message": { "contactMessage": { "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${m.sender.split('@')[0]}:${m.sender.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD` }}, "participant": "0@s.whatsapp.net" }  
-try {
 
-let user = a => '@' + a.split('@')[0] //'@' + a.split('@')[0]
+try {
+let user = a => '@' + a.split('@')[0]
 let ps = metadata.participants.map(v => v.id)
 let a = ps.getRandom()
 let b = ps.getRandom() 
@@ -18,7 +20,6 @@ let g = ps.getRandom()
 let h = ps.getRandom()
 let i = ps.getRandom()
 let j = ps.getRandom() 
-
 
 //------------------------------------------------------------------------------------
 
@@ -67,13 +68,10 @@ m.reply(love, null, { mentions: conn.parseMention(love) })
 //------------------------------------------------------------------------------------
 
 if (command == 'Doxxeo' || command == 'doxxeo' || command == 'doxxear' || command == 'Doxxear' || command == 'doxeo' || command == 'doxear' || command == 'doxxeame' || command == 'doxeame') {
-//if (new Date - user.prue < 90000) return await conn.reply(m.chat, `🙌 HEY ALTO ESPERA UNOS MINUTOS PARA USAR OTRO COMANDO NO HAGA SPAM`, fkontak, m)
 let who
 if (m.isGroup) who = m.mentionedJid[0]
 else who = m.chat
 let start = `*😱 ¡¡𝙀𝙢𝙥𝙚𝙯𝙖𝙣𝙙𝙤 𝙙𝙤𝙭𝙭𝙚𝙤!! 😱*`
-let ala = `😨`
-let boost = `*${pickRandom(['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'])}%*`
 let boost2 = `*${pickRandom(['21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40'])}%*`
 let boost3 = `*${pickRandom(['41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60'])}%*`
 let boost4 = `*${pickRandom(['61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80'])}%*`
@@ -141,13 +139,9 @@ let vn = 'https://qu.ax/HfeP.mp3'
 let who
 if (m.isGroup) who = m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
 else who = m.sender 
-let member = participants.map(u => u.id)
-let me = m.sender
-let jodoh = member[Math.floor(Math.random() * member.length)]
 let random = `${Math.floor(Math.random() * 100)}`
 let gay = random
-if (gay < 20 ) {gay = 'Usted es hetero 🤪🤙'} else if (gay == 21 ) {gay = 'Mas o menos 🤔'} else if (gay == 23 ) {gay = 'Mas o menos 🤔'} else if (gay == 24 ) {ga = 'Mas o menos 🤔'} else if (gay == 25 ) {gay = 'Mas o menos 🤔'} else if (gay == 26 ) {gay = 'Mas o menos 🤔'} else if (gay == 27 ) {gay = 'Mas o menos 🤔'} else if (gay == 28 ) {gay = 'Mas o menos 🤔'} else if (gay == 29 ) {gay = 'Mas o menos 🤔'} else if (gay == 30 ) {gay = 'Mas o menos 🤔'} else if (gay == 31 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 32 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 33 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 34 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 35 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 36 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 37 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 38 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 39 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 40 ) {gay = 'Tengo mi dudas 😑'} else if (gay == 41 ) {gay = 'Tengo razon? 😏'} else if (gay == 42 ) {gay = 'Tengo razon? 😏'} else if (gay == 43 ) {gay = 'Tengo razon? 😏'} else if (gay == 44 ) {gay = 'Tengo razon? 😏'} else if (gay == 45 ) {gay = 'Tengo razon? 😏'} else if (gay == 46 ) {gay = 'Tengo razon? 😏'} else if (gay == 47 ) {gay = 'Tengo razon? 😏'} else if (gay == 48 ) {gay = 'Tengo razon? 😏'} else if (gay == 49 ) {gay = 'Tengo razon? 😏'} else if (gay == 50 ) {gay = 'Eres o no? 🧐'} else if (gay > 51) {gay = 'Usted es gay 🥸'}
-//let kah = ra[Math.floor(Math.random() * ra.length)]
+if (gay < 20 ) {gay = 'Usted es hetero 🤪🤙'} else if (gay == 21 ) {gay = 'Mas o menos 🤔'} else if (gay == 23 ) {gay = 'Mas o menos 🤔'} else if (gay == 24 ) {gay = 'Mas o menos 🤔'} else if (gay == 25 ) {gay = 'Mas o menos 🤔'} else if (gay == 26 ) {gay = 'Mas o menos 🤔'} else if (gay == 27 ) {gay = 'Mas o menos 🤔'} else if (gay == 28 ) {gay = 'Mas o menos 🤔'} else if (gay == 29 ) {gay = 'Mas o menos 🤔'} else if (gay == 30 ) {gay = 'Mas o menos 🤔'} else if (gay >= 31 && gay <= 40 ) {gay = 'Tengo mi dudas 😑'} else if (gay >= 41 && gay <= 50 ) {gay = 'Tengo razon? 😏'} else if (gay == 50 ) {gay = 'Eres o no? 🧐'} else if (gay > 51) {gay = 'Usted es gay 🥸'}
     let jawab = `@${who.split("@")[0]} Es 🏳️‍🌈 ${random}% Gay\n\n${gay}`;
     const avatar = await conn.profilePictureUrl(who, 'image').catch(_ => 'https://telegra.ph/file/24fa902ead26340f3df2c.png');
 
@@ -257,4 +251,9 @@ conn.reply(m.chat, ` *❤️❤️ MEDIDOR DE AMOR ❤️❤️*
  mentions: m.mentionedJid
  } : {})} 
 
-//------------------------------------------------------------------------------------
+} catch (e) {
+  console.error(e)
+}
+}
+
+export default handler
