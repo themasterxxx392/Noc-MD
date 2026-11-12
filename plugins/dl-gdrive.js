@@ -4,16 +4,12 @@ const MAX_SIZE_BYTES = 1024 * 1024 * 1024
 const activeDownloads = new Set()
 const LOCK_TTL_MS = 3 * 60 * 1000
 
-function formatMB(bytes) {
-    return (bytes / (1024 * 1024)).toFixed(2)
-}
-
 let handler = async (m, { conn, text, usedPrefix, command }) => {
-    const base = global.info?.evogb || 'https://api.evogb.org'
-    const key = global.info?.evogbkey || 'evogb-TyswGrUB'
+    const base = global.info?.evogb
+    const key = global.info?.evogbkey
 
     if (!text) {
-        return conn.reply(m.chat, `✿ Ingresa un enlace de Google Drive.`, m)
+        return conn.reply(m.chat, `_✿ Ingresa un enlace de Google Drive._`, m)
     }
 
     const input = text.trim()
@@ -41,11 +37,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }
 
         const payload = resolveRes.data
-        console.log('GDRIVE PAYLOAD DEBUG:', JSON.stringify(payload, null, 2))
-
         const info = payload?.data || payload?.resultado || payload
 
-        // Intentamos extraer cualquier propiedad que pueda contener el link o buscamos con regex en el JSON completo
         let downloadUrl = info?.url || info?.download || info?.link || info?.dl || null
 
         if (!downloadUrl && typeof payload === 'object') {
@@ -62,7 +55,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error(`[paso 1/2] La API no devolvió un link de descarga válido. (${detalle})`)
         }
 
-        let rawFileName = info?.filename || info?.title || 'archivo.bin'
+        let rawFileName = info?.filename || info?.title || info?.name || 'archivo.bin'
         let cleanFileName = String(rawFileName).trim()
 
         let fileResponse
@@ -78,6 +71,20 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             throw new Error(`[paso 2/2: descargar stream] ${err.response ? `HTTP ${err.response.status}` : err.message}`)
         }
 
+        // Intentar extraer el nombre real del archivo desde el header 'content-disposition' si la API mandó un genérico
+        const contentDisposition = fileResponse.headers['content-disposition']
+        if (contentDisposition && /filename\*?=/.test(contentDisposition)) {
+            const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+            if (match && match[1]) {
+                const extractedName = match[1].replace(/['"]/g, '').replace(/utf-8''/i, '')
+                try {
+                    cleanFileName = decodeURIComponent(extractedName)
+                } catch {
+                    cleanFileName = extractedName
+                }
+            }
+        }
+
         const buffer = Buffer.from(fileResponse.data)
 
         if (buffer.length < 100) {
@@ -87,19 +94,14 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
         if (buffer.length >= MAX_SIZE_BYTES) {
             await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-            return conn.reply(m.chat, `ꕥ El archivo supera el límite permitido (${formatMB(buffer.length)}MB / Máx: ${formatMB(MAX_SIZE_BYTES)}MB).`, m)
+            return conn.reply(m.chat, `ꕥ El archivo supera el límite permitido.`, m)
         }
 
         const mimetype = fileResponse.headers['content-type'] || 'application/octet-stream'
 
-        let txt = `*[ GOOGLE DRIVE DOWNLOADER ]*\n\n` +
-                  `> *Nombre:* ${cleanFileName}\n` +
-                  `> *Peso:* ${formatMB(buffer.length)} MB`
-
         await conn.sendMessage(m.chat, {
             document: buffer,
             fileName: cleanFileName,
-            caption: txt,
             mimetype
         }, { quoted: m })
 
