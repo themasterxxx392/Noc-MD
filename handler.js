@@ -224,7 +224,7 @@ export async function participantsUpdate(conn, { id, participants, action, autho
 
       if (["promote", "daradmin", "darpoder"].includes(action)) {
         if (!settings.detect) continue;
-        const raw = settings.spromote || settings.sPromote || `@user 𝘼𝙃𝙊𝙍𝘼 𝙀𝙎 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙕𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
+        const raw = settings.spromote || settings.sPromote || `@user 𝘼𝙃𝙊𝙍𝘼 𝙀𝙎 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙡𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
         const msg = makeMsg(raw, vars);
 
         await sendText(id, msg, "NUEVO ADMIN 🥳", "Ahora tiene admin", image, mentions);
@@ -233,7 +233,7 @@ export async function participantsUpdate(conn, { id, participants, action, autho
 
       if (["demote", "quitaradmin", "quitarpoder"].includes(action)) {
         if (!settings.detect) continue;
-        const raw = settings.sdemote || settings.sDemote || `@user 𝘿𝙀𝙅𝘼 𝘿𝙀 𝙎𝙀𝙍 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙕𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
+        const raw = settings.sdemote || settings.sDemote || `@user 𝘿𝙀𝙅𝘼 𝘿𝙀 𝙎𝙀𝙍 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙡𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
         const msg = makeMsg(raw, vars);
 
         await sendText(id, msg, "📛 ADMIN REMOVIDO", "Ya no tiene admin", image, mentions);
@@ -303,7 +303,7 @@ export async function groupsUpdate(conn, updates) {
       } else if (update.inviteCode) {
         const link = `https://chat.whatsapp.com/${update.inviteCode}`;
         message = `🔗 *Nuevo enlace del grupo generado*\n\n${link}`;
-                                   }
+      }
 
       if (!message) continue;
       await sendDetect(id, message, author ? [author] : []);
@@ -760,21 +760,14 @@ export async function handler(conn, m) {
     if (plugin.private && isGroup) return m.reply("⚠️ Este comando solo funciona el pv");
 
     try {
-      if (plugin.limit) {
-        const res = await db.query('SELECT limite FROM usuarios WHERE id = $1', [m.sender]);
-        if ((res.rows[0]?.limite ?? 0) < plugin.limit) {
-          return m.reply("*⚠ 𝐒𝐮𝐬 𝐝𝐢𝐚𝐦𝐚𝐧𝐭𝐞 💎 𝐬𝐞 𝐡𝐚𝐧 𝐚𝐠𝐨𝐭𝐚𝐝𝐨 𝐩𝐮𝐞𝐝𝐞 𝐜𝐨𝐦𝐩𝐫𝐚𝐫 𝐦𝐚𝐬 𝐮𝐬𝐚𝐧𝐝𝐨 𝐞𝐥 𝐜𝐨𝐦𝐚𝐧𝐝𝐨:* #buy.");
-        }
-      }
-
       if (plugin.money) {
         const res = await db.query('SELECT money FROM usuarios WHERE id = $1', [m.sender]);
         if ((res.rows[0]?.money ?? 0) < plugin.money) {
           return m.reply("*NO TIENE SUFICIENTES LOLICOINS 🪙*");
         }
-                                           }
+      }
 
-       if (plugin.level) {
+      if (plugin.level) {
         const res = await db.query('SELECT level FROM usuarios WHERE id = $1', [m.sender]);
         const nivel = res.rows[0]?.level ?? 0;
         if (nivel < plugin.level) {
@@ -792,11 +785,6 @@ export async function handler(conn, m) {
       });
 
       await plugin(m, { conn, text, args, usedPrefix, command, participants, metadata, isOwner, isROwner, isAdmin: m.isAdmin, isBotAdmin: botIsAdmin, isGroup });
-
-      if (plugin.limit) {
-        await db.query('UPDATE usuarios SET limite = limite - $1 WHERE id = $2', [plugin.limit, m.sender]);
-        await m.reply(`*${plugin.limit} diamante 💎 usado${plugin.limit > 1 ? 's' : ''}.*`);
-      }
 
       if (plugin.money) {
         await db.query('UPDATE usuarios SET money = money - $1 WHERE id = $2', [plugin.money, m.sender]);
@@ -882,4 +870,3 @@ watchFile(file, () => {
   console.log(chalk.redBright('Update \'handler.js\''));
   import(`${file}?update=${Date.now()}`);
 });
-        
