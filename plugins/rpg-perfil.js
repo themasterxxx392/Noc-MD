@@ -145,7 +145,6 @@ wa.me/${mentionJid.split('@')[0]}
 
   const {
     exp = 0,
-    limite = 0,
     nombre,
     registered,
     edad,
@@ -184,7 +183,6 @@ wa.me/${mentionJid.split('@')[0]}
 🌐 *Link:* wa.me/${mentionJid.split('@')[0]}
 🌍 *Nacionalidad:* ${pais}${edad ? `\n🎈 *Edad:* ${edad}` : ''}${gender ? `\n⚧️ *Género:* ${gender}` : ''}${birthday ? `\n🎂 *Cumpleaños:* ${moment(birthday).format('DD/MM/YYYY')}` : ''}
 📝 *Bio:* ${biot}
-💎 *Límite:* ${limite ?? 0}
 ✨ *XP:* ${exp}
 ⚙️ *Nivel:* ${level}
 ◯ *Registrado:* ${registered ? 'Sí' : 'No'}
@@ -198,8 +196,8 @@ ${relacion}
   })
 }
 
-handler.help = ['perfil', 'perfil *@user*', 'perfil +num']
-handler.tags = ['rg']
-handler.command = /^(perfil|profile)$/i
+handler.help = ['perfil']
+handler.tags = ['rpg']
+handler.command = ['perfil', 'profile']
 
 export default handler
