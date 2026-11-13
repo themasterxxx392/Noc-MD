@@ -3,7 +3,7 @@ import { xpRange } from '../lib/levelling.js'
 const cooldown = 3600000; // 1 hora
 const handler = async (m, { conn, metadata }) => {
 const now = Date.now();
-const userRes = await m.db.query('SELECT exp, limite, money, crime FROM usuarios WHERE id = $1', [m.sender]);
+const userRes = await m.db.query('SELECT exp, money, crime FROM usuarios WHERE id = $1', [m.sender]);
 const user = userRes.rows[0];
 if (!user) return m.reply('❌ En usuarios no aparece en mi base de datos');
 
@@ -12,7 +12,6 @@ if (timePassed < cooldown) return m.reply(`『🚓︎』𝙇𝘼 𝙋𝙊𝙇�
 const participants = metadata.participants.map(v => v.id);
 const randomTarget = participants[Math.floor(Math.random() * participants.length)];
 const exp = Math.floor(Math.random() * 7000);
-const diamond = Math.floor(Math.random() * 30);
 const money = Math.floor(Math.random() * 9000);
 const type = Math.floor(Math.random() * 5);
 
@@ -27,12 +26,12 @@ text = `《🚓》${pickRandom(robmal)} ${exp} XP`;
 await m.db.query('UPDATE usuarios SET exp = GREATEST(exp - $1, 0), crime = $2 WHERE id = $3', [exp, now, m.sender]);
 break;
 case 2:
-text = `《💰》${pickRandom(robar)}\n\n${diamond} 💎 DIAMANTE\n${money} 🪙 LOLICOINS`;
-await m.db.query('UPDATE usuarios SET limite = limite + $1, money = money + $2, crime = $3 WHERE id = $4', [diamond, money, now, m.sender]);
+text = `《💰》${pickRandom(robar)}\n\n${money} 🪙 LOLICOINS`;
+await m.db.query('UPDATE usuarios SET money = money + $1, crime = $2 WHERE id = $3', [money, now, m.sender]);
 break;
 case 3:
-text = `《🚓》${pickRandom(robmal)}\n\n${diamond} 💎 DIAMANTE\n${money} 🪙 LOLICOINS`;
-await m.db.query('UPDATE usuarios SET limite = GREATEST(limite - $1, 0), money = GREATEST(money - $2, 0), crime = $3 WHERE id = $4', [diamond, money, now, m.sender]);
+text = `《🚓》${pickRandom(robmal)}\n\n${money} 🪙 LOLICOINS`;
+await m.db.query('UPDATE usuarios SET money = GREATEST(money - $1, 0), crime = $2 WHERE id = $3', [money, now, m.sender]);
 break;
 case 4:
 text = `《💰》Le has robado a @${randomTarget.split('@')[0]} una cantidad de ${exp} XP`;
@@ -93,3 +92,4 @@ let robmal = [
     'Fuiste descubierto tratando de sobornar a un oficial, perdiste:',
     'Tu plan para chantajear a un empresario salió mal, perdiste:',
 ];
+                                                                                               
