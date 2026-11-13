@@ -1,6 +1,6 @@
 import { db } from '../lib/postgres.js'
 
-const items = ['limite', 'exp', 'money']
+const items = ['exp', 'money']
 let confirmation = {}
 
 const cleanJid = (jid = '') => String(jid || '').replace(/:\d+/, '')
@@ -81,7 +81,6 @@ async function handler(m, { conn, args, usedPrefix, command, metadata }) {
 
 ┏•「 *✅ 𝙍𝙀𝘾𝙐𝙍𝙎𝙊𝙎 𝘿𝙄𝙎𝙋𝙊𝙉𝙄𝘽𝙇𝙀𝙎* 」
 ┃
-┃ 💎 𝘿𝙞𝙖𝙢𝙖𝙣𝙩𝙚𝙨 = limite
 ┃ 🪙 𝙇𝙤𝙡𝙞𝘾𝙤𝙞𝙣𝙨 = money
 ┃ ⚡ 𝙀𝙭𝙥𝙚𝙧𝙞𝙚𝙣𝙘𝙞𝙖 = exp
 ┗•`.trim()
@@ -225,4 +224,4 @@ export default handler
 
 function isNumber(x) {
   return !isNaN(x) && Number.isFinite(Number(x))
-}
+    }
