@@ -33,11 +33,10 @@ before: `┌ Rem Bot ┐
 *• Hora:* %hora (🇵🇪) 
 *• Usuarios:* %totalreg
 *• Tiempo activo:* %muptime
-*• Tu limite:* %limit
 %botOfc
 `.trimStart(),
   header: '`<[ %category ]>`',
-  body: ' %cmd %islimit %isPremium',
+  body: ' %cmd %isPremium',
   footer: `\n`,
   after: ''
 }
