@@ -12,12 +12,16 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const base = global.info?.evogb
   const key = global.info?.evogbkey
 
-  if (!text?.trim()) {
-    return conn.reply(m.chat, `✿ Ingresa el nombre de la canción o video.\n\n*Ejemplo:* \`${usedPrefix + command} Shape of You Ed Sheeran\``, m)
-  }
-
   const isVideo = command === 'play2'
   const tipo = isVideo ? 'video' : 'audio'
+
+  if (!text?.trim()) {
+    const msg = isVideo 
+      ? `✿ Ingresa el nombre o enlace del video que deseas buscar.` 
+      : `✿ Ingresa el nombre o enlace de la canción que deseas buscar.`
+    return conn.reply(m.chat, msg, m)
+  }
+
   const query = text.trim()
 
   const lockKey = `${m.chat}:${command}:${query}`
