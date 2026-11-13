@@ -17,8 +17,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 
   if (!text?.trim()) {
     const msg = isVideo 
-      ? `✿ Ingresa el nombre o enlace del video que deseas buscar.` 
-      : `✿ Ingresa el nombre o enlace de la canción que deseas buscar.`
+      ? `_✿ Ingresa el nombre o enlace del video a descargar._` 
+      : `_✿ Ingresa el nombre o enlace de la canción a descargar._`
     return conn.reply(m.chat, msg, m)
   }
 
