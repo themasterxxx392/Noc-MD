@@ -176,33 +176,45 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Extracción robusta de géneros
+            // Extracción de géneros
             let genres = [];
-            $('.genres-content a, .manga-genres a, .summary-content .genres-content a, .post-content_item .genres-content a').each((_, el) => {
+            $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a').each((_, el) => {
                 const g = $(el).text().trim();
                 if (g && !genres.includes(g)) {
                     genres.push(g);
                 }
             });
+            const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
 
-            // Extracción robusta de sinopsis (Madara theme)
+            // Búsqueda robusta de la sinopsis (la que ya te funcionaba bien)
             let synopsis = '';
-            const synopsisEl = $('.summary__content, .summary_content, .description-summary, div.summary_content').first();
-            if (synopsisEl.length) {
-                synopsis = synopsisEl.text().trim();
+            
+            $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
+                const text = $(el).text().trim();
+                if (text && text.length > 5 && !synopsis) {
+                    synopsis = text;
+                }
+            });
+
+            if (!synopsis) {
+                $('.description-summary, .summary__content, .summary_content').each((_, el) => {
+                    const text = $(el).text().trim();
+                    if (text && text.length > 5 && !synopsis) {
+                        synopsis = text;
+                    }
+                });
             }
 
             if (!synopsis) {
-                $('div.post-content_item').each((_, el) => {
-                    const heading = $(el).find('.summary-heading').text().toLowerCase();
-                    if (heading.includes('sinopsis') || heading.includes('descripción') || heading.includes('resumen')) {
-                        synopsis = $(el).find('.summary-content').text().trim();
+                $('p').each((_, el) => {
+                    const text = $(el).text().trim();
+                    if (text.length > 30 && !text.includes('Capítulo') && !text.includes('Dragon Translation') && !synopsis) {
+                        synopsis = text;
                     }
                 });
             }
 
             synopsis = synopsis || 'Sin sinopsis disponible.';
-            const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
 
             const chapterNumbers = [];
             
