@@ -164,10 +164,8 @@ let handler = async (m, { conn, args, command }) => {
             const pageTitle = $('title').first().text() || '';
             const seriesName = pageTitle.replace(/\s*[-–—]\s*Dragon Translation.*$/, '').trim() || 'Esta serie';
 
-            // Buscar la imagen de la portada (summary_image o etiquetas img dentro de la ficha de la serie)
             let coverImg = $('.summary_image img').attr('src') || $('.tab-summary img').attr('src') || $('div.summary_image img').attr('data-src') || '';
             if (!coverImg) {
-                // Alternativa genérica si la estructura cambia
                 $('.profile-manga img, .manga-banner img, .summary_image img').each((_, el) => {
                     const src = $(el).attr('src') || $(el).attr('data-src');
                     if (src && !coverImg) coverImg = src;
@@ -178,7 +176,13 @@ let handler = async (m, { conn, args, command }) => {
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
             const chapterNumbers = [];
-            $('a').each((_, el) => {
+            
+            // Búsqueda estrictamente dentro de los contenedores de capítulos de la serie
+            const chapterLinks = $('.listing-chapters_wrap a, .wp-manga-chapter a, .version-chap a, ul.main a');
+            
+            const targetElements = chapterLinks.length > 0 ? chapterLinks : $('a');
+
+            targetElements.each((_, el) => {
                 const href = $(el).attr('href') || '';
                 const text = $(el).text() || '';
                 if (href.includes('/capitulo-')) {
