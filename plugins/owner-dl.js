@@ -176,22 +176,24 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Extracción robusta de géneros
+            // Extracción ultra robusta de géneros basada en la estructura visual de la web
             let genres = [];
-            $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a, div.genres-content a').each((_, el) => {
+            $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a, div.genres-content a, a[href*="genre"]').each((_, el) => {
                 const g = $(el).text().trim();
-                if (g && !genres.includes(g)) {
+                if (g && !genres.includes(g) && !g.toLowerCase().includes('géneros') && !g.toLowerCase().includes('generos')) {
                     genres.push(g);
                 }
             });
 
             if (genres.length === 0) {
-                $('div.post-content_item').each((_, el) => {
-                    const heading = $(el).find('.summary-heading').text().toLowerCase();
-                    if (heading.includes('género') || heading.includes('genero') || heading.includes('genre')) {
+                $('div, span, p').each((_, el) => {
+                    const t = $(el).text();
+                    if (t.includes('GÉNEROS') || t.includes('Géneros') || t.includes('generos')) {
                         $(el).find('a').each((_, aEl) => {
                             const g = $(aEl).text().trim();
-                            if (g && !genres.includes(g)) genres.push(g);
+                            if (g && !genres.includes(g) && !g.toLowerCase().includes('géneros') && !g.toLowerCase().includes('generos')) {
+                                genres.push(g);
+                            }
                         });
                     }
                 });
@@ -199,7 +201,7 @@ let handler = async (m, { conn, args, command }) => {
 
             const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
 
-            // Búsqueda robusta de la sinopsis
+            // Extracción robusta de la sinopsis
             let synopsis = '';
             
             $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
