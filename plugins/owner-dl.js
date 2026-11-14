@@ -176,17 +176,30 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Extracción de géneros
+            // Extracción robusta de géneros
             let genres = [];
-            $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a').each((_, el) => {
+            $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a, div.genres-content a').each((_, el) => {
                 const g = $(el).text().trim();
                 if (g && !genres.includes(g)) {
                     genres.push(g);
                 }
             });
+
+            if (genres.length === 0) {
+                $('div.post-content_item').each((_, el) => {
+                    const heading = $(el).find('.summary-heading').text().toLowerCase();
+                    if (heading.includes('género') || heading.includes('genero') || heading.includes('genre')) {
+                        $(el).find('a').each((_, aEl) => {
+                            const g = $(aEl).text().trim();
+                            if (g && !genres.includes(g)) genres.push(g);
+                        });
+                    }
+                });
+            }
+
             const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
 
-            // Búsqueda robusta de la sinopsis (la que ya te funcionaba bien)
+            // Búsqueda robusta de la sinopsis
             let synopsis = '';
             
             $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
@@ -381,7 +394,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             if (successCount === 0) {
-                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
+                return m.reply('❌ No se pudo procesar ningún página del capítulo.');
             }
 
             const pdfBytes = await pdfDoc.save();
