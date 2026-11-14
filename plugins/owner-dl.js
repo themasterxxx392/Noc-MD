@@ -287,7 +287,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             const pdfBytes = await pdfDoc.save();
-            const safeFileName = `${seriesTitleName}_Capitulos_${start}_al_${end}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const safeFileName = `${seriesTitleName} Capitulos del ${start} al ${end}`.replace(/[^a-zA-Z0-9\s_-]/g, '').trim();
 
             return await conn.sendMessage(m.chat, {
                 document: Buffer.from(pdfBytes),
@@ -339,7 +339,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             const pdfBytes = await pdfDoc.save();
-            const safeFileName = title.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const safeFileName = title.replace(/[^a-zA-Z0-9\s_-]/g, '').trim();
 
             return await conn.sendMessage(m.chat, {
                 document: Buffer.from(pdfBytes),
