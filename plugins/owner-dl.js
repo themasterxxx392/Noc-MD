@@ -137,7 +137,7 @@ async function mapWithConcurrency(items, limit, mapper) {
 
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de Dragon Translation.*\n\n📌 Ejemplo capítulo único: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1\n📌 Ejemplo rango de capítulos: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1-5\n📌 Ver info y portada: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ info`);
+        return m.reply(`❌ *Ingresa un enlace de Dragon Translation.*\n\n📌 Ejemplo capítulo único: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1\n📌 Ejemplo rango de capítulos: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1-5\n📌 Ver info, portada y sinopsis: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ info`);
     }
 
     const url = args[0];
@@ -154,7 +154,7 @@ let handler = async (m, { conn, args, command }) => {
 .${command} ${url} 1
 .${command} ${url} 1-5
 
-📌 *O si quieres ver la info y portada:*
+📌 *O si quieres ver la info, portada y sinopsis:*
 .${command} ${url} info`);
     }
 
@@ -175,6 +175,17 @@ let handler = async (m, { conn, args, command }) => {
 
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
+
+            let synopsis = '';
+            $('.summary_content .content-block, .description-summary p, .summary__content p, .manga-excerpt p, div.summary_content p').each((_, el) => {
+                const text = $(el).text().trim();
+                if (text && !synopsis) {
+                    synopsis = text;
+                }
+            });
+            if (!synopsis) {
+                synopsis = $('.summary_content').text().trim() || 'Sin sinopsis disponible.';
+            }
 
             const chapterNumbers = [];
             
@@ -199,7 +210,11 @@ let handler = async (m, { conn, args, command }) => {
                 listText = `\n\n*Capítulos:* ${chapterNumbers.join(', ')}`;
             }
 
-            const caption = `📚 *${seriesName}*\n\n📊 *Total de capítulos:* ${chapterNumbers.length}${listText}`;
+            const caption = `📚 *${seriesName}*
+
+📝 *Sinopsis:* ${synopsis}
+
+📊 *Total de capítulos:* ${chapterNumbers.length}${listText}`;
 
             if (coverImg) {
                 return await conn.sendMessage(m.chat, {
@@ -287,7 +302,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             const pdfBytes = await pdfDoc.save();
-            // Formato: "1-10 Nombre de la Serie"
+            // Formato de nombre: "1-10 Nombre de la Serie"
             const safeFileName = `${start}-${end} ${seriesTitleName}`.replace(/[^a-zA-Z0-9\s_-]/g, '').trim();
 
             return await conn.sendMessage(m.chat, {
