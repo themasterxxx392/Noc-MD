@@ -137,7 +137,7 @@ async function mapWithConcurrency(items, limit, mapper) {
 
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de Dragon Translation.*\n\n📌 Ejemplo capítulo único: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1\n📌 Ejemplo rango de capítulos: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1-5\n📌 Ver info, portada y sinopsis: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ info`);
+        return m.reply(`❌ *Ingresa un enlace de Dragon Translation.*\n\n📌 Ejemplo capítulo único: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1\n📌 Ejemplo rango de capítulos: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1-5\n📌 Ver info completa: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ info`);
     }
 
     const url = args[0];
@@ -154,7 +154,7 @@ let handler = async (m, { conn, args, command }) => {
 .${command} ${url} 1
 .${command} ${url} 1-5
 
-📌 *O si quieres ver la info, portada y sinopsis:*
+📌 *O si quieres ver la info completa:*
 .${command} ${url} info`);
     }
 
@@ -176,10 +176,17 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Búsqueda ultra robusta de la sinopsis
+            // Extracción de géneros
+            let genres = [];
+            $('.genres-content a, .manga-genres a, .genres a, .summary-content a[href*="genre"], div.genres-content a').each((_, el) => {
+                const g = $(el).text().trim();
+                if (g && !genres.includes(g)) {
+                    genres.push(g);
+                }
+            });
+
+            // Extracción de sinopsis
             let synopsis = '';
-            
-            // 1. Probar párrafos dentro de contenedores de descripción
             $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
                 const text = $(el).text().trim();
                 if (text && text.length > 5 && !synopsis) {
@@ -187,21 +194,10 @@ let handler = async (m, { conn, args, command }) => {
                 }
             });
 
-            // 2. Probar contenedores completos directamente si no hay párrafos
             if (!synopsis) {
                 $('.description-summary, .summary__content, .summary_content').each((_, el) => {
                     const text = $(el).text().trim();
                     if (text && text.length > 5 && !synopsis) {
-                        synopsis = text;
-                    }
-                });
-            }
-
-            // 3. Último recurso: cualquier párrafo largo que no sea del menú o capítulos
-            if (!synopsis) {
-                $('p').each((_, el) => {
-                    const text = $(el).text().trim();
-                    if (text.length > 30 && !text.includes('Capítulo') && !text.includes('Dragon Translation') && !synopsis) {
                         synopsis = text;
                     }
                 });
@@ -232,7 +228,11 @@ let handler = async (m, { conn, args, command }) => {
                 listText = `\n\n*Capítulos:* ${chapterNumbers.join(', ')}`;
             }
 
+            const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
+
             const caption = `📚 *${seriesName}*
+
+🏷️ *Géneros:* ${genresText}
 
 📝 *Sinopsis:* ${synopsis}
 
@@ -372,7 +372,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             if (successCount === 0) {
-                return m.reply('❌ No se pudo procesar ningún página del capítulo.');
+                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
             }
 
             const pdfBytes = await pdfDoc.save();
