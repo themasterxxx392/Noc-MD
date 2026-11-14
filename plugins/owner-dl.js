@@ -164,25 +164,22 @@ let handler = async (m, { conn, args, command }) => {
             const pageTitle = $('title').first().text() || '';
             const seriesName = pageTitle.replace(/\s*[-–—]\s*Dragon Translation.*$/, '').trim() || 'Esta serie';
 
-            let coverImg = $('.summary_image img').attr('src') || $('.tab-summary img').attr('src') || $('div.summary_image img').attr('data-src') || '';
-            if (!coverImg) {
-                $('.profile-manga img, .manga-banner img, .summary_image img').each((_, el) => {
-                    const src = $(el).attr('src') || $(el).attr('data-src');
-                    if (src && !coverImg) coverImg = src;
-                });
-            }
+            // Captura robusta de la portada en temas Madara / Dragon Translation
+            let coverImg = '';
+            $('.summary_image img, .tab-summary img, .profile-manga img, img.wp-post-image').each((_, el) => {
+                const src = $(el).attr('data-src') || $(el).attr('src') || $(el).attr('data-lazy-src');
+                if (src && !coverImg && !src.includes('logo')) {
+                    coverImg = src;
+                }
+            });
 
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
             const chapterNumbers = [];
             
-            // Búsqueda estrictamente dentro de los contenedores de capítulos de la serie
-            const chapterLinks = $('.listing-chapters_wrap a, .wp-manga-chapter a, .version-chap a, ul.main a');
-            
-            const targetElements = chapterLinks.length > 0 ? chapterLinks : $('a');
-
-            targetElements.each((_, el) => {
+            // Búsqueda estricta dentro del listado de capítulos de la serie para evitar falsos positivos
+            $('.listing-chapters_wrap li a, li.wp-manga-chapter a, .version-chap li a').each((_, el) => {
                 const href = $(el).attr('href') || '';
                 const text = $(el).text() || '';
                 if (href.includes('/capitulo-')) {
