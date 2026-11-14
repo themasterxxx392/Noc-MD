@@ -176,30 +176,34 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Búsqueda mejorada de la sinopsis
+            // Búsqueda ultra robusta de la sinopsis
             let synopsis = '';
-            const synopsisSelectors = [
-                '.summary__content',
-                '.description-summary',
-                '.summary_content',
-                '.manga-excerpt',
-                '.summary-content',
-                'div.description-summary',
-                'div.summary__content'
-            ];
-
-            for (const selector of synopsisSelectors) {
-                const text = $(selector).text().trim();
-                if (text && text.length > 10) {
+            
+            // 1. Probar párrafos dentro de contenedores de descripción
+            $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
+                const text = $(el).text().trim();
+                if (text && text.length > 5 && !synopsis) {
                     synopsis = text;
-                    break;
                 }
+            });
+
+            // 2. Probar contenedores completos directamente si no hay párrafos
+            if (!synopsis) {
+                $('.description-summary, .summary__content, .summary_content').each((_, el) => {
+                    const text = $(el).text().trim();
+                    if (text && text.length > 5 && !synopsis) {
+                        synopsis = text;
+                    }
+                });
             }
 
+            // 3. Último recurso: cualquier párrafo largo que no sea del menú o capítulos
             if (!synopsis) {
-                $('.manga-summary p, .summary_content p').each((_, el) => {
-                    const t = $(el).text().trim();
-                    if (t && !synopsis) synopsis = t;
+                $('p').each((_, el) => {
+                    const text = $(el).text().trim();
+                    if (text.length > 30 && !text.includes('Capítulo') && !text.includes('Dragon Translation') && !synopsis) {
+                        synopsis = text;
+                    }
                 });
             }
 
@@ -368,7 +372,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             if (successCount === 0) {
-                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
+                return m.reply('❌ No se pudo procesar ningún página del capítulo.');
             }
 
             const pdfBytes = await pdfDoc.save();
