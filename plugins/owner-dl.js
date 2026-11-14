@@ -247,11 +247,11 @@ let handler = async (m, { conn, args, command }) => {
                 chaptersToDownload.push(i);
             }
 
-            await m.reply(`📥 Descargando del capítulo *${start}* al *${end}* en un solo PDF... Esto puede tardar unos minutos.`);
+            await m.reply(`📥 Descargando del capítulo *${start}* al *${end}* en un solo PDF... Por favor espera, esto puede tardar unos minutos.`);
 
             for (const chapNum of chaptersToDownload) {
                 try {
-                    await m.reply(`🔍 Buscando capítulo *${chapNum}*...`);
+                    console.log(`🔍 Descargando capítulo ${chapNum}...`);
                     const { title, images } = await getChapterData(url, chapNum);
                     if (!images || images.length === 0) {
                         continue;
