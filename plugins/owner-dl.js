@@ -52,7 +52,6 @@ async function getChapterData(url, chapterNumber) {
 
     let imageUrls = [];
 
-    // Selectores para capturar imágenes en el lector de Dragon Translation
     $('.reading-content img, .page-break img, .chapter-content img, .entry-content img').each((_, el) => {
         const src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-lazy-src') || $(el).attr('srcset');
         if (src) {
@@ -165,6 +164,19 @@ let handler = async (m, { conn, args, command }) => {
             const pageTitle = $('title').first().text() || '';
             const seriesName = pageTitle.replace(/\s*[-–—]\s*Dragon Translation.*$/, '').trim() || 'Esta serie';
 
+            // Buscar la imagen de la portada (summary_image o etiquetas img dentro de la ficha de la serie)
+            let coverImg = $('.summary_image img').attr('src') || $('.tab-summary img').attr('src') || $('div.summary_image img').attr('data-src') || '';
+            if (!coverImg) {
+                // Alternativa genérica si la estructura cambia
+                $('.profile-manga img, .manga-banner img, .summary_image img').each((_, el) => {
+                    const src = $(el).attr('src') || $(el).attr('data-src');
+                    if (src && !coverImg) coverImg = src;
+                });
+            }
+
+            if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
+            else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
+
             const chapterNumbers = [];
             $('a').each((_, el) => {
                 const href = $(el).attr('href') || '';
@@ -184,10 +196,20 @@ let handler = async (m, { conn, args, command }) => {
 
             let listText = '';
             if (chapterNumbers.length > 0) {
-                listText = `\n\n${chapterNumbers.join(', ')}`;
+                listText = `\n\n*Capítulos:* ${chapterNumbers.join(', ')}`;
             }
 
-            return m.reply(`📚 *${seriesName}* tiene *${chapterNumbers.length}* capítulos detectados.${listText}`);
+            const caption = `📚 *${seriesName}*\n\n📊 *Total de capítulos:* ${chapterNumbers.length}${listText}`;
+
+            if (coverImg) {
+                return await conn.sendMessage(m.chat, {
+                    image: { url: coverImg },
+                    caption: caption
+                }, { quoted: m });
+            } else {
+                return m.reply(caption);
+            }
+
         } catch (error) {
             console.error(error);
             return m.reply(`❌ Ocurrió un error: ${error.message || error}`);
