@@ -176,16 +176,34 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
+            // Búsqueda mejorada de la sinopsis
             let synopsis = '';
-            $('.summary_content .content-block, .description-summary p, .summary__content p, .manga-excerpt p, div.summary_content p').each((_, el) => {
-                const text = $(el).text().trim();
-                if (text && !synopsis) {
+            const synopsisSelectors = [
+                '.summary__content',
+                '.description-summary',
+                '.summary_content',
+                '.manga-excerpt',
+                '.summary-content',
+                'div.description-summary',
+                'div.summary__content'
+            ];
+
+            for (const selector of synopsisSelectors) {
+                const text = $(selector).text().trim();
+                if (text && text.length > 10) {
                     synopsis = text;
+                    break;
                 }
-            });
-            if (!synopsis) {
-                synopsis = $('.summary_content').text().trim() || 'Sin sinopsis disponible.';
             }
+
+            if (!synopsis) {
+                $('.manga-summary p, .summary_content p').each((_, el) => {
+                    const t = $(el).text().trim();
+                    if (t && !synopsis) synopsis = t;
+                });
+            }
+
+            synopsis = synopsis || 'Sin sinopsis disponible.';
 
             const chapterNumbers = [];
             
@@ -302,7 +320,6 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             const pdfBytes = await pdfDoc.save();
-            // Formato de nombre: "1-10 Nombre de la Serie"
             const safeFileName = `${start}-${end} ${seriesTitleName}`.replace(/[^a-zA-Z0-9\s_-]/g, '').trim();
 
             return await conn.sendMessage(m.chat, {
