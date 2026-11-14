@@ -137,7 +137,7 @@ async function mapWithConcurrency(items, limit, mapper) {
 
 let handler = async (m, { conn, args, command }) => {
     if (!args[0]) {
-        return m.reply(`❌ *Ingresa un enlace de Dragon Translation.*\n\n📌 Ejemplo serie + N° de capítulo: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1\n📌 Ver cuántos capítulos tiene: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ info`);
+        return m.reply(`❌ *Ingresa un enlace de Dragon Translation.*\n\n📌 Ejemplo capítulo único: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1\n📌 Ejemplo rango de capítulos: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ 1-5\n📌 Ver info y portada: .${command} https://dragontranslation.org/manga/un-mundo-sin-hombres/ info`);
     }
 
     const url = args[0];
@@ -148,12 +148,13 @@ let handler = async (m, { conn, args, command }) => {
     const chapterArg = args[1] ? args[1].trim() : undefined;
 
     if (url.includes('/manga/') && !url.includes('/capitulo-') && !chapterArg) {
-        return m.reply(`⚠️ *Falta el número del capítulo.*
+        return m.reply(`⚠️ *Falta el número o rango de capítulos.*
 
 📌 *Ejemplo para descargar:*
 .${command} ${url} 1
+.${command} ${url} 1-5
 
-📌 *O si quieres ver la lista/total de capítulos:*
+📌 *O si quieres ver la info y portada:*
 .${command} ${url} info`);
     }
 
@@ -164,7 +165,6 @@ let handler = async (m, { conn, args, command }) => {
             const pageTitle = $('title').first().text() || '';
             const seriesName = pageTitle.replace(/\s*[-–—]\s*Dragon Translation.*$/, '').trim() || 'Esta serie';
 
-            // Captura robusta de la portada en temas Madara / Dragon Translation
             let coverImg = '';
             $('.summary_image img, .tab-summary img, .profile-manga img, img.wp-post-image').each((_, el) => {
                 const src = $(el).attr('data-src') || $(el).attr('src') || $(el).attr('data-lazy-src');
@@ -178,7 +178,6 @@ let handler = async (m, { conn, args, command }) => {
 
             const chapterNumbers = [];
             
-            // Búsqueda estricta dentro del listado de capítulos de la serie para evitar falsos positivos
             $('.listing-chapters_wrap li a, li.wp-manga-chapter a, .version-chap li a').each((_, el) => {
                 const href = $(el).attr('href') || '';
                 const text = $(el).text() || '';
@@ -217,71 +216,138 @@ let handler = async (m, { conn, args, command }) => {
         }
     }
 
+    const rangeMatch = chapterArg ? chapterArg.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/) : null;
     let targetChapterNumber = chapterArg;
+
     if (url.includes('/capitulo-')) {
         const matchCap = url.match(/capitulo-(\d+(?:\.\d+)?)/i);
         if (matchCap) targetChapterNumber = matchCap[1];
     }
 
-    if (!targetChapterNumber || !/^\d+(\.\d+)?$/.test(targetChapterNumber)) {
-        return m.reply('❌ El número de capítulo debe ser un número válido (ej: 1 o 1.5).');
+    if (!rangeMatch && (!targetChapterNumber || !/^\d+(\.\d+)?$/.test(targetChapterNumber))) {
+        return m.reply('❌ El número o rango de capítulo debe ser válido (ej: 1 o 1-5).');
     }
 
     try {
         const [PDFDocument, sharp] = await Promise.all([loadPdfLib(), loadSharp()]);
-        
-        await m.reply(`🔍 Buscando capítulo *${targetChapterNumber}* en Dragon Translation... Esto puede tomar unos segundos.`);
-        
-        const { title, images } = await getChapterData(url, targetChapterNumber);
-
-        if (!images || images.length === 0) {
-            return m.reply('❌ No se encontraron imágenes en el capítulo.');
-        }
-
-        await m.reply(`📸 *${title}*\nProcesando *${images.length}* páginas...`);
-
-        const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
-
         const pdfDoc = await PDFDocument.create();
-        let successCount = 0;
+        let totalSuccessCount = 0;
+        let seriesTitleName = 'Manga';
 
-        for (const result of processed) {
-            if (!result || !result.buffer) continue;
+        if (rangeMatch) {
+            const start = parseFloat(rangeMatch[1]);
+            const end = parseFloat(rangeMatch[2]);
             
-            let img;
-            try {
-                img = await pdfDoc.embedJpg(result.buffer);
-            } catch {
+            if (start > end) {
+                return m.reply('❌ El rango inicial no puede ser mayor al rango final (ej: 1-5).');
+            }
+
+            const chaptersToDownload = [];
+            for (let i = start; i <= end; i++) {
+                chaptersToDownload.push(i);
+            }
+
+            await m.reply(`📥 Descargando del capítulo *${start}* al *${end}* en un solo PDF... Esto puede tardar unos minutos.`);
+
+            for (const chapNum of chaptersToDownload) {
                 try {
-                    img = await pdfDoc.embedPng(result.buffer);
-                } catch {
-                    continue;
+                    await m.reply(`🔍 Buscando capítulo *${chapNum}*...`);
+                    const { title, images } = await getChapterData(url, chapNum);
+                    if (!images || images.length === 0) {
+                        continue;
+                    }
+                    seriesTitleName = title.replace(/\s*-\s*Cap[ií]tulo.*$/i, '').trim();
+
+                    const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
+
+                    for (const result of processed) {
+                        if (!result || !result.buffer) continue;
+                        let img;
+                        try {
+                            img = await pdfDoc.embedJpg(result.buffer);
+                        } catch {
+                            try {
+                                img = await pdfDoc.embedPng(result.buffer);
+                            } catch {
+                                continue;
+                            }
+                        }
+
+                        const page = pdfDoc.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                        totalSuccessCount++;
+                    }
+                } catch (err) {
+                    console.error(`Error procesando capítulo ${chapNum}:`, err.message);
                 }
             }
 
-            const page = pdfDoc.addPage([img.width, img.height]);
-            page.drawImage(img, {
-                x: 0,
-                y: 0,
-                width: img.width,
-                height: img.height
-            });
-            successCount++;
+            if (totalSuccessCount === 0) {
+                return m.reply('❌ No se pudo procesar ningún capítulo en el rango indicado.');
+            }
+
+            const pdfBytes = await pdfDoc.save();
+            const safeFileName = `${seriesTitleName}_Capitulos_${start}_al_${end}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            return await conn.sendMessage(m.chat, {
+                document: Buffer.from(pdfBytes),
+                mimetype: 'application/pdf',
+                fileName: `${safeFileName}.pdf`,
+                caption: `📖 *${seriesTitleName}*\n📂 *Capítulos:* Del ${start} al ${end}\n📄 *Total de páginas:* ${totalSuccessCount}\n🌐 *Fuente:* Dragon Translation`
+            }, { quoted: m });
+
+        } else {
+            await m.reply(`🔍 Buscando capítulo *${targetChapterNumber}* en Dragon Translation... Esto puede tomar unos segundos.`);
+            
+            const { title, images } = await getChapterData(url, targetChapterNumber);
+
+            if (!images || images.length === 0) {
+                return m.reply('❌ No se encontraron imágenes en el capítulo.');
+            }
+
+            await m.reply(`📸 *${title}*\nProcesando *${images.length}* páginas...`);
+
+            const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
+
+            let successCount = 0;
+            for (const result of processed) {
+                if (!result || !result.buffer) continue;
+                
+                let img;
+                try {
+                    img = await pdfDoc.embedJpg(result.buffer);
+                } catch {
+                    try {
+                        img = await pdfDoc.embedPng(result.buffer);
+                    } catch {
+                        continue;
+                    }
+                }
+
+                const page = pdfDoc.addPage([img.width, img.height]);
+                page.drawImage(img, {
+                    x: 0,
+                    y: 0,
+                    width: img.width,
+                    height: img.height
+                });
+                successCount++;
+            }
+
+            if (successCount === 0) {
+                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
+            }
+
+            const pdfBytes = await pdfDoc.save();
+            const safeFileName = title.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            return await conn.sendMessage(m.chat, {
+                document: Buffer.from(pdfBytes),
+                mimetype: 'application/pdf',
+                fileName: `${safeFileName}.pdf`,
+                caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n🌐 *Fuente:* Dragon Translation`
+            }, { quoted: m });
         }
-
-        if (successCount === 0) {
-            return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
-        }
-
-        const pdfBytes = await pdfDoc.save();
-        const safeFileName = title.replace(/[^a-zA-Z0-9_-]/g, '_');
-
-        return await conn.sendMessage(m.chat, {
-            document: Buffer.from(pdfBytes),
-            mimetype: 'application/pdf',
-            fileName: `${safeFileName}.pdf`,
-            caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n🌐 *Fuente:* Dragon Translation`
-        }, { quoted: m });
 
     } catch (error) {
         console.error(error);
