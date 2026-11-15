@@ -86,9 +86,15 @@ async function processImage(imageUrl, sharp) {
 
         try {
             const img = sharp(buffer);
-            // Procesamiento directo sin cortes artificiales para respetar la integridad de las viñetas
+            const metadata = await img.metadata();
+
+            // Descartamos imágenes extremadamente pequeñas o banners publicitarios/separadores falsos (menores a 150px de alto)
+            if (metadata.height && metadata.height < 150) {
+                return null;
+            }
+
             const cleanBuffer = await img
-                .jpeg({ quality: 80, force: true })
+                .jpeg({ quality: 82, force: true })
                 .toBuffer();
 
             return { buffer: cleanBuffer };
@@ -163,7 +169,6 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Géneros
             let genres = [];
             $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a, div.genres-content a, a[href*="genre"]').each((_, el) => {
                 const g = $(el).text().trim();
@@ -188,7 +193,6 @@ let handler = async (m, { conn, args, command }) => {
 
             const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
 
-            // Sinopsis
             let synopsis = '';
             $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
                 const text = $(el).text().trim();
