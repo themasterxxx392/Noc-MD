@@ -88,11 +88,11 @@ async function processImage(imageUrl, sharp) {
             const img = sharp(buffer);
             const metadata = await img.metadata();
 
-            if (metadata.height && metadata.height < 150) {
+            // Filtro estricto: Descartamos cualquier fragmento menor a 300px de alto (que son los que generan líneas falsas y multiplican las páginas)
+            if (metadata.height && metadata.height < 300) {
                 return null;
             }
 
-            // Aplicamos un tratamiento plano RGB asegurando que no queden canales alfa defectuosos que generen líneas de render
             const cleanBuffer = await img
                 .flatten({ background: '#ffffff' })
                 .jpeg({ quality: 85, force: true })
@@ -387,7 +387,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             if (successCount === 0) {
-                return m.reply('❌ No se pudo procesar ningún página del capítulo.');
+                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
             }
 
             const pdfBytes = await pdfDoc.save();
