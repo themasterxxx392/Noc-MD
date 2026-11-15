@@ -88,13 +88,14 @@ async function processImage(imageUrl, sharp) {
             const img = sharp(buffer);
             const metadata = await img.metadata();
 
-            // Descartamos imágenes extremadamente pequeñas o banners publicitarios/separadores falsos (menores a 150px de alto)
             if (metadata.height && metadata.height < 150) {
                 return null;
             }
 
+            // Aplicamos un tratamiento plano RGB asegurando que no queden canales alfa defectuosos que generen líneas de render
             const cleanBuffer = await img
-                .jpeg({ quality: 82, force: true })
+                .flatten({ background: '#ffffff' })
+                .jpeg({ quality: 85, force: true })
                 .toBuffer();
 
             return { buffer: cleanBuffer };
@@ -386,7 +387,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             if (successCount === 0) {
-                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
+                return m.reply('❌ No se pudo procesar ningún página del capítulo.');
             }
 
             const pdfBytes = await pdfDoc.save();
