@@ -86,22 +86,9 @@ async function processImage(imageUrl, sharp) {
 
         try {
             const img = sharp(buffer);
-            const meta = await img.metadata();
-
-            const CROP = 4; 
-            let pipeline = img;
-
-            if (meta.width && meta.height && meta.height > (CROP * 2)) {
-                pipeline = pipeline.extract({
-                    left: 0,
-                    top: CROP,
-                    width: meta.width,
-                    height: meta.height - (CROP * 2)
-                });
-            }
-
-            const cleanBuffer = await pipeline
-                .jpeg({ quality: 75, force: true })
+            // Procesamiento directo sin cortes artificiales para respetar la integridad de las viñetas
+            const cleanBuffer = await img
+                .jpeg({ quality: 80, force: true })
                 .toBuffer();
 
             return { buffer: cleanBuffer };
@@ -176,7 +163,7 @@ let handler = async (m, { conn, args, command }) => {
             if (coverImg.startsWith('//')) coverImg = 'https:' + coverImg;
             else if (coverImg.startsWith('/')) coverImg = 'https://dragontranslation.org' + coverImg;
 
-            // Extracción ultra robusta de géneros basada en la estructura visual de la web
+            // Géneros
             let genres = [];
             $('.genres-content a, .manga-genres a, .summary-content a[href*="genre"], .genres a, div.genres-content a, a[href*="genre"]').each((_, el) => {
                 const g = $(el).text().trim();
@@ -201,9 +188,8 @@ let handler = async (m, { conn, args, command }) => {
 
             const genresText = genres.length > 0 ? genres.join(', ') : 'No especificados';
 
-            // Extracción robusta de la sinopsis
+            // Sinopsis
             let synopsis = '';
-            
             $('.description-summary p, .summary__content p, .summary_content p, div.description-summary p').each((_, el) => {
                 const text = $(el).text().trim();
                 if (text && text.length > 5 && !synopsis) {
@@ -396,7 +382,7 @@ let handler = async (m, { conn, args, command }) => {
             }
 
             if (successCount === 0) {
-                return m.reply('❌ No se pudo procesar ningún página del capítulo.');
+                return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
             }
 
             const pdfBytes = await pdfDoc.save();
