@@ -54,7 +54,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['ssweb <enlace>']
+handler.help = ['ssweb']
 handler.tags = ['tools']
 handler.command = ['ss', 'ssweb']
 
