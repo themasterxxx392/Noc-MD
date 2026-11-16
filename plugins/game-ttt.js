@@ -45,16 +45,6 @@ ${textoExtra}` : `𝙏𝙪𝙧𝙣𝙤 𝙙𝙚:
 let handler = async (m, { conn, args, command }) => {
 const customNombre = args[0]?.toLowerCase();
 
-if (command === 'tttlist') {
-if (salasTTT.size === 0) return m.reply('⚠️ No hay salas activas actualmente.');
-let text = '🎮 *Salas activas:*';
-let count = 1;
-for (const [nombre] of salasTTT) {
-text += `\n\n${count++}- *${nombre}*\nIngresa con: /ttt ${nombre}`;
-}
-return m.reply(text.trim());
-}
-
 if (command === 'delttt' || command === 'deltt' || command === 'deltictactoe') {
 const salaDel = [...salasTTT.values()].find(s => s.jugadores.includes(m.sender));
 if (!salaDel) return m.reply('⚠️ No estás en ninguna sala activa.');
@@ -125,7 +115,7 @@ const ganadorId = sala.jugadores[sala.tablero[idx] === symbols[0] ? 0 : 1];
 const perdedorId = sala.jugadores.find(j => j !== ganadorId);
 await m.db.query('UPDATE usuarios SET exp = exp + $1 WHERE id = $2', [xp, ganadorId]);
 await m.db.query('UPDATE usuarios SET exp = exp - $1 WHERE id = $2', [xp, perdedorId]);
-texto = `🎉 @${ganadorId.split('@')[0]} *ganarte* y recibe *${xp} XP*!`;
+texto = `🎉 @${ganadorId.split('@')[0]} *ganaste* y recibes *${xp} XP*!`;
 }
 await enviarEstado(conn, sala, texto);
 salasTTT.delete(nombre);
@@ -138,8 +128,9 @@ await enviarEstado(conn, sala);
 m.reply('❌ Esa casilla ya está ocupada.');
 }}
 };
-handler.help = ['ttt', 'ttt nombre', 'delttt', 'tttlist'];
+
+handler.help = ['ttt', 'delttt'];
 handler.tags = ['game'];
-handler.command = ['ttt', 'ttc', 'tictactoe', 'delttt', 'tttlist', 'deltt', 'deltictactoe'];
+handler.command = ['ttt', 'tictactoe', 'delttt', 'deltictactoe'];
 
 export default handler;
