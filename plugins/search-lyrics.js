@@ -22,7 +22,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   const base = global.info?.evogb
 
   if (!text?.trim()) {
-    return conn.reply(m.chat, `✿ Ingresa el nombre de la canción.\n\n*Ejemplo:* \`${usedPrefix + command} Coldplay Yellow\``, m)
+    return conn.reply(m.chat, `_✿ Ingresa el nombre de la canción._`, m)
   }
 
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
@@ -68,7 +68,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['lyrics <canción>']
+handler.help = ['lyrics']
 handler.tags = ['buscadores']
 handler.command = ['lyrics']
 
