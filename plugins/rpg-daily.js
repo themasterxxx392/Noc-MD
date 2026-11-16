@@ -1,12 +1,11 @@
 const free = 5000;
 const expIncrease = 1000;
 const bonusExp = 10000;
-const bonusLimit = 10;
 const bonusMoney = 5000;
 
 const handler = async (m, { conn }) => {
 const now = Date.now();
-const res = await m.db.query("SELECT exp, limite, money, lastclaim, dailystreak FROM usuarios WHERE id = $1", [m.sender]);
+const res = await m.db.query("SELECT exp, money, lastclaim, dailystreak FROM usuarios WHERE id = $1", [m.sender]);
 const user = res.rows[0];
 const lastClaim = Number(user.lastclaim) || 0;
 const streak = Number(user.dailystreak) || 0;
@@ -22,11 +21,11 @@ const nextExp = currentExp + expIncrease;
 let bonusText = "";
 if (newStreak % 7 === 0) {
 await m.db.query(`UPDATE usuarios 
-      SET exp = exp + $1, limite = limite + $2, money = money + $3, lastclaim = $4, dailystreak = $5
-      WHERE id = $6
-    `, [currentExp + bonusExp, bonusLimit, bonusMoney, now, newStreak, m.sender]);
+      SET exp = exp + $1, money = money + $2, lastclaim = $3, dailystreak = $4
+      WHERE id = $5
+    `, [currentExp + bonusExp, bonusMoney, now, newStreak, m.sender]);
 
-bonusText = `\n\n🎉 *¡BONUS por 7 días de racha!* 🎉\n> +${formatNumber(bonusExp)} XP extra\n> +${bonusLimit} Diamantes 💎\n> +${formatNumber(bonusMoney)} LoliCoins 🪙\n\n`;
+bonusText = `\n\n🎉 *¡BONUS por 7 días de racha!* 🎉\n> +${formatNumber(bonusExp)} XP extra\n> +${formatNumber(bonusMoney)} LoliCoins 🪙\n\n`;
 } else {
 await m.db.query(`UPDATE usuarios 
       SET exp = exp + $1, lastclaim = $2, dailystreak = $3
@@ -34,7 +33,7 @@ await m.db.query(`UPDATE usuarios
     `, [currentExp, now, newStreak, m.sender]);
   }
 
-await conn.fakeReply(m.chat, `*🔸 𝐇𝐀𝐒 𝐑𝐄𝐂𝐈𝐁𝐈𝐃𝐎:* Tu recompensa diaria de: *${formatNumber(currentExp)} XP* (Día  ${newStreak})\n` + bonusText + `> _*Mañana no te olviden de seguir reclamado tu recompensa ganaras: ${formatK(nextExp)} (${formatNumber(nextExp)}) XP*_\n`, '13135550002@s.whatsapp.net', `🎁 Obtener un regalo 🎁`, 'status@broadcast');
+await conn.fakeReply(m.chat, `*🔸 𝐇𝐀𝐒 𝐑𝐄𝐂𝐈𝐁𝐈𝐃𝐎:* Tu recompensa diaria de: *${formatNumber(currentExp)} XP* (Día  ${newStreak})\n` + bonusText + `> _*Mañana no te olvides de seguir reclamando tu recompensa ganaras: ${formatK(nextExp)} (${formatNumber(nextExp)}) XP*_\n`, '13135550002@s.whatsapp.net', `🎁 Obtener un regalo 🎁`, 'status@broadcast');
 };
 handler.help = ['daily', 'claim'];
 handler.tags = ['econ'];
@@ -55,4 +54,4 @@ function formatNumber(num) {
 
 function formatK(num) {
   return (num / 1000).toFixed(1) + 'k'; 
-}
+      }
