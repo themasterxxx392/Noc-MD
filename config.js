@@ -22,11 +22,9 @@ global.owner = [
 globalThis.info = {
     wm: "Rem Bot",
     vs: "2.0.5",
-    packname: "STICKERS🔥 - Rem",
-    author: "Owner: Platanito...",
+    packname: "cff",
+    author: "Owner: ...",
     apis: "https://api.delirius.store",
-    nexus: "https://nexus--shadowxyz189.replit.app",
-    apikey: "YUME_30c75365cf5d8687",
     evogb: "https://api.evogb.org",
     evogbkey: "evogb-TyswGrUB",
     img2: "https://telegra.ph/file/39fb047cdf23c7",
