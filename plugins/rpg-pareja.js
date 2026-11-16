@@ -212,8 +212,8 @@ handler.before = async (m, { conn }) => {
   }
 }
 
-handler.help = ['marry @tag']
+handler.help = ['marry']
 handler.tags = ['econ']
-handler.command = ['marry', 'pareja']
+handler.command = ['marry']
 
 export default handler
