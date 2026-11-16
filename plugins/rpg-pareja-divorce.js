@@ -121,7 +121,7 @@ const handler = async (m, { conn, args, metadata }) => {
   )
 }
 
-handler.help = ['divorce <@tag>']
+handler.help = ['divorce']
 handler.tags = ['econ']
 handler.command = ['divorce']
 
