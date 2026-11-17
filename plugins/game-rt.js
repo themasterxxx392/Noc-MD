@@ -26,7 +26,7 @@ const newExp = user.exp - betAmount + winAmount;
 await m.db.query(`UPDATE usuarios SET exp = $1, wait = $2 WHERE id = $3`, [newExp, now, m.sender]);
 return conn.reply(m.chat, `😱 La ruleta cayó en *${resultColor}*\n${isWin ? `🎉 ¡Ganaste *${formatExp(winAmount)} XP*!` : `💀 Perdiste *${formatExp(betAmount)} XP*`}`, m);
 };
-handler.help = ['rt <color> <cantidad>'];
+handler.help = ['rt'];
 handler.tags = ['game'];
 handler.command = ['rt'];
 
