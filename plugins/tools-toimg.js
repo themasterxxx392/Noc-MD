@@ -9,7 +9,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let mime = q.mimetype || '';
     
     if (!mime || !mime.includes('webp')) {
-        return m.reply(`[ ❌ ] ¡Responde a un sticker para convertirlo en imagen, Usa *${usedPrefix + command}*`);
+        return m.reply(`Responde a un sticker para convertirlo en imagen, Usa *${usedPrefix + command}*`);
     }
 
     try {
@@ -26,19 +26,19 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         });
 
         let buffer = await fs.promises.readFile(tmpOutput);
-        await conn.sendMessage(m.chat, { image: buffer, caption: '¡Listo, w!' }, { quoted: m });
+        await conn.sendMessage(m.chat, { image: buffer }, { quoted: m });
 
         await fs.promises.unlink(tmpInput).catch(() => {});
         await fs.promises.unlink(tmpOutput).catch(() => {});
 
     } catch (e) {
         console.error(e);
-        await m.reply(`[ ❌ ] No se pudo convertir el sticker a imagen`);
+        await m.reply(`No se pudo convertir el sticker a imagen`);
     }
 };
 
 handler.help = ['toimg'];
-handler.tags = ['sticker'];
+handler.tags = ['tools'];
 handler.command = ['toimg'];
 
 export default handler;
