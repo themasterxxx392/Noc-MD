@@ -91,7 +91,7 @@ if (command === 'contador') {
 
 }
 
-handler.help = ['tagall <mensaje>', 'invocar <mensaje>', 'contador']
+handler.help = ['tagall', 'invocar', 'contador']
 handler.tags = ['group']
 handler.command = /^(tagall|invocar|invocacion|todos|invocación|contador)$/i
 handler.admin = true
