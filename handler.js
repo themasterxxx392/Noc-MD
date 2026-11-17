@@ -119,21 +119,18 @@ export async function participantsUpdate(conn, { id, participants, action, autho
 
     const blockedPrefixes = parsePrefixes(settings.antifake_prefixes);
 
-    const sendText = async (jid, msg, title, body, image, mentions = []) => {
+      const sendText = async (jid, msg, title, body, image, mentions = []) => {
       return conn.sendMessage(id, {
         text: msg,
         contextInfo: {
           mentionedJid: mentions.filter(Boolean),
           externalAdReply: {
-            mediaUrl: [info.nna, info.nna2, info.md].getRandom(),
-            mediaType: 2,
             showAdAttribution: false,
             renderLargerThumbnail: false,
             thumbnailUrl: image,
             title,
             body,
-            containsAutoReply: true,
-            sourceUrl: "https://skyultraplus.com"
+            containsAutoReply: true
           }
         }
       }, { quoted: null });
