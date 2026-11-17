@@ -1,4 +1,4 @@
-import { sticker } from '../lib/sticker.js'; // Ajusta la ruta si tu archivo lib está en otra carpeta
+import { sticker } from '../lib/sticker.js';
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {
     try {
@@ -18,7 +18,6 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return m.reply(`[ ❌ ] No pude descargar el archivo multimedia. Inténtalo de nuevo.`);
         }
 
-        // Puedes cambiar el Packname y el Author a tu gusto o usar los de tu config
         let stiker = await sticker(img, false, "AnimsKuro", "Bot");
         
         if (stiker) {
