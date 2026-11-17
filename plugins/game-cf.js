@@ -17,7 +17,7 @@ const newExp = win ? user.exp + bet * 2 : user.exp - bet;
 await m.db.query('UPDATE usuarios SET exp = $1, wait = $2 WHERE id = $3', [newExp, now, m.sender]);
 return m.reply(`${win ? '🎉' : '💀'} La moneda cayó en *${outcome}* y ${win ? `ganaste *${formatNumber(bet * 2)}* XP.` : `perdiste *${formatNumber(bet)}* XP.`}`);
 };
-handler.help = ['cf <cantidad>'];
+handler.help = ['cf'];
 handler.tags = ['game'];
 handler.command = ['cf'];
 
