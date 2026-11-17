@@ -2,7 +2,7 @@ const handler = async (m, { conn, args }) => {
 const cooldown = 30_000;
 const now = Date.now();
 
-const res = await m.db.query('SELECT exp, money, limite, wait FROM usuarios WHERE id = $1', [m.sender]);
+const res = await m.db.query('SELECT exp, money, wait FROM usuarios WHERE id = $1', [m.sender]);
 const user = res.rows[0];
 
 const last = Number(user?.wait) || 0;
@@ -13,7 +13,7 @@ const tipoArg = (args[0] || '').toLowerCase();
 const tipo = tipoArg === 'xp' ? 'exp' : tipoArg;
 const cantidad = parseInt(args[1]);
 
-if (!['exp', 'money', 'limite'].includes(tipo)) return m.reply(`⚠️ Usa correctamente: /slot <xp|money|limite> <cantidad>\nEjemplo: /slot xp 500`);
+if (!['exp', 'money'].includes(tipo)) return m.reply(`⚠️ Usa correctamente: /slot <xp|money> <cantidad>\nEjemplo: /slot xp 500`);
 if (!cantidad || isNaN(cantidad) || cantidad < 10) return m.reply(`❌ Mínimo 10 para apostar.`);
 
 const saldo = user[tipo];
@@ -56,7 +56,7 @@ await delay(600);
 await conn.sendMessage(m.chat, { text: render(final) + `\n\n${textoFinal}`, edit: msg.key });
 };
 handler.command = ['slot'];
-handler.help = ['slot <xp|money|limite> <cantidad>'];
+handler.help = ['slot'];
 handler.tags = ['game'];
 
 export default handler;
@@ -101,7 +101,5 @@ function msToTime(duration) {
 
 function tipoBonito(tipo) {
   if (tipo === 'money') return 'LoliCoins';
-  if (tipo === 'limite') return 'Diamantes';
   return 'XP';
-}
-
+    }
