@@ -170,9 +170,9 @@ handler.before = async (m, { conn }) => {
     }
 };
 
-handler.help = ['ppt piedra|papel|tijera', 'ppt @usuario'];
+handler.help = ['ppt'];
 handler.tags = ['game'];
-handler.command = ['ppt', 'pvp'];
+handler.command = ['ppt'];
 
 export default handler;
 
