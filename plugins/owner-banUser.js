@@ -37,7 +37,7 @@ return m.reply(`✅ El usuario @${cleanJid.split("@")[0]} ha sido *desbaneado* y
 console.error(err);
 return m.reply("❌ Ocurrió un error al ejecutar el comando.");
 }};
-handler.help = ['banuser @tag|número', 'unbanuser @tag|número'];
+handler.help = ['banuser', 'unbanuser'];
 handler.tags = ['owner'];
 handler.command = /^banuser|unbanuser$/i;
 handler.owner = true;
