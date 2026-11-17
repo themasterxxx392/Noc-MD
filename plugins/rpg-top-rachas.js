@@ -52,8 +52,8 @@ const handler = async (m, { conn, args }) => {
   m.reply(ranking.trim());
 };
 
-handler.help = ['topstreak [página]'];
+handler.help = ['topstreak'];
 handler.tags = ['econ'];
-handler.command = ['topstreak', 'streaktop', 'streak'];
+handler.command = ['topstreak'];
 
 export default handler;
