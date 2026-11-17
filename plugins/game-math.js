@@ -72,8 +72,8 @@ mathGames.set(m.sender, data);
 return m.reply(`❌ Incorrecto. Te quedan *${data.intentos}* intento(s).`);
 }}
 };
-handler.help = ['math [dificultad]'];
+handler.help = ['math'];
 handler.tags = ['game'];
-handler.command = ['math', 'mates', 'matemáticas'];
+handler.command = ['math'];
 
 export default handler;
