@@ -20,16 +20,6 @@ const res = await db.query(`SELECT id FROM usuarios WHERE id = $1`, [cleanJid]);
 if (!res.rowCount) return m.reply("❌ Ese usuario no está registrado en la base de datos.");
 let resultado;
 
-if (/addlimit|añadirdiamantes|dardiamantes/i.test(command)) {
-resultado = await db.query(`UPDATE usuarios SET limite = limite + $1 WHERE id = $2 RETURNING limite`, [cantidad, cleanJid]);
-return m.reply(`*≡ 💎 DIAMANTES AGREGADOS:*\n┏━━━━━━━━━━━━\n┃• *𝗍᥆𝗍ᥲᥣ:* ${cantidad}\n┗━━━━━━━━━━━━`);
-}
-
-if (/removelimit|quitardiamantes|sacardiamantes/i.test(command)) {
-resultado = await db.query(`UPDATE usuarios SET limite = GREATEST(0, limite - $1) WHERE id = $2 RETURNING limite`, [cantidad, cleanJid]);
-return m.reply(`*≡ 💎 DIAMANTES QUITADOS:*\n┏━━━━━━━━━━━━\n┃• *𝗍᥆𝗍ᥲ᥹:* ${cantidad}\n┗━━━━━━━━━━━━`);
-}
-
 if (/addexp|añadirxp|addxp/i.test(command)) {
 resultado = await db.query(`UPDATE usuarios SET exp = exp + $1 WHERE id = $2 RETURNING exp`, [cantidad, cleanJid]);
 return m.reply(`*≡ ✨ EXP AGREGADO:*\n┏━━━━━━━━━━━━\n┃• *𝗍᥆𝗍ᥲᥣ:* ${cantidad}\n┗━━━━━━━━━━━━`);
@@ -43,9 +33,9 @@ return m.reply(`*≡ ✨ EXP QUITADO:*\n┏━━━━━━━━━━━━\
 console.error(e);
 return m.reply("❌ Error al modificar datos.");
 }};
-handler.help = ['addexp', 'addlimit', 'removexp', 'removelimit'];
+handler.help = ['addexp', 'removexp'];
 handler.tags = ['owner'];
-handler.command = /^(añadirdiamantes|dardiamantes|addlimit|removelimit|quitardiamantes|sacardiamantes|añadirxp|addexp|addxp|removexp|quitarxp|sacarexp)$/i;
+handler.command = /^(addexp|removexp)$/i;
 handler.owner = true;
 
 export default handler;
