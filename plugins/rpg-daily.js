@@ -35,9 +35,9 @@ await m.db.query(`UPDATE usuarios
 
 await conn.fakeReply(m.chat, `*🔸 𝐇𝐀𝐒 𝐑𝐄𝐂𝐈𝐁𝐈𝐃𝐎:* Tu recompensa diaria de: *${formatNumber(currentExp)} XP* (Día  ${newStreak})\n` + bonusText + `> _*Mañana no te olvides de seguir reclamando tu recompensa ganaras: ${formatK(nextExp)} (${formatNumber(nextExp)}) XP*_\n`, '13135550002@s.whatsapp.net', `🎁 Obtener un regalo 🎁`, 'status@broadcast');
 };
-handler.help = ['daily', 'claim'];
+handler.help = ['daily'];
 handler.tags = ['econ'];
-handler.command = ['daily', 'claim'];
+handler.command = ['daily'];
 
 export default handler;
 
