@@ -7,7 +7,7 @@ const handler = async (m, { conn }) => {
       ON CONFLICT (group_id) DO UPDATE SET banned = false
     `, [m.chat]);
 
- m.reply("Este grupo ha sido *desbaneado*. El bot volvera a responder aqui.");
+ m.reply("✅ Este grupo ha sido *desbaneado*. El bot volvera a responder aqui.");
 }
 
 handler.help = ['unbanchat'];
