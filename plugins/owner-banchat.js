@@ -8,7 +8,6 @@ m.reply("✅ Este grupo ha sido *baneado*. El bot ya no responderá aquí.");
 };
 handler.help = ['banchat']
 handler.tags = ['owner']
-handler.command = /^banchat|ban2|banchat1$/i
-//handler.botAdmin = true
+handler.command = ['banchat']
 handler.owner = true
 export default handler
