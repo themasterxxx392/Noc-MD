@@ -47,7 +47,7 @@ await conn.sendFile(m.chat, buffer, 'levelup.jpg', str, m)
 } catch {
 await conn.fakeReply(m.chat, str, '13135550002@s.whatsapp.net', `*TUS ESTADISTICAS 🆙*`, 'status@broadcast')
 }}
-handler.help = ['nivel', 'levelup']
+handler.help = ['levelup']
 handler.tags = ['econ']
 handler.command = ['nivel', 'lvl', 'levelup', 'level']
 
