@@ -17,8 +17,8 @@ let handler = async (m, { usedPrefix, command, text }) => {
   m.reply(fs.readFileSync('./plugins/' + match + '.js', 'utf-8'));
 };
 
-handler.help = ['getplugin'].map(v => v + ' <texto>');
+handler.help = ['getplugin'];
 handler.tags = ['owner'];
-handler.command = /^(getplugin|gp)$/i;
-handler.rowner = true;
+handler.command = ['getplugin'];
+handler.owner = true;
 export default handler;
