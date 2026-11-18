@@ -53,9 +53,9 @@ const handler = async (m, { conn, args }) => {
   }
 };
 
-handler.help = ['testsubbots [opcional: 1|2]'];
+handler.help = ['testsubbots'];
 handler.tags = ['owner'];
-handler.command = /^testsubbots$/i;
+handler.command = ['testsubbots']
 handler.owner = true;
 
 export default handler;
