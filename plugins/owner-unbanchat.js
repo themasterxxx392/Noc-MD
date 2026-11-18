@@ -7,13 +7,12 @@ const handler = async (m, { conn }) => {
       ON CONFLICT (group_id) DO UPDATE SET banned = false
     `, [m.chat]);
 
- m.reply("? Este grupo ha sido *desbaneado*. El bot volver? a responder aqu?.");
+ m.reply("Este grupo ha sido *desbaneado*. El bot volvera a responder aqui.");
 }
 
 handler.help = ['unbanchat'];
 handler.tags = ['owner']
-handler.command = /^unbanchat$/i
-//handler.botAdmin = true
+handler.command = ['unbanchat']
 handler.owner = true
 
 export default handler
