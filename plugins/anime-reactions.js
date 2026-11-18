@@ -68,8 +68,6 @@ const REACCIONES = {
   dance: ['{a} baila con {b}', '{a} baila'],
   cuddle: ['{a} mima a {b}', '{a} quiere mimos'],
   lewd: ['{a} tiene una actitud lasciva con {b}', '{a} tiene una actitud lasciva'],
-  kisshead: ['{a} besa en la cabeza a {b}', '{a} besa en la cabeza a todos'],
-  kicked: ['{a} fue pateado por {b}', '{a} fue pateado'],
   tease: ['{a} molesta juguetonamente a {b}', '{a} molesta juguetonamente'],
   jealous: ['{a} está celoso de {b}', '{a} está celoso'],
   spin: ['{a} da una vuelta de emoción con {b}', '{a} da una vuelta de emoción']
