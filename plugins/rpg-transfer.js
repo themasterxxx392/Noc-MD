@@ -215,9 +215,9 @@ handler.before = async (m) => {
   )
 }
 
-handler.help = ['transfer'].map(v => v + ' [tipo] [cantidad] [@tag]')
+handler.help = ['transfer']
 handler.tags = ['econ']
-handler.command = ['payxp', 'transfer', 'darxp', 'dar', 'enviar', 'transferir']
+handler.command = ['transfer', 'darxp', 'dar', 'enviar', 'transferir']
 handler.disabled = false
 
 export default handler
