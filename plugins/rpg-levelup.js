@@ -49,6 +49,6 @@ await conn.fakeReply(m.chat, str, '13135550002@s.whatsapp.net', `*TUS ESTADISTIC
 }}
 handler.help = ['levelup']
 handler.tags = ['econ']
-handler.command = ['nivel', 'lvl', 'levelup', 'level']
+handler.command = ['lvl', 'level', 'levelup']
 
 export default handler
