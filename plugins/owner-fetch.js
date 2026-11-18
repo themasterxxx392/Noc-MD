@@ -21,9 +21,8 @@ txt = txt + ''
 m.reply(txt.slice(0, 65536) + '')
 }
 }
-handler.help = ['fetch'].map(v => v + ' *<url>*')
+handler.help = ['fetch']
 handler.tags = ['owner']
-handler.command = /^(fetch|get)$/i
-//handler.limit = 1
+handler.command = ['fetch']
 
 export default handler
