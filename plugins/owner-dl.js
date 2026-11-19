@@ -5,8 +5,8 @@ import * as cheerio from 'cheerio';
 const CONCURRENCY = 6;
 const MIN_SLICE_HEIGHT = 300;
 const MAX_PAGE_HEIGHT = 5000;
-const EDGE_MAX_ROWS = 4;
-const EDGE_DARK_LEVEL = 20;
+const EDGE_MAX_ROWS = 6;
+const EDGE_DARK_LEVEL = 35;
 
 async function loadPdfLib() {
     try {
@@ -80,7 +80,12 @@ async function getChapterData(url, chapterNumber) {
         return img;
     }).filter(Boolean);
 
-    return { title: title || `Capítulo ${chapterNumber}`, images: cleanUrls };
+    const unicas = [...new Set(cleanUrls)];
+    if (unicas.length !== cleanUrls.length) {
+        console.log(`🧹 Capítulo ${chapterNumber}: ${cleanUrls.length - unicas.length} imágenes repetidas descartadas`);
+    }
+
+    return { title: title || `Capítulo ${chapterNumber}`, images: unicas };
 }
 
 async function recortarBordes(buffer, sharp) {
@@ -116,7 +121,7 @@ async function recortarBordes(buffer, sharp) {
     return { buffer: cortado, width, height: nuevaAltura };
 }
 
-async function processImage(imageUrl, sharp) {
+async function processImage(imageUrl, sharp, stats) {
     try {
         const res = await axios.get(imageUrl, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
         const buffer = Buffer.from(res.data);
@@ -126,6 +131,7 @@ async function processImage(imageUrl, sharp) {
             const metadata = await img.metadata();
 
             if (metadata.height && metadata.height < MIN_SLICE_HEIGHT) {
+                stats.descartadas++;
                 return null;
             }
 
@@ -137,10 +143,13 @@ async function processImage(imageUrl, sharp) {
             const limpio = await recortarBordes(plano, sharp);
             return { buffer: limpio.buffer, width: limpio.width, height: limpio.height, ok: true };
         } catch (sharpError) {
+            console.error(`Error de sharp con ${imageUrl}:`, sharpError.message);
+            stats.sinProcesar++;
             return { buffer, ok: false };
         }
     } catch (err) {
         console.error(`Error descargando imagen ${imageUrl}:`, err.message);
+        stats.fallidas++;
         return null;
     }
 }
@@ -404,6 +413,8 @@ let handler = async (m, { conn, args, command }) => {
         const pdfDoc = await PDFDocument.create();
         let totalSuccessCount = 0;
         let seriesTitleName = 'Manga';
+        const stats = { encontradas: 0, descartadas: 0, fallidas: 0, sinProcesar: 0 };
+        const resumen = () => `🖼️ *Imágenes:* ${stats.encontradas} (descartadas: ${stats.descartadas}, con error: ${stats.fallidas}, sin procesar: ${stats.sinProcesar})`;
 
         if (rangeMatch) {
             const start = parseFloat(rangeMatch[1]);
@@ -429,7 +440,8 @@ let handler = async (m, { conn, args, command }) => {
                     }
                     seriesTitleName = title.replace(/\s*-\s*Cap[ií]tulo.*$/i, '').trim();
 
-                    const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
+                    stats.encontradas += images.length;
+                    const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp, stats));
 
                     totalSuccessCount += await agregarPaginas(pdfDoc, processed, sharp);
                 } catch (err) {
@@ -448,7 +460,7 @@ let handler = async (m, { conn, args, command }) => {
                 document: Buffer.from(pdfBytes),
                 mimetype: 'application/pdf',
                 fileName: `${safeFileName}.pdf`,
-                caption: `📖 *${seriesTitleName}*\n📂 *Capítulos:* Del ${start} al ${end}\n📄 *Total de páginas:* ${totalSuccessCount}\n🌐 *Fuente:* Dragon Translation`
+                caption: `📖 *${seriesTitleName}*\n📂 *Capítulos:* Del ${start} al ${end}\n📄 *Páginas del PDF:* ${totalSuccessCount}\n${resumen()}\n🌐 *Fuente:* Dragon Translation`
             }, { quoted: m });
 
         } else {
@@ -462,7 +474,8 @@ let handler = async (m, { conn, args, command }) => {
 
             await m.reply(`📸 *${title}*\nProcesando *${images.length}* páginas...`);
 
-            const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
+            stats.encontradas = images.length;
+            const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp, stats));
 
             const successCount = await agregarPaginas(pdfDoc, processed, sharp);
 
@@ -477,7 +490,7 @@ let handler = async (m, { conn, args, command }) => {
                 document: Buffer.from(pdfBytes),
                 mimetype: 'application/pdf',
                 fileName: `${safeFileName}.pdf`,
-                caption: `📖 *${title}*\n📂 *Páginas:* ${successCount}\n🌐 *Fuente:* Dragon Translation`
+                caption: `📖 *${title}*\n📄 *Páginas del PDF:* ${successCount}\n${resumen()}\n🌐 *Fuente:* Dragon Translation`
             }, { quoted: m });
         }
 
