@@ -3,6 +3,10 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 const CONCURRENCY = 6;
+const MIN_SLICE_HEIGHT = 300;
+const MAX_PAGE_HEIGHT = 5000;
+const EDGE_MAX_ROWS = 4;
+const EDGE_DARK_LEVEL = 20;
 
 async function loadPdfLib() {
     try {
@@ -79,6 +83,39 @@ async function getChapterData(url, chapterNumber) {
     return { title: title || `Capítulo ${chapterNumber}`, images: cleanUrls };
 }
 
+async function recortarBordes(buffer, sharp) {
+    const { data, info } = await sharp(buffer).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const { width, height, channels } = info;
+    const largoFila = width * channels;
+
+    const brilloFila = (fila) => {
+        const inicio = fila * largoFila;
+        let suma = 0;
+        for (let i = 0; i < largoFila; i++) suma += data[inicio + i];
+        return suma / largoFila;
+    };
+
+    let arriba = 0;
+    while (arriba <= EDGE_MAX_ROWS && arriba < height && brilloFila(arriba) < EDGE_DARK_LEVEL) arriba++;
+    if (arriba > EDGE_MAX_ROWS) arriba = 0;
+
+    let abajo = 0;
+    while (abajo <= EDGE_MAX_ROWS && abajo < height - arriba && brilloFila(height - 1 - abajo) < EDGE_DARK_LEVEL) abajo++;
+    if (abajo > EDGE_MAX_ROWS) abajo = 0;
+
+    const nuevaAltura = height - arriba - abajo;
+    if ((!arriba && !abajo) || nuevaAltura < MIN_SLICE_HEIGHT / 2) {
+        return { buffer, width, height };
+    }
+
+    const cortado = await sharp(buffer)
+        .extract({ left: 0, top: arriba, width, height: nuevaAltura })
+        .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
+        .toBuffer();
+
+    return { buffer: cortado, width, height: nuevaAltura };
+}
+
 async function processImage(imageUrl, sharp) {
     try {
         const res = await axios.get(imageUrl, { responseType: 'arraybuffer', headers: HEADERS, timeout: 25000 });
@@ -88,19 +125,19 @@ async function processImage(imageUrl, sharp) {
             const img = sharp(buffer);
             const metadata = await img.metadata();
 
-            // Filtro estricto: Descartamos cualquier fragmento menor a 300px de alto (que son los que generan líneas falsas y multiplican las páginas)
-            if (metadata.height && metadata.height < 300) {
+            if (metadata.height && metadata.height < MIN_SLICE_HEIGHT) {
                 return null;
             }
 
-            const cleanBuffer = await img
+            const plano = await img
                 .flatten({ background: '#ffffff' })
-                .jpeg({ quality: 85, force: true })
+                .jpeg({ quality: 95, chromaSubsampling: '4:4:4', force: true })
                 .toBuffer();
 
-            return { buffer: cleanBuffer };
+            const limpio = await recortarBordes(plano, sharp);
+            return { buffer: limpio.buffer, width: limpio.width, height: limpio.height, ok: true };
         } catch (sharpError) {
-            return { buffer };
+            return { buffer, ok: false };
         }
     } catch (err) {
         console.error(`Error descargando imagen ${imageUrl}:`, err.message);
@@ -127,6 +164,88 @@ async function mapWithConcurrency(items, limit, mapper) {
     const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
     await Promise.all(workers);
     return results;
+}
+
+async function insertarPagina(pdfDoc, buffer) {
+    let img;
+    try {
+        img = await pdfDoc.embedJpg(buffer);
+    } catch {
+        try {
+            img = await pdfDoc.embedPng(buffer);
+        } catch {
+            return 0;
+        }
+    }
+    const page = pdfDoc.addPage([img.width, img.height]);
+    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    return 1;
+}
+
+async function ajustarAncho(item, ancho, sharp) {
+    const buffer = await sharp(item.buffer)
+        .resize({ width: ancho })
+        .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
+        .toBuffer();
+    const meta = await sharp(buffer).metadata();
+    return { buffer, width: meta.width, height: meta.height, ok: true };
+}
+
+async function unirPagina(grupo, ancho, sharp) {
+    const alto = grupo.reduce((suma, g) => suma + g.height, 0);
+    let y = 0;
+    const capas = grupo.map(g => {
+        const capa = { input: g.buffer, top: y, left: 0 };
+        y += g.height;
+        return capa;
+    });
+
+    const buffer = await sharp({ create: { width: ancho, height: alto, channels: 3, background: '#ffffff' } })
+        .composite(capas)
+        .jpeg({ quality: 88, chromaSubsampling: '4:4:4' })
+        .toBuffer();
+
+    return { buffer, width: ancho, height: alto };
+}
+
+async function agregarPaginas(pdfDoc, procesadas, sharp) {
+    const validas = procesadas.filter(Boolean);
+
+    const conteo = {};
+    for (const p of validas) {
+        if (p.ok) conteo[p.width] = (conteo[p.width] || 0) + 1;
+    }
+    const ancho = Number(Object.entries(conteo).sort((a, b) => b[1] - a[1])[0]?.[0]) || 0;
+
+    let paginas = 0;
+    let grupo = [];
+    let altoGrupo = 0;
+
+    const volcar = async () => {
+        if (!grupo.length) return;
+        const pagina = grupo.length === 1 ? grupo[0] : await unirPagina(grupo, ancho, sharp);
+        paginas += await insertarPagina(pdfDoc, pagina.buffer);
+        grupo = [];
+        altoGrupo = 0;
+    };
+
+    for (let item of validas) {
+        if (!item.ok) {
+            await volcar();
+            paginas += await insertarPagina(pdfDoc, item.buffer);
+            continue;
+        }
+
+        if (item.width !== ancho) item = await ajustarAncho(item, ancho, sharp);
+
+        if (grupo.length && altoGrupo + item.height > MAX_PAGE_HEIGHT) await volcar();
+
+        grupo.push(item);
+        altoGrupo += item.height;
+    }
+
+    await volcar();
+    return paginas;
 }
 
 let handler = async (m, { conn, args, command }) => {
@@ -312,23 +431,7 @@ let handler = async (m, { conn, args, command }) => {
 
                     const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
 
-                    for (const result of processed) {
-                        if (!result || !result.buffer) continue;
-                        let img;
-                        try {
-                            img = await pdfDoc.embedJpg(result.buffer);
-                        } catch {
-                            try {
-                                img = await pdfDoc.embedPng(result.buffer);
-                            } catch {
-                                continue;
-                            }
-                        }
-
-                        const page = pdfDoc.addPage([img.width, img.height]);
-                        page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-                        totalSuccessCount++;
-                    }
+                    totalSuccessCount += await agregarPaginas(pdfDoc, processed, sharp);
                 } catch (err) {
                     console.error(`Error procesando capítulo ${chapNum}:`, err.message);
                 }
@@ -361,30 +464,7 @@ let handler = async (m, { conn, args, command }) => {
 
             const processed = await mapWithConcurrency(images, CONCURRENCY, (imgUrl) => processImage(imgUrl, sharp));
 
-            let successCount = 0;
-            for (const result of processed) {
-                if (!result || !result.buffer) continue;
-                
-                let img;
-                try {
-                    img = await pdfDoc.embedJpg(result.buffer);
-                } catch {
-                    try {
-                        img = await pdfDoc.embedPng(result.buffer);
-                    } catch {
-                        continue;
-                    }
-                }
-
-                const page = pdfDoc.addPage([img.width, img.height]);
-                page.drawImage(img, {
-                    x: 0,
-                    y: 0,
-                    width: img.width,
-                    height: img.height
-                });
-                successCount++;
-            }
+            const successCount = await agregarPaginas(pdfDoc, processed, sharp);
 
             if (successCount === 0) {
                 return m.reply('❌ No se pudo procesar ninguna página del capítulo.');
