@@ -23,7 +23,7 @@ const handler = async (m, { conn, command, args }) => {
     return m.reply(`*[ 🏦 ] Has ingresado ${amount} LoliCoins al Banco*`);
   }
 
-  if (cmd === 'with' || cmd === 'retirar') {
+  if (cmd === 'with' || cmd === 'withdraw' || cmd === 'retirar') {
     if (!args[0]) return m.reply(`[ ⚠️ ] *Ingresa la cantidad a retirar*`);
 
     if (/^all$/i.test(args[0])) {
@@ -42,8 +42,8 @@ const handler = async (m, { conn, command, args }) => {
   }
 };
 
-handler.help = ['d', 'depositar', 'with', 'retirar'];
+handler.help = ['deposit', 'withdraw'];
 handler.tags = ['econ'];
-handler.command = /^(d|depositar|with|retirar)$/i;
+handler.command = /^(d|depositar|with|withdraw|retirar)$/i;
 
 export default handler;
