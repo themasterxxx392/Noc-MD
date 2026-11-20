@@ -67,7 +67,7 @@ async function descargarImagen(url) {
 }
 
 function endpoints(query, nsfw) {
-  const base = String(global.info?.evogb || '').replace(/\/+$/, '')
+  const base = global.info?.evogb
   const k = encodeURIComponent(global.info?.evogbkey)
   const q = encodeURIComponent(query)
   const lista = [`${base}/nsfw/safebooru?key=${k}&keyword=${q}`]
@@ -153,20 +153,21 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const id = String(personaje.id)
     const nombre = String(personaje.name || 'Sin nombre')
 
-    const { rows } = await db.query(
+    const existente = (await db.query('SELECT * FROM gacha_characters WHERE id = $1', [id])).rows?.[0]
+    const valor = typeof existente?.value === 'number' ? existente.value : Number(personaje.value) || 100
+    const ownerId = existente?.owner_id || null
+
+    await db.query(
       `INSERT INTO gacha_characters (id, name, value, owner_id, reserved_by, reserved_until, expires_at)
-       VALUES ($1, $2, $3, NULL, $4, $5, $6)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
+         value = EXCLUDED.value,
          reserved_by = EXCLUDED.reserved_by,
          reserved_until = EXCLUDED.reserved_until,
-         expires_at = EXCLUDED.expires_at
-       RETURNING value, owner_id`,
-      [id, nombre, Number(personaje.value) || 100, sender, ahora + RESERVA_MS, ahora + EXPIRA_MS]
+         expires_at = EXCLUDED.expires_at`,
+      [id, nombre, valor, ownerId, sender, ahora + RESERVA_MS, ahora + EXPIRA_MS]
     )
-
-    const valor = Number(rows[0]?.value) || Number(personaje.value) || 100
-    const ownerId = rows[0]?.owner_id || null
 
     let estado = 'Libre'
     const mentions = []
@@ -206,7 +207,7 @@ const handler = async (message, { conn, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['rw']
+handler.help = ['rw', 'rollwaifu']
 handler.tags = ['gacha']
 handler.command = ['rw', 'rollwaifu']
 
