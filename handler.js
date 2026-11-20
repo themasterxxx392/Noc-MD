@@ -6,10 +6,12 @@ import crypto from "crypto";
 import { db, getSubbotConfig } from "./lib/postgres.js";
 import { logCommand } from "./lib/logger.js";
 import { smsg } from "./lib/simple.js";
+import { findLevel } from "./lib/levelling.js";
 
 const META_TTL = 300_000;
 const CHAT_TTL = 60_000;
 const USER_TTL = 600_000;
+const LEVEL_MULTIPLIER = 650;
 
 const processedMessages = new Set();
 const lastDbUpdate = new Map();
@@ -787,6 +789,18 @@ export async function handler(conn, m) {
         await db.query('UPDATE usuarios SET money = money - $1 WHERE id = $2', [plugin.money, m.sender]);
         await m.reply(`*${plugin.money} LoliCoins usado${plugin.money > 1 ? 's' : ''} 🪙*`);
       }
+
+      const xpGanada = Math.floor(Math.random() * 71) + 50; // entre 50 y 120 XP por comando
+      const userXpRes = await db.query('SELECT exp, level FROM usuarios WHERE id = $1', [m.sender]);
+      const currentExp = Number(userXpRes.rows?.[0]?.exp ?? 0);
+      const currentLevel = Number(userXpRes.rows?.[0]?.level ?? 0);
+      const newExp = currentExp + xpGanada;
+      const newLevel = Math.max(currentLevel, findLevel(newExp, LEVEL_MULTIPLIER));
+
+      await db.query(
+        'UPDATE usuarios SET exp = $1, level = $2 WHERE id = $3',
+        [newExp, newLevel, m.sender]
+      );
 
       await db.query(
         `INSERT INTO stats (command, count)
