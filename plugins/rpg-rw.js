@@ -14,6 +14,7 @@ let tablesInitialized = false;
 
 async function ensureGachaTables() {
   if (tablesInitialized) return;
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS gacha_characters (
       id TEXT PRIMARY KEY,
@@ -64,29 +65,52 @@ function formatTag(tag) {
     .replace(/\s+/g, '_');
 }
 
-function extractImageUrls(payload) {
-  const candidates = Array.isArray(payload)
-    ? payload
-    : payload?.data || payload?.results || payload?.posts || payload?.variants || payload?.images || [];
-
-  if (typeof payload === 'string' && /^https?:\/\//i.test(payload)) {
-    return [payload];
+function collectUrlsDeep(input, found = []) {
+  if (!input) return found;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (/^https?:\/\/\S+/i.test(trimmed)) {
+      found.push(trimmed);
+    }
+    return found;
   }
+  if (Array.isArray(input)) {
+    for (const item of input) collectUrlsDeep(item, found);
+    return found;
+  }
+  if (typeof input === 'object') {
+    const priorityKeys = [
+      'large_file_url',
+      'file_url',
+      'sample_url',
+      'preview_url',
+      'image',
+      'img',
+      'url',
+      'src',
+      'link',
+    ];
+    for (const key of priorityKeys) {
+      if (input[key]) collectUrlsDeep(input[key], found);
+    }
+    for (const val of Object.values(input)) {
+      if (typeof val === 'object' && val !== null) {
+        collectUrlsDeep(val, found);
+      }
+    }
+  }
+  return found;
+}
 
-  return (Array.isArray(candidates) ? candidates : [])
-    .map((item) => {
-      if (typeof item === 'string') return item;
-      return (
-        item?.large_file_url ||
-        item?.file_url ||
-        item?.sample_url ||
-        item?.preview_url ||
-        item?.url ||
-        item?.image ||
-        item?.media_asset?.[0]?.url
-      );
-    })
-    .filter((url) => typeof url === 'string' && /^https?:\/\/.+\.(jpe?g|png|webp)(\?.*)?$/i.test(url));
+function extractImageUrls(payload) {
+  const allUrls = collectUrlsDeep(payload, []);
+  const uniqueUrls = [...new Set(allUrls)];
+
+  const imageLike = uniqueUrls.filter((u) =>
+    /(\.(jpe?g|png|webp|gif)(\?|#|$)|booru|safebooru|danbooru|gelbooru|images|img|cdn)/i.test(u)
+  );
+
+  return imageLike.length > 0 ? imageLike : uniqueUrls;
 }
 
 async function buscarImagenPersonaje(tag, fallbackName = '') {
@@ -102,9 +126,11 @@ async function buscarImagenPersonaje(tag, fallbackName = '') {
         },
       });
 
+      const rawText = await response.text();
+      console.log(`[GACHA DEBUG] Query: "${query}" | Status: ${response.status} | Body: ${rawText.slice(0, 400)}`);
+
       if (!response.ok) continue;
 
-      const rawText = await response.text();
       let parsed;
       try {
         parsed = JSON.parse(rawText);
@@ -114,8 +140,8 @@ async function buscarImagenPersonaje(tag, fallbackName = '') {
 
       const urls = extractImageUrls(parsed);
       if (urls.length > 0) return urls;
-    } catch {
-      // Intenta con la siguiente consulta
+    } catch (err) {
+      console.log(`[GACHA DEBUG] Error en query "${query}":`, err.message);
     }
   }
 
