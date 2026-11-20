@@ -2,7 +2,7 @@ import nodeFetch from 'node-fetch';
 import { promises as fs } from 'fs';
 import { db } from '../lib/database.js';
 
-const FILE_PATH = './lib/characters.json';
+const FILE_PATH = new URL('../lib/characters.json', import.meta.url);
 const COOLDOWN_MS = 15 * 1000; // 15 segundos
 const EVO_API_KEY = 'evogb-TyswGrUB';
 const EVO_SAFEBOORU_URL = 'https://api.evogb.org/nsfw/safebooru';
@@ -37,11 +37,6 @@ async function ensureGachaTables() {
 }
 
 async function loadCharacters() {
-  try {
-    await fs.access(FILE_PATH);
-  } catch {
-    await fs.writeFile(FILE_PATH, '{}');
-  }
   const fileContent = await fs.readFile(FILE_PATH, 'utf-8');
   return JSON.parse(fileContent);
 }
