@@ -65,55 +65,20 @@ function formatTag(tag) {
     .replace(/\s+/g, '_');
 }
 
-function collectUrlsDeep(input, found = []) {
-  if (!input) return found;
-  if (typeof input === 'string') {
-    const trimmed = input.trim();
-    if (/^https?:\/\/\S+/i.test(trimmed)) {
-      found.push(trimmed);
-    }
-    return found;
-  }
-  if (Array.isArray(input)) {
-    for (const item of input) collectUrlsDeep(item, found);
-    return found;
-  }
-  if (typeof input === 'object') {
-    const priorityKeys = [
-      'large_file_url',
-      'file_url',
-      'sample_url',
-      'preview_url',
-      'image',
-      'img',
-      'url',
-      'src',
-      'link',
-    ];
-    for (const key of priorityKeys) {
-      if (input[key]) collectUrlsDeep(input[key], found);
-    }
-    for (const val of Object.values(input)) {
-      if (typeof val === 'object' && val !== null) {
-        collectUrlsDeep(val, found);
-      }
+function looksLikeErrorPayload(buffer) {
+  if (!buffer || buffer.length === 0) return true;
+  // Si empieza con '{' o '[', revisamos si es un JSON de error sin imagen
+  const firstByte = buffer[0];
+  if (firstByte === 0x7b || firstByte === 0x5b) {
+    const text = buffer.toString('utf8').slice(0, 500);
+    if (/error|invalid|not found|no results|no images|unauthorized|key/i.test(text) && !/https?:\/\//i.test(text)) {
+      return true;
     }
   }
-  return found;
+  return false;
 }
 
-function extractImageUrls(payload) {
-  const allUrls = collectUrlsDeep(payload, []);
-  const uniqueUrls = [...new Set(allUrls)];
-
-  const imageLike = uniqueUrls.filter((u) =>
-    /(\.(jpe?g|png|webp|gif)(\?|#|$)|booru|safebooru|danbooru|gelbooru|images|img|cdn)/i.test(u)
-  );
-
-  return imageLike.length > 0 ? imageLike : uniqueUrls;
-}
-
-async function buscarImagenPersonaje(tag, fallbackName = '') {
+async function buscarImagenBuffer(tag, fallbackName = '') {
   const queries = [formatTag(tag), formatTag(fallbackName)].filter(Boolean);
 
   for (const query of queries) {
@@ -122,30 +87,54 @@ async function buscarImagenPersonaje(tag, fallbackName = '') {
       const response = await nodeFetch(endpoint, {
         headers: {
           'User-Agent': 'Mozilla/5.0',
-          'Accept': 'application/json, text/plain, */*',
+          'Accept': 'image/*, application/json, */*',
         },
       });
 
-      const rawText = await response.text();
-      console.log(`[GACHA DEBUG] Query: "${query}" | Status: ${response.status} | Body: ${rawText.slice(0, 400)}`);
-
       if (!response.ok) continue;
 
-      let parsed;
-      try {
-        parsed = JSON.parse(rawText);
-      } catch {
-        parsed = rawText.trim();
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      if (looksLikeErrorPayload(buffer)) continue;
+
+      // Si responde como imagen directa (PNG, JPG, WEBP, GIF, octet-stream, etc.)
+      if (
+        contentType.startsWith('image/') ||
+        contentType.includes('octet-stream') ||
+        buffer.subarray(0, 3).toString('ascii') === 'GIF' ||
+        buffer[0] === 0xff || // JPEG
+        buffer[0] === 0x89 || // PNG
+        buffer.toString('ascii', 8, 12) === 'WEBP'
+      ) {
+        const ext =
+          contentType.includes('gif') || buffer.subarray(0, 3).toString('ascii') === 'GIF'
+            ? 'gif'
+            : contentType.includes('png') || buffer[0] === 0x89
+              ? 'png'
+              : contentType.includes('webp')
+                ? 'webp'
+                : 'jpg';
+        return { buffer, ext };
       }
 
-      const urls = extractImageUrls(parsed);
-      if (urls.length > 0) return urls;
-    } catch (err) {
-      console.log(`[GACHA DEBUG] Error en query "${query}":`, err.message);
+      // Por si algún día devuelve texto/JSON con una URL
+      const text = buffer.toString('utf8').trim();
+      const urlMatch = text.match(/https?:\/\/[^\s"'<>]+/i);
+      if (urlMatch) {
+        const imgRes = await nodeFetch(urlMatch[0]);
+        if (imgRes.ok) {
+          const imgBuf = Buffer.from(await imgRes.arrayBuffer());
+          if (imgBuf.length > 0) return { buffer: imgBuf, ext: 'jpg' };
+        }
+      }
+    } catch {
+      // Intenta con la siguiente consulta
     }
   }
 
-  return [];
+  return null;
 }
 
 const handler = async (message, { conn, usedPrefix, command }) => {
@@ -180,13 +169,11 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const characterId = String(randomCharacter.id);
     const seriesName = getSeriesNameByCharacter(allCharacters, characterId);
     const primaryTag = randomCharacter.tags?.[0] || '';
-    const imageUrls = await buscarImagenPersonaje(primaryTag, randomCharacter.name);
+    const mediaResult = await buscarImagenBuffer(primaryTag, randomCharacter.name);
 
-    if (!imageUrls.length) {
+    if (!mediaResult?.buffer) {
       return message.reply(`ꕥ No se encontraron imágenes para el personaje *${randomCharacter.name}*.`);
     }
-
-    const selectedImage = imageUrls[Math.floor(Math.random() * imageUrls.length)];
 
     // Consultar estado previo del personaje en PostgreSQL
     const existingRes = await db.query(
@@ -246,8 +233,8 @@ const handler = async (message, { conn, usedPrefix, command }) => {
 
     const sentMessage = await conn.sendFile(
       message.chat,
-      selectedImage,
-      `${charName}.jpg`,
+      mediaResult.buffer,
+      `${charName}.${mediaResult.ext}`,
       messageText,
       message,
       false,
@@ -258,7 +245,6 @@ const handler = async (message, { conn, usedPrefix, command }) => {
       characterId,
       name: charName,
       value: charValue,
-      image: selectedImage,
       rolledBy: sender,
       rolledAt: now,
       msgId: sentMessage?.key?.id || sentMessage?.message?.id || null,
