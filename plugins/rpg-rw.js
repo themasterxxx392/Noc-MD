@@ -3,11 +3,8 @@ import { promises as fs } from 'fs';
 import { db } from '../lib/database.js';
 
 const FILE_PATH = new URL('../lib/characters.json', import.meta.url);
-const COOLDOWN_MS = 15 * 1000; // 15 segundos
-const EVO_API_KEY = 'evogb-TyswGrUB';
-const EVO_SAFEBOORU_URL = 'https://api.evogb.org/nsfw/safebooru';
+const COOLDOWN_MS = 15 * 1000;
 
-// Guarda la última tirada por chat para futuros comandos como reclamar/harem
 export const lastRollsByChat = new Map();
 
 let tablesInitialized = false;
@@ -65,72 +62,141 @@ function formatTag(tag) {
     .replace(/\s+/g, '_');
 }
 
-function looksLikeErrorPayload(buffer) {
-  if (!buffer || buffer.length === 0) return true;
-  // Si empieza con '{' o '[', revisamos si es un JSON de error sin imagen
-  const firstByte = buffer[0];
-  if (firstByte === 0x7b || firstByte === 0x5b) {
-    const text = buffer.toString('utf8').slice(0, 500);
-    if (/error|invalid|not found|no results|no images|unauthorized|key/i.test(text) && !/https?:\/\//i.test(text)) {
-      return true;
-    }
+function detectExtFromBufferOrType(buffer, contentType = '') {
+  const ct = String(contentType).toLowerCase();
+  if (ct.includes('gif') || buffer.subarray(0, 3).toString('ascii') === 'GIF') return 'gif';
+  if (ct.includes('png') || (buffer[0] === 0x89 && buffer[1] === 0x50)) return 'png';
+  if (ct.includes('webp') || buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return 'jpg';
+}
+
+function isBinaryImage(buffer, contentType = '') {
+  if (!buffer || buffer.length < 16) return false;
+  const ct = String(contentType).toLowerCase();
+  return (
+    ct.startsWith('image/') ||
+    buffer.subarray(0, 3).toString('ascii') === 'GIF' ||
+    (buffer[0] === 0xff && buffer[1] === 0xd8) ||
+    (buffer[0] === 0x89 && buffer[1] === 0x50) ||
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  );
+}
+
+function extractUrlsFromJson(parsed) {
+  if (!parsed) return [];
+  const rawList = Array.isArray(parsed?.results)
+    ? parsed.results
+    : Array.isArray(parsed)
+      ? parsed
+      : [
+          parsed?.url,
+          parsed?.image,
+          parsed?.file_url,
+          parsed?.large_file_url,
+          parsed?.data?.url,
+          parsed?.data?.image,
+        ];
+
+  return rawList
+    .map((item) => {
+      if (typeof item === 'string') return item.trim();
+      if (item && typeof item === 'object') {
+        return String(item.url || item.file_url || item.large_file_url || item.image || '').trim();
+      }
+      return '';
+    })
+    .filter((u) => /^https?:\/\/\S+/i.test(u));
+}
+
+async function downloadImageFromUrl(url) {
+  const res = await nodeFetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'image/*,*/*;q=0.8',
+    },
+  });
+  if (!res.ok) return null;
+  const contentType = res.headers.get('content-type') || '';
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (!isBinaryImage(buffer, contentType)) return null;
+  return {
+    buffer,
+    ext: detectExtFromBufferOrType(buffer, contentType),
+  };
+}
+
+function resolveEndpoint(base, route, query, key, extraParams = '') {
+  const cleanBase = String(base || '').replace(/\/+$/, '');
+  const q = encodeURIComponent(query);
+  const k = encodeURIComponent(key || '');
+  const extra = extraParams ? `&${extraParams}` : '';
+
+  if (cleanBase.includes('/nsfw/')) {
+    const root = cleanBase.replace(/\/nsfw\/.*$/, '');
+    return `${root}/nsfw/${route}?key=${k}&keyword=${q}${extra}`;
   }
-  return false;
+  return `${cleanBase}/nsfw/${route}?key=${k}&keyword=${q}${extra}`;
+}
+
+function buildEndpoints(query) {
+  const base = global.info?.evogb;
+  const key = global.info?.evogbkey;
+  if (!base || !key) return [];
+
+  return [
+    { type: 'buffer', url: resolveEndpoint(base, 'safebooru', query, key) },
+    { type: 'json', url: resolveEndpoint(base, 'danbooru', query, key) },
+    { type: 'buffer', url: resolveEndpoint(base, 'gelbooru', query, key, 'json=false') },
+  ];
 }
 
 async function buscarImagenBuffer(tag, fallbackName = '') {
   const queries = [formatTag(tag), formatTag(fallbackName)].filter(Boolean);
 
   for (const query of queries) {
-    const endpoint = `${EVO_SAFEBOORU_URL}?key=${encodeURIComponent(EVO_API_KEY)}&keyword=${encodeURIComponent(query)}`;
-    try {
-      const response = await nodeFetch(endpoint, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Accept': 'image/*, application/json, */*',
-        },
-      });
+    const endpoints = buildEndpoints(query);
 
-      if (!response.ok) continue;
+    for (const ep of endpoints) {
+      try {
+        const response = await nodeFetch(ep.url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0',
+            'Accept': 'image/*, application/json, text/plain, */*',
+          },
+        });
 
-      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+        if (!response.ok) continue;
 
-      if (looksLikeErrorPayload(buffer)) continue;
+        const contentType = response.headers.get('content-type') || '';
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-      // Si responde como imagen directa (PNG, JPG, WEBP, GIF, octet-stream, etc.)
-      if (
-        contentType.startsWith('image/') ||
-        contentType.includes('octet-stream') ||
-        buffer.subarray(0, 3).toString('ascii') === 'GIF' ||
-        buffer[0] === 0xff || // JPEG
-        buffer[0] === 0x89 || // PNG
-        buffer.toString('ascii', 8, 12) === 'WEBP'
-      ) {
-        const ext =
-          contentType.includes('gif') || buffer.subarray(0, 3).toString('ascii') === 'GIF'
-            ? 'gif'
-            : contentType.includes('png') || buffer[0] === 0x89
-              ? 'png'
-              : contentType.includes('webp')
-                ? 'webp'
-                : 'jpg';
-        return { buffer, ext };
-      }
-
-      // Por si algún día devuelve texto/JSON con una URL
-      const text = buffer.toString('utf8').trim();
-      const urlMatch = text.match(/https?:\/\/[^\s"'<>]+/i);
-      if (urlMatch) {
-        const imgRes = await nodeFetch(urlMatch[0]);
-        if (imgRes.ok) {
-          const imgBuf = Buffer.from(await imgRes.arrayBuffer());
-          if (imgBuf.length > 0) return { buffer: imgBuf, ext: 'jpg' };
+        if (isBinaryImage(buffer, contentType)) {
+          return {
+            buffer,
+            ext: detectExtFromBufferOrType(buffer, contentType),
+          };
         }
+
+        const text = buffer.toString('utf8').trim();
+        let parsed = null;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = null;
+        }
+
+        const urls = extractUrlsFromJson(parsed);
+        if (urls.length > 0) {
+          const shuffled = [...urls].sort(() => Math.random() - 0.5).slice(0, 3);
+          for (const candidateUrl of shuffled) {
+            const downloaded = await downloadImageFromUrl(candidateUrl);
+            if (downloaded) return downloaded;
+          }
+        }
+      } catch {
+        continue;
       }
-    } catch {
-      // Intenta con la siguiente consulta
     }
   }
 
@@ -144,7 +210,6 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const now = Date.now();
     const sender = message.sender;
 
-    // Revisar cooldown de 15 segundos en PostgreSQL
     const cdRes = await db.query(
       'SELECT next_roll_at FROM gacha_cooldowns WHERE user_id = $1',
       [sender]
@@ -175,7 +240,6 @@ const handler = async (message, { conn, usedPrefix, command }) => {
       return message.reply(`ꕥ No se encontraron imágenes para el personaje *${randomCharacter.name}*.`);
     }
 
-    // Consultar estado previo del personaje en PostgreSQL
     const existingRes = await db.query(
       'SELECT * FROM gacha_characters WHERE id = $1',
       [characterId]
@@ -188,8 +252,8 @@ const handler = async (message, { conn, usedPrefix, command }) => {
         ? existing.value
         : Number(randomCharacter.value) || 100;
     const ownerId = existing?.owner_id || null;
-    const reservedUntil = now + 20 * 1000; // 20s de prioridad para quien tiró
-    const expiresAt = now + 60 * 60 * 1000; // 60 min
+    const reservedUntil = now + 20 * 1000;
+    const expiresAt = now + 60 * 60 * 1000;
 
     await db.query(
       `INSERT INTO gacha_characters (id, name, value, owner_id, reserved_by, reserved_until, expires_at)
@@ -203,7 +267,6 @@ const handler = async (message, { conn, usedPrefix, command }) => {
       [characterId, charName, charValue, ownerId, sender, reservedUntil, expiresAt]
     );
 
-    // Guardar cooldown de 15 segundos
     await db.query(
       `INSERT INTO gacha_cooldowns (user_id, next_roll_at)
        VALUES ($1, $2)
