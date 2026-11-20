@@ -26,12 +26,12 @@ text = `《🚓》${pickRandom(robmal)} ${exp} XP`;
 await m.db.query('UPDATE usuarios SET exp = GREATEST(exp - $1, 0), crime = $2 WHERE id = $3', [exp, now, m.sender]);
 break;
 case 2:
-text = `《💰》${pickRandom(robar)}\n\n${money} 🪙 LOLICOINS`;
-await m.db.query('UPDATE usuarios SET money = money + $1, crime = $2 WHERE id = $3', [money, now, m.sender]);
+text = `《💰》${pickRandom(robar)}\n\n${money} XP`;
+await m.db.query('UPDATE usuarios SET exp = exp + $1, crime = $2 WHERE id = $3', [money, now, m.sender]);
 break;
 case 3:
-text = `《🚓》${pickRandom(robmal)}\n\n${money} 🪙 LOLICOINS`;
-await m.db.query('UPDATE usuarios SET money = GREATEST(money - $1, 0), crime = $2 WHERE id = $3', [money, now, m.sender]);
+text = `《🚓》${pickRandom(robmal)}\n\n${money} XP`;
+await m.db.query('UPDATE usuarios SET exp = GREATEST(exp - $1, 0), crime = $2 WHERE id = $3', [money, now, m.sender]);
 break;
 case 4:
 text = `《💰》Le has robado a @${randomTarget.split('@')[0]} una cantidad de ${exp} XP`;
@@ -92,4 +92,3 @@ let robmal = [
     'Fuiste descubierto tratando de sobornar a un oficial, perdiste:',
     'Tu plan para chantajear a un empresario salió mal, perdiste:',
 ];
-                                                                                               
