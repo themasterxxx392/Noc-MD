@@ -1,7 +1,7 @@
 const xpperlimit = 750;
 
 const handler = async (m, { conn, command, args }) => {
-  const res = await m.db.query("SELECT exp, monedas FROM usuarios WHERE id = $1", [m.sender]);
+  const res = await m.db.query("SELECT exp, money FROM usuarios WHERE id = $1", [m.sender]);
   let user = res.rows[0];
   let count = 1;
 
@@ -16,7 +16,7 @@ const handler = async (m, { conn, command, args }) => {
   if (user.exp < totalCost) return m.reply(`⚠️ Lo siento, no tienes suficientes *XP* para comprar *${count}* Monedas 🪙`);
 
   await m.db.query(`UPDATE usuarios 
-    SET exp = exp - $1, monedas = monedas + $2 
+    SET exp = exp - $1, money = money + $2 
     WHERE id = $3
   `, [totalCost, count, m.sender]);
 
