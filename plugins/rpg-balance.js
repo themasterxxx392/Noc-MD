@@ -6,24 +6,23 @@ const handler = async (m, { conn }) => {
     const cleanWho = typeof who === 'string' ? who : String(sender);
     const userTag = cleanWho.includes('@') ? cleanWho.split('@')[0] : cleanWho;
 
-    let res = await db.query("SELECT exp, money, banco FROM usuarios WHERE id = $1", [cleanWho]);
+    let res = await db.query("SELECT money, banco FROM usuarios WHERE id = $1", [cleanWho]);
     let user = res.rows[0];
 
     if (!user) {
         await db.query(
-            `INSERT INTO usuarios (id, nombre, num, registered, exp, money, banco)
-             VALUES ($1, $2, $3, true, 100, 50, 0) ON CONFLICT (id) DO NOTHING`,
+            `INSERT INTO usuarios (id, nombre, num, registered, money, banco)
+             VALUES ($1, $2, $3, true, 50, 0) ON CONFLICT (id) DO NOTHING`,
             [cleanWho, m.pushName || "Usuario", userTag]
         );
-        res = await db.query("SELECT exp, money, banco FROM usuarios WHERE id = $1", [cleanWho]);
-        user = res.rows[0] || { exp: 100, money: 50, banco: 0 };
+        res = await db.query("SELECT money, banco FROM usuarios WHERE id = $1", [cleanWho]);
+        user = res.rows[0] || { money: 50, banco: 0 };
     }
 
     await conn.reply(m.chat, `*•───⧼⧼⧼ 𝙱𝙰𝙻𝙰𝙽𝙲𝙴 ⧽⧽⧽───•*
 
 @${userTag} Tiene:
 
-*• 𝐄𝐱𝐩:* _${user.exp} ⬆️_
 *• 𝐋𝐨𝐥𝐢𝐂𝐨𝐢𝐧𝐬:* _${user.money} 🪙_
 > Afuera del Banco 
 
