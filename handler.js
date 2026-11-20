@@ -6,12 +6,11 @@ import crypto from "crypto";
 import { db, getSubbotConfig } from "./lib/postgres.js";
 import { logCommand } from "./lib/logger.js";
 import { smsg } from "./lib/simple.js";
-import { findLevel } from "./lib/levelling.js";
 
+const EXP_POR_COMANDO = 10;
 const META_TTL = 300_000;
 const CHAT_TTL = 60_000;
 const USER_TTL = 600_000;
-const LEVEL_MULTIPLIER = 650;
 
 const processedMessages = new Set();
 const lastDbUpdate = new Map();
@@ -121,18 +120,21 @@ export async function participantsUpdate(conn, { id, participants, action, autho
 
     const blockedPrefixes = parsePrefixes(settings.antifake_prefixes);
 
-      const sendText = async (jid, msg, title, body, image, mentions = []) => {
+    const sendText = async (jid, msg, title, body, image, mentions = []) => {
       return conn.sendMessage(id, {
         text: msg,
         contextInfo: {
           mentionedJid: mentions.filter(Boolean),
           externalAdReply: {
+            mediaUrl: [info.nna, info.nna2, info.md].getRandom(),
+            mediaType: 2,
             showAdAttribution: false,
             renderLargerThumbnail: false,
             thumbnailUrl: image,
             title,
             body,
-            containsAutoReply: true
+            containsAutoReply: true,
+            sourceUrl: "https://skyultraplus.com"
           }
         }
       }, { quoted: null });
@@ -223,7 +225,7 @@ export async function participantsUpdate(conn, { id, participants, action, autho
 
       if (["promote", "daradmin", "darpoder"].includes(action)) {
         if (!settings.detect) continue;
-        const raw = settings.spromote || settings.sPromote || `@user 𝘼𝙃𝙊𝙍𝘼 𝙀𝙎 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙡𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
+        const raw = settings.spromote || settings.sPromote || `@user 𝘼𝙃𝙊𝙍𝘼 𝙀𝙎 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙕𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
         const msg = makeMsg(raw, vars);
 
         await sendText(id, msg, "NUEVO ADMIN 🥳", "Ahora tiene admin", image, mentions);
@@ -232,7 +234,7 @@ export async function participantsUpdate(conn, { id, participants, action, autho
 
       if (["demote", "quitaradmin", "quitarpoder"].includes(action)) {
         if (!settings.detect) continue;
-        const raw = settings.sdemote || settings.sDemote || `@user 𝘿𝙀𝙅𝘼 𝘿𝙀 𝙎𝙀𝙍 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙡𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
+        const raw = settings.sdemote || settings.sDemote || `@user 𝘿𝙀𝙅𝘼 𝘿𝙀 𝙎𝙀𝙍 𝘼𝘿𝙈𝙄𝙉 𝙀𝙉 𝙀𝙎𝙏𝙀 𝙂𝙍𝙐𝙋𝙊\n\n😼🫵𝘼𝘾𝘾𝙄𝙊𝙉 𝙍𝙀𝘼𝙇𝙄𝙕𝘼𝘿𝘼 𝙋𝙊𝙍: @author`;
         const msg = makeMsg(raw, vars);
 
         await sendText(id, msg, "📛 ADMIN REMOVIDO", "Ya no tiene admin", image, mentions);
@@ -242,9 +244,8 @@ export async function participantsUpdate(conn, { id, participants, action, autho
   } catch (err) {
     console.error(chalk.red(`❌ Error en participantsUpdate - Acción: ${action} | Grupo: ${id}`), err);
   }
-}
-
-export async function groupsUpdate(conn, updates) {
+                                   }
+  export async function groupsUpdate(conn, updates) {
   try {
     if (!Array.isArray(updates)) updates = [updates];
     const botId = conn.user?.id;
@@ -790,17 +791,12 @@ export async function handler(conn, m) {
         await m.reply(`*${plugin.money} LoliCoins usado${plugin.money > 1 ? 's' : ''} 🪙*`);
       }
 
-      const xpGanada = Math.floor(Math.random() * 71) + 50; // entre 50 y 120 XP por comando
-      const userXpRes = await db.query('SELECT exp, level FROM usuarios WHERE id = $1', [m.sender]);
-      const currentExp = Number(userXpRes.rows?.[0]?.exp ?? 0);
-      const currentLevel = Number(userXpRes.rows?.[0]?.level ?? 0);
-      const newExp = currentExp + xpGanada;
-      const newLevel = Math.max(currentLevel, findLevel(newExp, LEVEL_MULTIPLIER));
-
-      await db.query(
-        'UPDATE usuarios SET exp = $1, level = $2 WHERE id = $3',
-        [newExp, newLevel, m.sender]
-      );
+      const expGanada = plugin.exp !== undefined ? (parseInt(plugin.exp) || 0) : EXP_POR_COMANDO;
+      if (expGanada > 0 && senderJid !== botJid) {
+        const fila = await db.query('SELECT exp FROM usuarios WHERE id = $1', [m.sender]);
+        const expActual = Number(fila.rows[0]?.exp) || 0;
+        await db.query('UPDATE usuarios SET exp = $1 WHERE id = $2', [expActual + expGanada, m.sender]);
+      }
 
       await db.query(
         `INSERT INTO stats (command, count)
