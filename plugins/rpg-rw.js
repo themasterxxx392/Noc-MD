@@ -15,24 +15,7 @@ const HEADERS = {
 export const lastRollsByChat = new Map()
 
 const cooldowns = new Map()
-let tablaLista = false
 let cache = { mtime: 0, personajes: [] }
-
-async function asegurarTabla() {
-  if (tablaLista) return
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS gacha_characters (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      value INTEGER NOT NULL DEFAULT 100,
-      owner_id TEXT,
-      reserved_by TEXT,
-      reserved_until BIGINT DEFAULT 0,
-      expires_at BIGINT DEFAULT 0
-    );
-  `)
-  tablaLista = true
-}
 
 async function cargarPersonajes() {
   const { mtimeMs } = await fs.stat(FILE_PATH)
@@ -84,7 +67,7 @@ async function descargarImagen(url) {
 }
 
 function endpoints(query, nsfw) {
-  const base = global.info?.evogb
+  const base = String(global.info?.evogb || '').replace(/\/+$/, '')
   const k = encodeURIComponent(global.info?.evogbkey)
   const q = encodeURIComponent(query)
   const lista = [`${base}/nsfw/safebooru?key=${k}&keyword=${q}`]
@@ -154,8 +137,6 @@ const handler = async (message, { conn, usedPrefix, command }) => {
   let enviado = false
 
   try {
-    await asegurarTabla()
-
     const personajes = await cargarPersonajes()
     if (!personajes.length) {
       return message.reply('⚠️ No hay personajes cargados en `./lib/characters.json`.')
@@ -227,6 +208,6 @@ const handler = async (message, { conn, usedPrefix, command }) => {
 
 handler.help = ['rw']
 handler.tags = ['gacha']
-handler.command = ['rw', 'rollwiafu']
+handler.command = ['rw', 'rollwaifu']
 
 export default handler
