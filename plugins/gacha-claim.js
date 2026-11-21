@@ -4,11 +4,32 @@ const reclamando = new Set()
 
 const tag = (jid) => `@${String(jid).split('@')[0]}`
 
-const handler = async (m, { conn, usedPrefix }) => {
-  const tirada = globalThis.__gachaRolls?.get(m.chat)
+function buscarTirada(m) {
+  const citado = m.quoted
+  if (!citado) return null
 
+  const vigentes = (globalThis.__gachaRecientes?.get(m.chat) || []).filter(r => r.expiresAt > Date.now())
+  if (!vigentes.length) return null
+
+  const citadoId = citado.id || citado.key?.id || m.message?.extendedTextMessage?.contextInfo?.stanzaId
+  const porId = citadoId ? vigentes.find(r => r.msgId === citadoId) : null
+  if (porId) return porId
+
+  const texto = [citado.text, citado.caption, citado.msg?.caption, citado.message?.imageMessage?.caption].find(t => typeof t === 'string' && t) || ''
+  const nombre = texto.match(/Nombre\s*»\s*\*([^*]+)\*/)?.[1]?.trim()
+  if (!nombre) return null
+
+  return [...vigentes].reverse().find(r => r.name === nombre) || null
+}
+
+const handler = async (m, { conn, usedPrefix, command }) => {
+  if (!m.quoted) {
+    return m.reply(`ꕥ Responde al mensaje del personaje que quieres reclamar con *${usedPrefix}${command}*.`)
+  }
+
+  const tirada = buscarTirada(m)
   if (!tirada) {
-    return m.reply(`ꕥ No hay ningún personaje para reclamar en este chat.\n> Usa *${usedPrefix}rw* para tirar.`)
+    return m.reply('ꕥ Ese mensaje no es un personaje que se pueda reclamar, o ya expiró.')
   }
 
   const id = tirada.characterId
