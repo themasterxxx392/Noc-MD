@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import { db } from '../lib/database.js'
 
 const FILE_PATH = new URL('../lib/characters.json', import.meta.url)
-const COOLDOWN_MS = 15 * 1000
+const COOLDOWN_MS = 15 * 60 * 1000
 const RESERVA_MS = 20 * 1000
 const EXPIRA_MS = 60 * 1000
 const TIMEOUT_MS = 15 * 1000
@@ -15,8 +15,34 @@ const HEADERS = {
 export const lastRollsByChat = (globalThis.__gachaRolls ||= new Map())
 const recientes = (globalThis.__gachaRecientes ||= new Map())
 
-const cooldowns = new Map()
 let cache = { mtime: 0, personajes: [] }
+
+const cooldowns = new Map()
+
+async function cargarCooldown(clave) {
+  if (cooldowns.has(clave)) return
+  const res = await db.query('SELECT next_roll_at FROM gacha_cooldowns WHERE user_id = $1', [clave])
+  cooldowns.set(clave, Number(res.rows?.[0]?.next_roll_at) || 0)
+}
+
+function guardarCooldown(clave, hasta) {
+  db.query(
+    `INSERT INTO gacha_cooldowns (user_id, next_roll_at)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET next_roll_at = EXCLUDED.next_roll_at`,
+    [clave, hasta]
+  ).catch(error => console.error('Error guardando cooldown:', error.message))
+}
+
+function formatoTiempo(ms) {
+  const total = Math.ceil(ms / 1000)
+  const min = Math.floor(total / 60)
+  const seg = total % 60
+  return [
+    min ? `${min} minuto${min !== 1 ? 's' : ''}` : '',
+    seg ? `${seg} segundo${seg !== 1 ? 's' : ''}` : ''
+  ].filter(Boolean).join(' y ')
+}
 
 async function cargarPersonajes() {
   const { mtimeMs } = await fs.stat(FILE_PATH)
@@ -122,12 +148,13 @@ async function nsfwActivo(chat) {
 
 const handler = async (message, { conn, usedPrefix, command }) => {
   const sender = message.sender
-  const ahora = Date.now()
 
-  const siguiente = cooldowns.get(sender) || 0
-  if (siguiente > ahora) {
-    const restante = Math.ceil((siguiente - ahora) / 1000)
-    return message.reply(`ꕥ Debes esperar *${restante} segundo${restante !== 1 ? 's' : ''}* para usar *${usedPrefix}${command}* de nuevo.`)
+  await cargarCooldown(sender).catch(() => cooldowns.set(sender, 0))
+
+  const ahora = Date.now()
+  const restante = (cooldowns.get(sender) || 0) - ahora
+  if (restante > 0) {
+    return message.reply(`ꕥ Debes esperar *${formatoTiempo(restante)}* para usar *${usedPrefix}${command}* de nuevo.`)
   }
 
   if (cooldowns.size > 500) {
@@ -188,6 +215,7 @@ const handler = async (message, { conn, usedPrefix, command }) => {
 
     const enviadoMsg = await conn.sendFile(message.chat, media.buffer, `${nombre}.${media.ext}`, texto, message, false, { mentions })
     enviado = true
+    guardarCooldown(sender, ahora + COOLDOWN_MS)
 
     const msgId = enviadoMsg?.key?.id || enviadoMsg?.message?.id || null
 
@@ -210,12 +238,12 @@ const handler = async (message, { conn, usedPrefix, command }) => {
       message
     )
   } finally {
-    if (!enviado) cooldowns.delete(sender)
+    if (!enviado) cooldowns.set(sender, 0)
   }
 }
 
-handler.help = ['gacha', 'rw', 'rollwaifu']
+handler.help = ['rw']
 handler.tags = ['gacha']
-handler.command = /^(rollwaifu|rw|gacha)$/i
+handler.command = 'rw', 'rollwaifu']
 
 export default handler
