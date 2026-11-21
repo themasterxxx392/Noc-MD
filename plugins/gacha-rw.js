@@ -242,8 +242,8 @@ const handler = async (message, { conn, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['rw']
+handler.help = ['gacha', 'rw', 'rollwaifu']
 handler.tags = ['gacha']
-handler.command = ['rw', 'rollwaifu']
+handler.command = /^(rollwaifu|rw|gacha)$/i
 
 export default handler
