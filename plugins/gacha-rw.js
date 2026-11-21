@@ -2,9 +2,9 @@ import { promises as fs } from 'fs'
 import { db } from '../lib/database.js'
 
 const FILE_PATH = new URL('../lib/characters.json', import.meta.url)
-const COOLDOWN_MS = 15 * 60 * 1000
+const COOLDOWN_MS = 15 * 1000
 const RESERVA_MS = 20 * 1000
-const EXPIRA_MS = 60 * 60 * 1000
+const EXPIRA_MS = 60 * 1000
 const TIMEOUT_MS = 15 * 1000
 
 const HEADERS = {
@@ -12,7 +12,7 @@ const HEADERS = {
   'Accept': 'image/*, application/json, text/plain, */*;q=0.8'
 }
 
-export const lastRollsByChat = new Map()
+export const lastRollsByChat = (globalThis.__gachaRolls ||= new Map())
 
 const cooldowns = new Map()
 let cache = { mtime: 0, personajes: [] }
@@ -67,7 +67,7 @@ async function descargarImagen(url) {
 }
 
 function endpoints(query, nsfw) {
-  const base = String(global.info?.evogb || '').replace(/\/+$/, '')
+  const base = global.info?.evogb
   const k = encodeURIComponent(global.info?.evogbkey)
   const q = encodeURIComponent(query)
   const lista = [`${base}/nsfw/safebooru?key=${k}&keyword=${q}`]
@@ -119,22 +119,14 @@ async function nsfwActivo(chat) {
   }
 }
 
-function formatearTiempo(ms) {
-  const totalSeg = Math.ceil(ms / 1000)
-  const min = Math.floor(totalSeg / 60)
-  const seg = totalSeg % 60
-  if (min > 0 && seg > 0) return `${min} minuto${min !== 1 ? 's' : ''} y ${seg} segundo${seg !== 1 ? 's' : ''}`
-  if (min > 0) return `${min} minuto${min !== 1 ? 's' : ''}`
-  return `${seg} segundo${seg !== 1 ? 's' : ''}`
-}
-
 const handler = async (message, { conn, usedPrefix, command }) => {
   const sender = message.sender
   const ahora = Date.now()
 
   const siguiente = cooldowns.get(sender) || 0
   if (siguiente > ahora) {
-    return message.reply(`ꕥ Debes esperar *${formatearTiempo(siguiente - ahora)}* para usar *${usedPrefix}${command}* de nuevo.`)
+    const restante = Math.ceil((siguiente - ahora) / 1000)
+    return message.reply(`ꕥ Debes esperar *${restante} segundo${restante !== 1 ? 's' : ''}* para usar *${usedPrefix}${command}* de nuevo.`)
   }
 
   if (cooldowns.size > 500) {
@@ -161,16 +153,16 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const id = String(personaje.id)
     const nombre = String(personaje.name || 'Sin nombre')
 
-    const prevRes = await db.query('SELECT value, owner_id FROM gacha_characters WHERE id = $1', [id])
-    const prev = prevRes.rows?.[0]
-    const valor = Number(prev?.value) || Number(personaje.value) || 100
-    const ownerId = prev?.owner_id || null
+    const existente = (await db.query('SELECT * FROM gacha_characters WHERE id = $1', [id])).rows?.[0]
+    const valor = typeof existente?.value === 'number' ? existente.value : Number(personaje.value) || 100
+    const ownerId = existente?.owner_id || null
 
     await db.query(
       `INSERT INTO gacha_characters (id, name, value, owner_id, reserved_by, reserved_until, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
+         value = EXCLUDED.value,
          reserved_by = EXCLUDED.reserved_by,
          reserved_until = EXCLUDED.reserved_until,
          expires_at = EXCLUDED.expires_at`,
@@ -189,7 +181,7 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const texto =
       `❀ Nombre » *${nombre}*\n` +
       `⚥ Género » *${personaje.gender || 'Desconocido'}*\n` +
-      `✰ Valor » *${valor.toLocaleString()}*\n` +
+      `✰ Valor » *${valor.toLocaleString()}* 🪙\n` +
       `♡ Estado » *${estado}*\n` +
       `❖ Fuente » *${personaje.serie}*`
 
