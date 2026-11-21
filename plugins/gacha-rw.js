@@ -209,7 +209,7 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const texto =
       `❀ Nombre » *${nombre}*\n` +
       `⚥ Género » *${personaje.gender || 'Desconocido'}*\n` +
-      `✰ Valor » *${valor.toLocaleString()}* \n` +
+      `✰ Valor » *${valor.toLocaleString()}* 🪙\n` +
       `♡ Estado » *${estado}*\n` +
       `❖ Fuente » *${personaje.serie}*`
 
