@@ -207,12 +207,12 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     }
 
     const texto =
-      `❀ Nombre » *${nombre}*\n` +
-      `⚥ Género » *${personaje.gender || 'Desconocido'}*\n` +
-      `✰ Valor » *${valor.toLocaleString()}* 🪙\n` +
-      `♡ Estado » *${estado}*\n` +
-      `❖ Fuente » *${personaje.serie}*`
-
+  `❀ Nombre » *${nombre}*\n` +
+  `⚥ Género » *${personaje.gender || 'Desconocido'}*\n` +
+  `✰ Valor » *${valor.toLocaleString()}*\n` +
+  `♡ Estado » *${estado}*\n` +
+  `❖ Fuente » *${personaje.serie}*`
+    
     const enviadoMsg = await conn.sendFile(message.chat, media.buffer, `${nombre}.${media.ext}`, texto, message, false, { mentions })
     enviado = true
     guardarCooldown(sender, ahora + COOLDOWN_MS)
