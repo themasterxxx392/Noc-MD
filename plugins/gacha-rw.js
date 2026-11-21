@@ -13,6 +13,7 @@ const HEADERS = {
 }
 
 export const lastRollsByChat = (globalThis.__gachaRolls ||= new Map())
+const recientes = (globalThis.__gachaRecientes ||= new Map())
 
 const cooldowns = new Map()
 let cache = { mtime: 0, personajes: [] }
@@ -188,14 +189,20 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const enviadoMsg = await conn.sendFile(message.chat, media.buffer, `${nombre}.${media.ext}`, texto, message, false, { mentions })
     enviado = true
 
+    const msgId = enviadoMsg?.key?.id || enviadoMsg?.message?.id || null
+
     lastRollsByChat.set(message.chat, {
       characterId: id,
       name: nombre,
       value: valor,
       rolledBy: sender,
       rolledAt: ahora,
-      msgId: enviadoMsg?.key?.id || enviadoMsg?.message?.id || null
+      msgId
     })
+
+    const vigentes = (recientes.get(message.chat) || []).filter(r => r.expiresAt > ahora)
+    vigentes.push({ characterId: id, name: nombre, value: valor, msgId, expiresAt: ahora + EXPIRA_MS })
+    recientes.set(message.chat, vigentes.slice(-10))
   } catch (error) {
     await conn.reply(
       message.chat,
@@ -207,8 +214,8 @@ const handler = async (message, { conn, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['rw', 'rollwaifu']
+handler.help = ['gacha', 'rw', 'rollwaifu']
 handler.tags = ['gacha']
-handler.command = ['rw', 'rollwaifu']
+handler.command = /^(rollwaifu|rw|gacha)$/i
 
 export default handler
