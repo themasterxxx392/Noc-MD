@@ -12,8 +12,8 @@ const HEADERS = {
   'Accept': 'image/*, application/json, text/plain, */*;q=0.8'
 }
 
-export const lastRollsByChat = (globalThis.__gachaRolls ||= new Map())
-const recientes = (globalThis.__gachaRecientes ||= new Map())
+export const lastRollsByChat = globalThis.__gachaRolls || (globalThis.__gachaRolls = new Map())
+const recientes = globalThis.__gachaRecientes || (globalThis.__gachaRecientes = new Map())
 
 let cache = { mtime: 0, personajes: [] }
 
@@ -209,7 +209,7 @@ const handler = async (message, { conn, usedPrefix, command }) => {
     const texto =
       `❀ Nombre » *${nombre}*\n` +
       `⚥ Género » *${personaje.gender || 'Desconocido'}*\n` +
-      `✰ Valor » *${valor.toLocaleString()}* 🪙\n` +
+      `✰ Valor » *${valor.toLocaleString()}* \n` +
       `♡ Estado » *${estado}*\n` +
       `❖ Fuente » *${personaje.serie}*`
 
@@ -242,8 +242,8 @@ const handler = async (message, { conn, usedPrefix, command }) => {
   }
 }
 
-handler.help = ['gacha', 'rw', 'rollwaifu']
+handler.help = ['rw']
 handler.tags = ['gacha']
-handler.command = /^(rollwaifu|rw|gacha)$/i
+handler.command = ['rw', 'rollwaifu']
 
 export default handler
