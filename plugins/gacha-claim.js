@@ -1,6 +1,35 @@
 import { db } from '../lib/database.js'
 
+const COOLDOWN_MS = 15 * 60 * 1000
+
 const reclamando = new Set()
+
+const cooldowns = new Map()
+
+async function cargarCooldown(clave) {
+  if (cooldowns.has(clave)) return
+  const res = await db.query('SELECT next_roll_at FROM gacha_cooldowns WHERE user_id = $1', [clave])
+  cooldowns.set(clave, Number(res.rows?.[0]?.next_roll_at) || 0)
+}
+
+function guardarCooldown(clave, hasta) {
+  db.query(
+    `INSERT INTO gacha_cooldowns (user_id, next_roll_at)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET next_roll_at = EXCLUDED.next_roll_at`,
+    [clave, hasta]
+  ).catch(error => console.error('Error guardando cooldown:', error.message))
+}
+
+function formatoTiempo(ms) {
+  const total = Math.ceil(ms / 1000)
+  const min = Math.floor(total / 60)
+  const seg = total % 60
+  return [
+    min ? `${min} minuto${min !== 1 ? 's' : ''}` : '',
+    seg ? `${seg} segundo${seg !== 1 ? 's' : ''}` : ''
+  ].filter(Boolean).join(' y ')
+}
 
 const tag = (jid) => `@${String(jid).split('@')[0]}`
 
@@ -32,13 +61,25 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     return m.reply('ꕥ Ese mensaje no es un personaje que se pueda reclamar, o ya expiró.')
   }
 
+  const sender = m.sender
+  const clave = `claim:${sender}`
+
+  await cargarCooldown(clave).catch(() => cooldowns.set(clave, 0))
+
+  const restante = (cooldowns.get(clave) || 0) - Date.now()
+  if (restante > 0) {
+    return m.reply(`ꕥ Debes esperar *${formatoTiempo(restante)}* para reclamar de nuevo.`)
+  }
+
   const id = tirada.characterId
   if (reclamando.has(id)) return
   reclamando.add(id)
 
+  let reclamado = false
+  const ahora = Date.now()
+  cooldowns.set(clave, ahora + COOLDOWN_MS)
+
   try {
-    const ahora = Date.now()
-    const sender = m.sender
 
     const fila = (await db.query('SELECT * FROM gacha_characters WHERE id = $1', [id])).rows?.[0]
     if (!fila) {
@@ -73,6 +114,9 @@ const handler = async (m, { conn, usedPrefix, command }) => {
       [sender, null, 0, id]
     )
 
+    reclamado = true
+    guardarCooldown(clave, ahora + COOLDOWN_MS)
+
     await conn.sendMessage(m.chat, {
       text: `❀ ${tag(sender)} reclamó a *${fila.name}*\n✰ Valor » *${Number(fila.value || tirada.value || 0).toLocaleString()}* 🪙\n♡ Estado » *Reclamado*`,
       mentions: [sender]
@@ -82,6 +126,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     await m.reply(`⚠︎ Se ha producido un problema al reclamar.\n> Usa *${usedPrefix}report* para informarlo.\n\n${error.message}`)
   } finally {
     reclamando.delete(id)
+    if (!reclamado) cooldowns.set(clave, 0)
   }
 }
 
