@@ -132,6 +132,6 @@ const handler = async (m, { conn, usedPrefix, command }) => {
 
 handler.help = ['claim']
 handler.tags = ['gacha']
-handler.command = ['c2', 'claim']
+handler.command = ['c', 'claim']
 
 export default handler
