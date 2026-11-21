@@ -12,8 +12,11 @@ const HEADERS = {
   'Accept': 'image/*, application/json, text/plain, */*;q=0.8'
 }
 
-export const lastRollsByChat = globalThis.__gachaRolls || (globalThis.__gachaRolls = new Map())
-const recientes = globalThis.__gachaRecientes || (globalThis.__gachaRecientes = new Map())
+globalThis.__gachaRolls = globalThis.__gachaRolls || new Map()
+globalThis.__gachaRecientes = globalThis.__gachaRecientes || new Map()
+
+export const lastRollsByChat = globalThis.__gachaRolls
+const recientes = globalThis.__gachaRecientes
 
 let cache = { mtime: 0, personajes: [] }
 
@@ -206,13 +209,13 @@ const handler = async (message, { conn, usedPrefix, command }) => {
       mentions.push(ownerId)
     }
 
-    const texto =
+  const texto =
   `❀ Nombre » *${nombre}*\n` +
   `⚥ Género » *${personaje.gender || 'Desconocido'}*\n` +
   `✰ Valor » *${valor.toLocaleString()}*\n` +
   `♡ Estado » *${estado}*\n` +
   `❖ Fuente » *${personaje.serie}*`
-    
+
     const enviadoMsg = await conn.sendFile(message.chat, media.buffer, `${nombre}.${media.ext}`, texto, message, false, { mentions })
     enviado = true
     guardarCooldown(sender, ahora + COOLDOWN_MS)
