@@ -16120,6 +16120,13 @@
         "gender": "Hombre",
         "tags": ["david_martinez"],
         "value": 9892
+      },
+      {
+        "id": "384256",
+        "name": "D",
+        "gender": "Hombre",
+        "tags": ["d_(cyberpunk)"],
+        "value": 10298
       }
     ]
   },
