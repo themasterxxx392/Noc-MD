@@ -118,7 +118,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     guardarCooldown(clave, ahora + COOLDOWN_MS)
 
     await conn.sendMessage(m.chat, {
-      text: `❀ ${tag(sender)} reclamó a *${fila.name}*\n✰ Valor » *${Number(fila.value || tirada.value || 0).toLocaleString()}* 🪙\n♡ Estado » *Reclamado*`,
+      text: `❀ ${tag(sender)} reclamó a *${fila.name}*\n✰ Valor » *${Number(fila.value || tirada.value || 0).toLocaleString()}*\n♡ Estado » *Reclamado*`,
       mentions: [sender]
     }, { quoted: m })
   } catch (error) {
