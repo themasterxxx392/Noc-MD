@@ -26,7 +26,7 @@ globalThis.info = {
     author: "Owner: ...",
     apis: "https://api.delirius.store",
     evogb: "https://api.evogb.org",
-    evogbkey: "evogb-TyswGrUB",
+    evogbkey: "evogb-7BKa57hD",
     img2: "https://telegra.ph/file/39fb047cdf23c7",
     img4: leerImagen('./media/Menu2.jpg'),
     yt: "",
