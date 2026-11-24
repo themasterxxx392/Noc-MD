@@ -6,7 +6,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         let mime = (q.msg || q).mimetype || q.mediaType || '';
         
         if (!mime) {
-            return m.reply(`[ ❌ ] ¡Responde a una imagen o video corto para convertirlo en sticker, w! Usa *${usedPrefix + command}*`);
+            return m.reply(`Responde a una imagen o video corto para convertirlo en sticker*`);
         }
 
         if (!/image|video/g.test(mime)) {
@@ -18,7 +18,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             return m.reply(`[ ❌ ] No pude descargar el archivo multimedia. Inténtalo de nuevo.`);
         }
 
-        let stiker = await sticker(img, false, "AnimsKuro", "Bot");
+        let stiker = await sticker(img, false, "Rem Bot", "𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•");
         
         if (stiker) {
             await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m });
