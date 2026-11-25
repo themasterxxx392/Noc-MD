@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 
 const FILE_PATH = new URL('../lib/characters.json', import.meta.url)
-const MAX_POR_PAGINA = 45
+const MAX_POR_PAGINA = 100
 
 let cache = { mtime: 0, series: [] }
 
