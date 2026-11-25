@@ -10,7 +10,7 @@ import * as baileys from '@whiskeysockets/baileys'
 const { proto, prepareWAMessageMedia } = baileys.proto ? baileys : baileys.default
 const run = promisify(execFile)
 
-const MAX_SEGUNDOS = 25
+const MAX_SEGUNDOS = 30
 const MAX_WEBP = 950 * 1024
 const CALIDADES = [30, 20, 12]
 
