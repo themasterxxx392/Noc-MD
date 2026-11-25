@@ -11,19 +11,17 @@ const leerImagen = (ruta) => {
   }
 }
 
-//owner
 global.owner = [
 ['51972409783'],
 ['51987812968'],
 ['51922902497'],
 ]
 
-//Información
 globalThis.info = {
     wm: "Rem Bot",
     vs: "2.0.5",
-    packname: "cff",
-    author: "Owner: ...",
+    packname: "𝑹𝒆𝒎 𝑩𝒐𝒕",
+    author: "Owner: 𝑷𝒍𝒂𝒕𝒂𝒏𝒊𝒕𝒐 ᩥ᪵⃞🍌｡•⁩",
     apis: "https://api.delirius.store",
     evogb: "https://api.evogb.org",
     evogbkey: "evogb-7BKa57hD",
