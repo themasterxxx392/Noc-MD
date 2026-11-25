@@ -165,7 +165,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 }
 
 handler.help = ['sa', 'stickeraudio']
-handler.tags = ['sticker']
-handler.command = ['sa', 'stickeraudio', 'soundsticker']
+handler.tags = ['toola']
+handler.command = ['sa', 'stickeraudio']
 
 export default handler
