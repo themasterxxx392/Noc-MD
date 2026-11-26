@@ -12,7 +12,7 @@ const run = promisify(execFile)
 
 const DIR = path.join(process.cwd(), 'database', 'stickeraudios')
 const INDICE = path.join(DIR, 'index.json')
-const MAX_SEGUNDOS = 5
+const MAX_SEGUNDOS = 30
 const MAX_ENTRADA = 25 * 1024 * 1024
 const MAX_WEBP = 950 * 1024
 const CALIDADES = [30, 20, 12]
