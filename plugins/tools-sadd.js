@@ -174,10 +174,10 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   if (cmd === 'slist' || cmd === 'saudios') {
     const nombres = Object.keys(indice)
     if (!nombres.length) {
-      return conn.reply(m.chat, `❖ No hay audios guardados.\n\n> ✩ Guarda uno respondiendo a un audio con *${usedPrefix}sadd <nombre>*.`, m)
+      return conn.reply(m.chat, `No hay audios guardados.`, m)
     }
     const lista = nombres.map(n => `> ❒ *${n}* (${indice[n].segundos}s)`).join('\n')
-    return conn.reply(m.chat, `❖ *AUDIOS PARA STICKERS*\n\n${lista}\n\n> ✩ Úsalos respondiendo a un sticker con *${usedPrefix}sset <nombre>*.`, m)
+    return conn.reply(m.chat, `✿︎ *AUDIOS PARA STICKERS*\n\n${lista}\n\n> ✩ Úsalos respondiendo a un sticker con *${usedPrefix}sset <nombre>*.`, m)
   }
 
   if (cmd === 'sadd') {
@@ -208,7 +208,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
       guardarIndice(indice)
 
       await conn.sendMessage(m.chat, { react: { text: '✔️', key: m.key } })
-      return conn.reply(m.chat, `❖ Audio *${nombre}* guardado (${segundos}s).${recortado ? `\n> ✩ Se guardaron solo los primeros ${MAX_SEGUNDOS} segundos.` : ''}\n\n> ➩ Úsalo respondiendo a un sticker con *${usedPrefix}sset ${nombre}*.`, m)
+      return conn.reply(m.chat, `✿︎ Audio *${nombre}* guardado (${segundos}s).${recortado ? `\n> ✩ Se guardaron solo los primeros ${MAX_SEGUNDOS} segundos.` : ''}\n\n> ➩ Úsalo respondiendo a un sticker con *${usedPrefix}sset ${nombre}*.`, m)
     } catch (e) {
       console.error('Error en sadd:', e.message)
       await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
@@ -223,13 +223,13 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
     fs.promises.unlink(rutaAudio(nombre)).catch(() => {})
     delete indice[nombre]
     guardarIndice(indice)
-    return conn.reply(m.chat, `❖ Audio *${nombre}* eliminado.`, m)
+    return conn.reply(m.chat, `✿︎ Audio *${nombre}* eliminado.`, m)
   }
 
   if (cmd === 'sset') {
     const esSticker = q && (q.mediaType === 'stickerMessage' || /webp/i.test(mime))
     if (!nombre || !esSticker) {
-      return conn.reply(m.chat, `❖ Responde a un sticker con *${usedPrefix}sset <nombre>*.\n\n> ✩ Mira los audios disponibles con *${usedPrefix}slist*.`, m)
+      return conn.reply(m.chat, `Responde a un sticker con *${usedPrefix}sset <nombre>*.\n\n> ✩ Mira los audios disponibles con *${usedPrefix}slist*.`, m)
     }
     if (!indice[nombre] || !fs.existsSync(rutaAudio(nombre))) {
       return conn.reply(m.chat, `⚠️ No existe ningún audio llamado *${nombre}*. Mira la lista con *${usedPrefix}slist*.`, m)
@@ -255,8 +255,8 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
   }
 }
 
-handler.help = ['sadd', 'sset', 'sdel', 'slist']
-handler.tags = ['sticker']
-handler.command = ['sadd', 'sset', 'sdel', 'slist', 'saudios']
+handler.help = ['sadd', 'sset', 'sdel', 'saudios']
+handler.tags = ['tools']
+handler.command = ['sadd', 'sset', 'sdel', 'saudios']
 
 export default handler
