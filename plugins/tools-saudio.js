@@ -194,6 +194,16 @@ async function convertirAudio(buffer) {
   }
 }
 
+async function tieneAudio(buffer) {
+  const archivo = temporal('bin')
+  fs.writeFileSync(archivo, buffer)
+  try {
+    return /Audio:/.test(await infoFfmpeg(archivo))
+  } finally {
+    limpiar(archivo)
+  }
+}
+
 async function codificarWebp(args, salida) {
   let resultado
   for (const calidad of CALIDADES) {
@@ -379,9 +389,7 @@ async function crearSticker(m, conn, usedPrefix) {
     let segundos
 
     if (t.video) {
-      const info = await run('ffmpeg', ['-hide_banner', '-i', (() => { const f = temporal('mp4'); fs.writeFileSync(f, original); setTimeout(() => limpiar(f), 30000); return f })()]).then(r => r.stderr, e => e.stderr || '')
-
-      if (/Audio:/.test(info)) {
+      if (await tieneAudio(original)) {
         const audio = await convertirAudio(original)
         ogg = audio.ogg
         segundos = audio.segundos
@@ -444,7 +452,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 }
 
 handler.help = ['stickeraudio', 'saudio', 'saveaudio', 'delaudio']
-handler.tags = ['sticker']
+handler.tags = ['tools']
 handler.command = ['stickeraudio', 'saudio', 'saveaudio', 'delaudio']
 
 export default handler
