@@ -12,8 +12,6 @@ const run = promisify(execFile)
 
 const DIR = path.join(process.cwd(), 'database', 'stickeraudios')
 const INDICE = path.join(DIR, 'index.json')
-const DIR_STICKERS = path.join(DIR, 'stickers')
-const MAX_STICKERS_GUARDADOS = 100
 const MAX_SEGUNDOS = 30
 const MAX_ENTRADA = 25 * 1024 * 1024
 const MAX_WEBP = 950 * 1024
@@ -21,14 +19,10 @@ const CALIDADES = [30, 20, 12]
 const MAX_REGISTRO = 300
 
 const REGISTRO = (globalThis.__stickersConAudio = globalThis.__stickersConAudio || new Map())
-const CAMPOS = (globalThis.__stickersCampos = globalThis.__stickersCampos || new Map())
-const AUDIOS_PROPIOS = (globalThis.__audiosStickersPropios = globalThis.__audiosStickersPropios || new Map())
 const ocupados = new Set()
 
 //INICIO-PARCHE
-function escanearSticker(buf, inicio, fin) {
-  const campos = []
-  let audio = null
+function buscarAudio(buf, inicio, fin) {
   let i = inicio
   const leer = () => {
     let r = 0
@@ -47,25 +41,23 @@ function escanearSticker(buf, inicio, fin) {
     const tag = leer()
     const campo = Math.floor(tag / 8)
     const tipo = tag % 8
-    if (!campos.includes(campo)) campos.push(campo)
     if (tipo === 0) leer()
     else if (tipo === 1) i += 8
     else if (tipo === 5) i += 4
     else if (tipo === 2) {
       const n = leer()
-      if (campo === 26 && !audio) audio = Buffer.from(buf.subarray(i, i + n))
+      if (campo === 26) return buf.subarray(i, i + n)
       i += n
-    } else break
+    } else return null
   }
-  return { audio, campos }
+  return null
 }
 
 function claveSha(valor) {
   if (!valor) return null
   if (valor.type === 'Buffer' && Array.isArray(valor.data)) valor = Buffer.from(valor.data)
   if (typeof valor === 'string') valor = Buffer.from(valor, 'base64')
-  if (!(valor instanceof Uint8Array) && typeof valor === 'object' && Object.keys(valor).every(k => /^\d+$/.test(k))) valor = Buffer.from(Object.values(valor))
-  if (valor instanceof Uint8Array && valor.length) return Buffer.from(valor).toString('hex')
+  if (valor instanceof Uint8Array) return Buffer.from(valor).toString('hex')
   return null
 }
 
@@ -92,26 +84,25 @@ function instalarParche() {
   if (!Msg.StickerMessage.decode.__registro) {
     const decodeSticker = Msg.StickerMessage.decode
     Msg.StickerMessage.decode = function (r, l, e) {
-      let escaneo = { audio: null, campos: [] }
+      let bytesAudio = null
       try {
         if (r && r.buf && typeof r.pos === 'number') {
-          escaneo = escanearSticker(r.buf, r.pos, l === undefined ? r.len : r.pos + l)
+          bytesAudio = buscarAudio(r.buf, r.pos, l === undefined ? r.len : r.pos + l)
         } else if (r instanceof Uint8Array) {
-          escaneo = escanearSticker(r, 0, l === undefined ? r.length : l)
+          bytesAudio = buscarAudio(r, 0, l === undefined ? r.length : l)
         }
-      } catch {}
+        if (bytesAudio) bytesAudio = Buffer.from(bytesAudio)
+      } catch {
+        bytesAudio = null
+      }
 
       const resultado = decodeSticker.call(this, r, l, e)
 
       try {
-        const clave = resultado ? claveSha(resultado.fileSha256) : null
+        const clave = bytesAudio && resultado ? claveSha(resultado.fileSha256) : null
         if (clave) {
-          CAMPOS.set(clave, escaneo.campos.join(','))
-          if (CAMPOS.size > MAX_REGISTRO) CAMPOS.delete(CAMPOS.keys().next().value)
-          if (escaneo.audio) {
-            REGISTRO.set(clave, escaneo.audio)
-            if (REGISTRO.size > MAX_REGISTRO) REGISTRO.delete(REGISTRO.keys().next().value)
-          }
+          REGISTRO.set(clave, bytesAudio)
+          if (REGISTRO.size > MAX_REGISTRO) REGISTRO.delete(REGISTRO.keys().next().value)
         }
       } catch {}
 
@@ -203,16 +194,6 @@ async function convertirAudio(buffer) {
   }
 }
 
-async function tieneAudio(buffer) {
-  const archivo = temporal('bin')
-  fs.writeFileSync(archivo, buffer)
-  try {
-    return /Audio:/.test(await infoFfmpeg(archivo))
-  } finally {
-    limpiar(archivo)
-  }
-}
-
 async function codificarWebp(args, salida) {
   let resultado
   for (const calidad of CALIDADES) {
@@ -276,25 +257,6 @@ async function agregarExif(webpBuffer, packname, author) {
   return await img.save(null)
 }
 
-function recordarSticker(sha, messageId, ogg) {
-  const clave = claveSha(sha)
-  AUDIOS_PROPIOS.set(`id:${messageId}`, ogg)
-
-  if (clave) {
-    AUDIOS_PROPIOS.set(clave, ogg)
-    try {
-      fs.mkdirSync(DIR_STICKERS, { recursive: true })
-      fs.writeFileSync(path.join(DIR_STICKERS, `${clave}.ogg`), ogg)
-      const archivos = fs.readdirSync(DIR_STICKERS)
-        .map(f => ({ f, t: fs.statSync(path.join(DIR_STICKERS, f)).mtimeMs }))
-        .sort((a, b) => b.t - a.t)
-      for (const { f } of archivos.slice(MAX_STICKERS_GUARDADOS)) fs.unlinkSync(path.join(DIR_STICKERS, f))
-    } catch {}
-  }
-
-  while (AUDIOS_PROPIOS.size > MAX_REGISTRO * 2) AUDIOS_PROPIOS.delete(AUDIOS_PROPIOS.keys().next().value)
-}
-
 async function enviarStickerConAudio(conn, chat, stickerBuffer, oggBuffer, segundos) {
   const stickerMedia = await prepareWAMessageMedia({ sticker: stickerBuffer }, { upload: conn.waUploadToServer })
   const audioMedia = await prepareWAMessageMedia({
@@ -317,24 +279,11 @@ async function enviarStickerConAudio(conn, chat, stickerBuffer, oggBuffer, segun
 
   const messageId = '3EB0' + crypto.randomBytes(9).toString('hex').toUpperCase()
   await conn.relayMessage(chat, contenido, { messageId })
-  recordarSticker(stickerMedia.stickerMessage.fileSha256, messageId, oggBuffer)
 }
 
 async function audioDeSticker(q) {
-  const msg = q.msg || q
-  const sha = claveSha(msg.fileSha256 || q.fileSha256)
-  const id = q.id || q.key?.id
-
-  const propio = (id && AUDIOS_PROPIOS.get(`id:${id}`)) || (sha && AUDIOS_PROPIOS.get(sha))
-  if (propio) return propio
-
-  if (sha) {
-    const archivo = path.join(DIR_STICKERS, `${sha}.ogg`)
-    if (fs.existsSync(archivo)) return fs.readFileSync(archivo)
-  }
-
-  const bytes = sha ? REGISTRO.get(sha) : null
-  console.log(`[sonido] sticker sha=${sha ? sha.slice(0, 8) : 'sin-sha'} id=${id || 'sin-id'} | capturado=${bytes ? 'sí' : 'no'} | campos vistos=${(sha && CAMPOS.get(sha)) || 'ninguno'}`)
+  const clave = claveSha((q.msg || q).fileSha256 || q.fileSha256)
+  const bytes = clave ? REGISTRO.get(clave) : null
   if (!bytes) return null
 
   const audioMsg = proto.Message.AudioMessage.decode(bytes)
@@ -377,10 +326,7 @@ async function guardarAudio(m, conn, usedPrefix) {
     let origen
     if (t.sticker) {
       origen = await audioDeSticker(q)
-      if (!origen) {
-        await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
-        return conn.reply(m.chat, `⚠️ Ese sticker no tiene sonido, o no pude leerlo.\n\n> ✩ Si es un sticker que ya tenías, reenvíalo al chat y respóndele de nuevo con *${usedPrefix}saveaudio*, así el bot lo recibe completo.`, m)
-      }
+      if (!origen) throw new Error('Ese sticker no tiene sonido, o no pude leerlo.')
     } else {
       origen = await descargar(q)
     }
@@ -433,7 +379,9 @@ async function crearSticker(m, conn, usedPrefix) {
     let segundos
 
     if (t.video) {
-      if (await tieneAudio(original)) {
+      const info = await run('ffmpeg', ['-hide_banner', '-i', (() => { const f = temporal('mp4'); fs.writeFileSync(f, original); setTimeout(() => limpiar(f), 30000); return f })()]).then(r => r.stderr, e => e.stderr || '')
+
+      if (/Audio:/.test(info)) {
         const audio = await convertirAudio(original)
         ogg = audio.ogg
         segundos = audio.segundos
