@@ -500,4 +500,3 @@ handler.tags = ['tools']
 handler.command = ['stickeraudio', 'saudio', 'saveaudio', 'delaudio']
 
 export default handler
-  
