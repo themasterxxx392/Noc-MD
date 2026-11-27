@@ -21,11 +21,14 @@ const CALIDADES = [30, 20, 12]
 const MAX_REGISTRO = 300
 
 const REGISTRO = (globalThis.__stickersConAudio = globalThis.__stickersConAudio || new Map())
+const CAMPOS = (globalThis.__stickersCampos = globalThis.__stickersCampos || new Map())
 const AUDIOS_PROPIOS = (globalThis.__audiosStickersPropios = globalThis.__audiosStickersPropios || new Map())
 const ocupados = new Set()
 
 //INICIO-PARCHE
-function buscarAudio(buf, inicio, fin) {
+function escanearSticker(buf, inicio, fin) {
+  const campos = []
+  let audio = null
   let i = inicio
   const leer = () => {
     let r = 0
@@ -44,16 +47,17 @@ function buscarAudio(buf, inicio, fin) {
     const tag = leer()
     const campo = Math.floor(tag / 8)
     const tipo = tag % 8
+    if (!campos.includes(campo)) campos.push(campo)
     if (tipo === 0) leer()
     else if (tipo === 1) i += 8
     else if (tipo === 5) i += 4
     else if (tipo === 2) {
       const n = leer()
-      if (campo === 26) return buf.subarray(i, i + n)
+      if (campo === 26 && !audio) audio = Buffer.from(buf.subarray(i, i + n))
       i += n
-    } else return null
+    } else break
   }
-  return null
+  return { audio, campos }
 }
 
 function claveSha(valor) {
@@ -88,25 +92,26 @@ function instalarParche() {
   if (!Msg.StickerMessage.decode.__registro) {
     const decodeSticker = Msg.StickerMessage.decode
     Msg.StickerMessage.decode = function (r, l, e) {
-      let bytesAudio = null
+      let escaneo = { audio: null, campos: [] }
       try {
         if (r && r.buf && typeof r.pos === 'number') {
-          bytesAudio = buscarAudio(r.buf, r.pos, l === undefined ? r.len : r.pos + l)
+          escaneo = escanearSticker(r.buf, r.pos, l === undefined ? r.len : r.pos + l)
         } else if (r instanceof Uint8Array) {
-          bytesAudio = buscarAudio(r, 0, l === undefined ? r.length : l)
+          escaneo = escanearSticker(r, 0, l === undefined ? r.length : l)
         }
-        if (bytesAudio) bytesAudio = Buffer.from(bytesAudio)
-      } catch {
-        bytesAudio = null
-      }
+      } catch {}
 
       const resultado = decodeSticker.call(this, r, l, e)
 
       try {
-        const clave = bytesAudio && resultado ? claveSha(resultado.fileSha256) : null
+        const clave = resultado ? claveSha(resultado.fileSha256) : null
         if (clave) {
-          REGISTRO.set(clave, bytesAudio)
-          if (REGISTRO.size > MAX_REGISTRO) REGISTRO.delete(REGISTRO.keys().next().value)
+          CAMPOS.set(clave, escaneo.campos.join(','))
+          if (CAMPOS.size > MAX_REGISTRO) CAMPOS.delete(CAMPOS.keys().next().value)
+          if (escaneo.audio) {
+            REGISTRO.set(clave, escaneo.audio)
+            if (REGISTRO.size > MAX_REGISTRO) REGISTRO.delete(REGISTRO.keys().next().value)
+          }
         }
       } catch {}
 
@@ -329,7 +334,7 @@ async function audioDeSticker(q) {
   }
 
   const bytes = sha ? REGISTRO.get(sha) : null
-  console.log(`[sonido] sticker sha=${sha ? sha.slice(0, 8) : 'sin-sha'} id=${id || 'sin-id'} | propio=no | capturado=${bytes ? 'sí' : 'no'}`)
+  console.log(`[sonido] sticker sha=${sha ? sha.slice(0, 8) : 'sin-sha'} id=${id || 'sin-id'} | capturado=${bytes ? 'sí' : 'no'} | campos vistos=${(sha && CAMPOS.get(sha)) || 'ninguno'}`)
   if (!bytes) return null
 
   const audioMsg = proto.Message.AudioMessage.decode(bytes)
@@ -363,7 +368,7 @@ async function guardarAudio(m, conn, usedPrefix) {
   const t = q ? tipoCitado(q) : {}
 
   if (!q || !(t.audio || t.video || t.sticker)) {
-    return conn.reply(m.chat, `Responde a un audio, nota de voz,.`, m)
+    return conn.reply(m.chat, `❖ Responde con *${usedPrefix}saveaudio* a un audio, nota de voz, video o sticker con sonido.\n\n> ✩ Después úsalo con *${usedPrefix}saudio* respondiendo a una imagen o sticker.`, m)
   }
 
   await conn.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
@@ -372,7 +377,10 @@ async function guardarAudio(m, conn, usedPrefix) {
     let origen
     if (t.sticker) {
       origen = await audioDeSticker(q)
-      if (!origen) throw new Error('Ese sticker no tiene sonido, o no pude leerlo.')
+      if (!origen) {
+        await conn.sendMessage(m.chat, { react: { text: '✖️', key: m.key } })
+        return conn.reply(m.chat, `⚠️ Ese sticker no tiene sonido, o no pude leerlo.\n\n> ✩ Si es un sticker que ya tenías, reenvíalo al chat y respóndele de nuevo con *${usedPrefix}saveaudio*, así el bot lo recibe completo.`, m)
+      }
     } else {
       origen = await descargar(q)
     }
@@ -488,7 +496,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 }
 
 handler.help = ['stickeraudio', 'saudio', 'saveaudio', 'delaudio']
-handler.tags = ['sticker']
+handler.tags = ['tools']
 handler.command = ['stickeraudio', 'saudio', 'saveaudio', 'delaudio']
 
 export default handler
+  
