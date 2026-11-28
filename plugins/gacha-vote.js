@@ -2,7 +2,8 @@ import { promises as fs } from 'fs'
 import { db } from '../lib/database.js'
 
 const FILE_PATH = new URL('../lib/characters.json', import.meta.url)
-const VOTO_VALOR = 50
+const VOTO_MIN = 100
+const VOTO_MAX = 200
 const COOLDOWN_MS = 60 * 60 * 1000
 const MAX_OPCIONES = 5
 
@@ -60,7 +61,7 @@ const normalizar = (texto) => String(texto || '')
   .replace(/[^a-z0-9]+/g, ' ')
   .trim()
 
-function buscar(personajes, consulta, serie) {
+function buscar(personajes, consulta) {
   const q = normalizar(consulta)
   if (!q) return []
 
@@ -71,42 +72,21 @@ function buscar(personajes, consulta, serie) {
   if (!lista.length) lista = personajes.filter(p => normalizar(p.name).startsWith(q))
   if (!lista.length) lista = personajes.filter(p => normalizar(p.name).includes(q))
 
-  if (serie && lista.length > 1) {
-    const s = normalizar(serie)
-    const filtrada = lista.filter(p => normalizar(p.serie) === s)
-    if (filtrada.length) lista = filtrada
-  }
-
   return lista
-}
-
-function leerTirada(q) {
-  const texto = [q.text, q.caption, q.msg?.caption, q.message?.imageMessage?.caption].find(t => typeof t === 'string' && t) || ''
-  return {
-    nombre: texto.match(/Nombre\s*»\s*\*([^*]+)\*/)?.[1]?.trim() || '',
-    serie: texto.match(/Fuente\s*»\s*\*([^*]+)\*/)?.[1]?.trim() || ''
-  }
 }
 
 const tag = (jid) => `@${String(jid).split('@')[0]}`
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   const sender = m.sender
-  let consulta = (text || '').trim()
-  let serie = ''
-
-  if (!consulta && m.quoted) {
-    const tirada = leerTirada(m.quoted)
-    consulta = tirada.nombre
-    serie = tirada.serie
-  }
+  const consulta = (text || '').trim()
 
   if (!consulta) {
-    return conn.reply(m.chat, `❖ Indica el personaje al que quieres votar.\n\n*Ejemplos:*\n\`${usedPrefix + command} Rem\`\nO responde al mensaje de un personaje con \`${usedPrefix + command}\`.\n\n> ✩ Cada voto sube su valor en ${VOTO_VALOR} 🪙.`, m)
+    return conn.reply(m.chat, `❖ Indica el personaje al que quieres votar.\n\n*Ejemplo:* \`${usedPrefix + command} Rem\`\n\n> ✩ Cada voto sube su valor entre ${VOTO_MIN} y ${VOTO_MAX} 🪙.`, m)
   }
 
   const personajes = await cargarPersonajes()
-  const coincidencias = buscar(personajes, consulta, serie)
+  const coincidencias = buscar(personajes, consulta)
 
   if (!coincidencias.length) {
     return m.reply(`ꕥ No encontré ningún personaje llamado *${consulta}*.`)
@@ -141,7 +121,8 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     const fila = (await db.query('SELECT * FROM gacha_characters WHERE id = $1', [id])).rows?.[0]
     const guardado = Number(fila?.value)
     const anterior = fila && Number.isFinite(guardado) ? guardado : Number(personaje.value) || 100
-    const nuevo = anterior + VOTO_VALOR
+    const aumento = Math.floor(Math.random() * (VOTO_MAX - VOTO_MIN + 1)) + VOTO_MIN
+    const nuevo = anterior + aumento
     const nombre = String(personaje.name || 'Sin nombre')
 
     if (fila) {
@@ -161,7 +142,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     guardarCooldown(clave, ahora + COOLDOWN_MS)
 
     await conn.sendMessage(m.chat, {
-      text: `❀ ${tag(sender)} votó por *${nombre}*\n✰ Valor » *${anterior.toLocaleString()}* ➩ *${nuevo.toLocaleString()}* 🪙\n❖ Fuente » *${personaje.serie}*`,
+      text: `❀ ${tag(sender)} votó por *${nombre}*\n✰ Valor » *${anterior.toLocaleString()}* ➩ *${nuevo.toLocaleString()}* 🪙 (+${aumento})\n❖ Fuente » *${personaje.serie}*`,
       mentions: [sender]
     }, { quoted: m })
   } catch (error) {
