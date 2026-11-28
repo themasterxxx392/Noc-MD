@@ -65,12 +65,13 @@ function buscar(personajes, consulta) {
   const q = normalizar(consulta)
   if (!q) return []
 
-  const porId = personajes.filter(p => String(p.id) === String(consulta).trim())
-  if (porId.length === 1) return porId
+  const completo = (p) => normalizar(`${p.name} ${p.serie}`)
 
-  let lista = personajes.filter(p => normalizar(p.name) === q)
+  let lista = personajes.filter(p => completo(p) === q)
+  if (!lista.length) lista = personajes.filter(p => normalizar(p.name) === q)
   if (!lista.length) lista = personajes.filter(p => normalizar(p.name).startsWith(q))
   if (!lista.length) lista = personajes.filter(p => normalizar(p.name).includes(q))
+  if (!lista.length) lista = personajes.filter(p => completo(p).includes(q))
 
   return lista
 }
@@ -93,8 +94,9 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   }
 
   if (coincidencias.length > 1) {
-    const lista = coincidencias.slice(0, MAX_OPCIONES).map(p => `> ❒ *${p.name}* (${p.serie}) » id *${p.id}*`).join('\n')
-    return conn.reply(m.chat, `ꕥ Encontré varios personajes, vota con su id:\n\n${lista}${coincidencias.length > MAX_OPCIONES ? `\n> ...y ${coincidencias.length - MAX_OPCIONES} más` : ''}\n\n> ✩ Ejemplo: \`${usedPrefix + command} ${coincidencias[0].id}\``, m)
+    const lista = coincidencias.slice(0, MAX_OPCIONES).map(p => `> ❒ *${p.name}* (${p.serie})`).join('\n')
+    const ejemplo = `${coincidencias[0].name} ${coincidencias[0].serie}`
+    return conn.reply(m.chat, `ꕥ Encontré varios personajes con ese nombre:\n\n${lista}${coincidencias.length > MAX_OPCIONES ? `\n> ...y ${coincidencias.length - MAX_OPCIONES} más` : ''}\n\n> ✩ Escribe el nombre completo, o el nombre y la serie.\n> ✩ Ejemplo: \`${usedPrefix + command} ${ejemplo}\``, m)
   }
 
   const personaje = coincidencias[0]
